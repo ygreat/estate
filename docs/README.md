@@ -3,7 +3,7 @@
 
 This directory holds long-form contributor and maintainer guides. `TERAX.md` at the repo root is the living architecture doc and the source of truth; these guides elaborate on specific areas without duplicating it.
 
-Estate is a hard fork of Terax. The architecture guides were written for Terax and describe the code Estate inherited; Windows, Linux and WSL details in them still describe the code but are not Estate support targets. The file keeps the name `TERAX.md` because the app loads it as agent memory.
+Estate started from Terax 0.9.0 (commit `a2c0877`, 6 November 2026) and is developed independently from there, for older macOS. Later Terax releases are not merged or ported. The architecture guides were written for Terax and describe that starting code; Windows, Linux and WSL details in them still describe the code but are not Estate support targets. The file keeps the name `TERAX.md` because the app loads it as agent memory.
 
 If a guide conflicts with `TERAX.md`, `TERAX.md` wins.
 

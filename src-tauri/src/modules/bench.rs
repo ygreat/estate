@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! Real-application benchmark support ("app lab"). Compiled only with `--features bench`.
 //!
 //! The scenario driver (`src/bench`, compiled into the frontend only when `TERAX_BENCH=1`) runs

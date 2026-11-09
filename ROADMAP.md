@@ -5,7 +5,7 @@ Estate's direction, what's planned, and what's deliberately out of scope. The fu
 
 ## What Estate is
 
-A focused developer workspace with seven tools (terminal, SSH/SFTP, database browser, editor, AI agent, in-app browser and Git) that runs on Intel Macs with macOS 12 Monterey and sends no telemetry. It is a hard fork of Terax, built on Tauri 2 and Rust.
+A focused developer workspace with seven tools (terminal, SSH/SFTP, database browser, editor, AI agent, in-app browser and Git) that runs on Intel Macs with macOS 12 Monterey and sends no telemetry. It is built on Tauri 2 and Rust. Estate started from Terax 0.9.0 (commit `a2c0877`, 6 November 2026) and is developed independently from there, for older macOS. Later Terax releases are not merged or ported.
 
 The first release succeeds when one x86_64 build launches on Monterey and all seven tools complete a real work session on the reference Mac (15-inch 2015 MacBook Pro, macOS 12.7, Safari 17.6).
 
@@ -17,9 +17,9 @@ The first release succeeds when one x86_64 build launches on Monterey and all se
 4. **Private by default.** No telemetry. Secrets live in the Keychain.
 5. **Safe with untrusted input.** Remote terminal output, database results and web pages are treated as hostile.
 
-## Inherited from Terax
+## Starting point: Terax 0.9.0
 
-These already work in the fork and need verifying on Monterey:
+These came with the Terax 0.9.0 code Estate started from, and need verifying on Monterey:
 
 - Terminal: tabs, splits, shell integration, libghostty-vt with WebGPU and a WebGL2 fallback
 - Editor: CodeMirror 6, file explorer, AI edit diffs, opt-in language servers
@@ -30,11 +30,14 @@ These already work in the fork and need verifying on Monterey:
 
 ## Phase 0: Prove the base on Monterey
 
-- [x] Set up the hard fork at ygreat/estate and confirm licensing
-- [ ] Pin the Rust toolchain
-- [ ] Rename to Estate: product name, bundle identifier `io.github.ygreat.estate`, minimum macOS `12.0`
-- [ ] Point the updater at ygreat/estate with Estate's own signing key, or turn it off
-- [ ] Set the Vite build target to `safari16.4` and add the needed polyfills
+- [x] Set up ygreat/estate from Terax 0.9.0 (commit `a2c0877`) and confirm licensing
+- [x] Pin the Rust toolchain (1.99.1)
+- [x] Rename to Estate: product name, bundle identifier `io.github.ygreat.estate`, minimum macOS `12.0`
+- [x] Point the updater at ygreat/estate and stop checking for updates at launch
+- [ ] Give the updater Estate's own signing key, or turn it off
+- [x] Set the Vite build target to `safari16.4`
+- [ ] Add polyfills for Iterator helpers, `Promise.try` and ReadableStream async iteration, and test AI streaming
+- [x] Build an x86_64 DMG whose binaries declare macOS 12.0 (built on a macOS 15.7 Intel Mac, 9 November 2026)
 - [ ] Build on the reference Mac and confirm the build tools (Rolldown, Lightning CSS, Tailwind) run on Monterey
 - [ ] Launch on macOS 12.7 from a clean install with no dyld errors
 - [ ] Measure the WebGL2 terminal on the reference GPU

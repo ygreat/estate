@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { execFileSync } from "node:child_process";
 import {
   existsSync,

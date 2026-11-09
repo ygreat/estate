@@ -1,7 +1,7 @@
 <!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 # Contributing to Estate
 
-Estate is a solo-maintained hard fork of Terax with a narrow goal: a seven-tool developer workspace that runs on Intel Macs with macOS 12 Monterey and sends no telemetry. Contributions are welcome, but **fit with that goal matters more than volume**.
+Estate is a solo-maintained project, built on Tauri and started from Terax 0.9.0, with a narrow goal: a seven-tool developer workspace that runs on Intel Macs with macOS 12 Monterey and sends no telemetry. Contributions are welcome, but **fit with that goal matters more than volume**.
 
 This document helps you decide *whether* and *how* to contribute so the work is likely to be merged.
 
@@ -14,11 +14,11 @@ This document helps you decide *whether* and *how* to contribute so the work is 
 
 ## Estate and Terax
 
-Estate is an independent project derived from [Terax](https://github.com/crynta/terax-ai). It is not affiliated with or endorsed by the Terax project.
+Estate is an independent project that started from [Terax](https://github.com/crynta/terax-ai) 0.9.0 (commit `a2c0877`, 6 November 2026). It is not affiliated with or endorsed by the Terax project.
 
-- Estate does not track Terax. There is no upstream remote, and Terax changes are ported by hand when they matter to Estate.
-- Report Estate bugs here, not to Terax. If a bug also exists in Terax, you may report it there too, but don't ask Terax maintainers to support Estate.
-- If you port a Terax fix, link the upstream commit or PR in your PR description and confirm it still works on macOS 12, since Terax targets macOS 13 and later.
+- Estate is developed on its own from that starting point. It doesn't track Terax, and later Terax releases are not merged or ported: Terax targets macOS 13 and later, so its future changes aren't relevant to Estate.
+- Write changes for Estate and macOS 12. Please don't open PRs that bring in code from newer Terax versions.
+- Report Estate bugs here, not to Terax. Don't ask Terax maintainers to support Estate.
 
 ## Quick start
 
@@ -195,7 +195,7 @@ Commit messages inside a PR can be free-form; they get squashed.
 - American English in user-facing strings.
 - Put new tools (SSH/SFTP, database) in their own modules rather than spreading them through existing ones.
 
-## Licensing of changes to upstream files
+## Licensing of changes to files from Terax
 
 Estate keeps Terax's Apache-2.0 license and notices. When you change a file that came from Terax:
 

@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Button } from "@/components/ui/button";
 import { useUpdater } from "@/modules/updater";
 import { GithubIcon } from "@hugeicons/core-free-icons";
