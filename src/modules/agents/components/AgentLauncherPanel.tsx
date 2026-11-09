@@ -36,8 +36,8 @@ export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
   const hydrated = usePreferencesStore((s) => s.hydrated);
   const [agentId, setAgentId] = useState<AgentLauncherId>("claude");
   const [instances, setInstances] = useState<AgentInstanceCount>(2);
-  // Estate: open the agent in terminals or as a chat.
-  const [view, setView] = useState<"terminal" | "chat">("terminal");
+  // Estate: open the agent as a chat (default) or in terminals.
+  const [view, setView] = useState<"terminal" | "chat">("chat");
   const [drafts, setDrafts] = useState<AgentLaunchCommands>(storedCommands);
   const hydratedRef = useRef(hydrated);
   const persistedRef = useRef(storedCommands);
@@ -141,7 +141,7 @@ export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
 
       <fieldset className="mt-1 grid grid-cols-2 gap-1 rounded-xl bg-foreground/[0.035] p-0.5">
         <legend className="sr-only">Open as</legend>
-        {(["terminal", "chat"] as const).map((v) => (
+        {(["chat", "terminal"] as const).map((v) => (
           <button
             key={v}
             type="button"

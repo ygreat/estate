@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { GhosttyTerminalModelApi } from "./GhosttyTerminalModel";
 import { GhosttyBlockSession } from "./ghosttyBlockSessions";
@@ -199,5 +200,30 @@ describe("block chrome recomputation", () => {
     expect(effect).toHaveBeenCalledTimes(1);
     for (let i = 0; i < 20; i++) state.changed();
     expect(effect).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("block welcome (Estate)", () => {
+  it("stays visible with a banner on screen, and goes once the user types", async () => {
+    const { model } = fakeModel();
+    const state = new GhosttyBlockSession();
+    expect(state.watermark()).toBe("hidden");
+    await state.attach(model, vi.fn());
+    expect(state.watermark()).toBe("visible");
+    state.inputActive = true;
+    expect(state.watermark()).toBe("dead");
+  });
+
+  it("goes after a command or when output scrolled into history", async () => {
+    const submitted = new GhosttyBlockSession();
+    await submitted.attach(fakeModel().model, vi.fn());
+    submitted.everSubmitted = true;
+    expect(submitted.watermark()).toBe("dead");
+
+    const { model, layout } = fakeModel();
+    const busy = new GhosttyBlockSession();
+    await busy.attach(model, vi.fn());
+    layout.history = 3;
+    expect(busy.watermark()).toBe("dead");
   });
 });

@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { subscribeWindowPresentation } from "@/modules/terminal/ghostty/windowPresentation";
 import type { GhosttyTerminalModelApi } from "@/modules/terminal/ghostty/GhosttyTerminalModel";
 import type { GhosttyBlocks } from "@/modules/terminal/ghostty/GhosttyBlocks";
@@ -139,11 +140,11 @@ export class GhosttyBlockSession {
 
   watermark(): WatermarkState {
     if (this.everSubmitted || this.controller?.hasAnyBlock) return "dead";
-    if (!this.model || this.inputActive) return "hidden";
-    if (
-      this.model.scrollPosition().history > 0 ||
-      this.model.readText(this.model.rows).trim()
-    )
+    if (!this.model) return "hidden";
+    // Estate: the welcome stays until the user types. The shell's own login
+    // banner or prompt on screen no longer dismisses it; output that scrolled
+    // into history (a busy startup script) still does.
+    if (this.inputActive || this.model.scrollPosition().history > 0)
       return "dead";
     return "visible";
   }
