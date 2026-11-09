@@ -55,6 +55,7 @@ import {
 import { useWorkspaceLayout } from "@/modules/layout/useWorkspaceLayout";
 import { AgentsPanel } from "@/modules/agents/components/AgentsPanelLazy";
 import { useAgentStore } from "@/modules/agents/store/agentStore";
+import { newChatId } from "@/modules/agent-chat/ids";
 import {
   LOGIN_COMMANDS,
   RUN_IN_TERMINAL_EVENT,
@@ -213,6 +214,7 @@ export default function App() {
     closePaneByLeaf,
     resetWorkspace,
     warmTab,
+    peekTab,
   } = useTabs(getLaunchDir() ? { cwd: getLaunchDir() } : undefined);
 
   // Mirror `tabs` into a ref so callbacks scheduled with `setTimeout`
@@ -776,7 +778,7 @@ export default function App() {
       const detail = (event as CustomEvent<RunInTerminalDetail>).detail;
       if (!detail || !LOGIN_COMMANDS.includes(detail.command)) return;
       const tabId = newTab(detail.cwd);
-      const tab = tabsRef.current.find((x) => x.id === tabId);
+      const tab = peekTab(tabId);
       const leafId = tab?.kind === "terminal" ? tab.activeLeafId : null;
       if (leafId === null) return;
       void whenSessionReady(leafId).then(() => {
@@ -785,7 +787,7 @@ export default function App() {
     };
     window.addEventListener(RUN_IN_TERMINAL_EVENT, onRun);
     return () => window.removeEventListener(RUN_IN_TERMINAL_EVENT, onRun);
-  }, [newTab]);
+  }, [newTab, peekTab]);
 
   const cdInNewTab = useCallback(
     (path: string) => {
@@ -1267,10 +1269,10 @@ export default function App() {
   // Resumes a saved Claude Code session in a new chat tab.
   const openClaudeSession = useCallback(
     (cwd: string, sessionId: string) => {
-      const tabId = newAgentChatTab("claude", cwd);
-      const tab = tabsRef.current.find((t) => t.id === tabId);
-      if (tab?.kind !== "agent-chat") return;
-      const { chatId } = tab;
+      // The chat id is chosen here: the new tab isn't in tabsRef until the
+      // next render, so it can't be looked up right after creating it.
+      const chatId = newChatId();
+      newAgentChatTab("claude", cwd, chatId);
       void import("@/modules/agent-chat/store").then(
         ({ useAgentChatStore }) => {
           const store = useAgentChatStore.getState();
