@@ -48,6 +48,10 @@ const ALLOWED: Record<string, { allows: string[]; why: string }> = {
     allows: ["backdrop filter"],
     why: "plan review overlay, mounted only during a review",
   },
+  "modules/welcome/WelcomeScreen.tsx": {
+    allows: ["backdrop filter"],
+    why: "welcome overlay over the editor, mounted only until dismissed",
+  },
   "modules/editor/lib/chromeTheme.ts": {
     allows: ["backdrop filter"],
     why: "CodeMirror tooltip, exists only while shown",
