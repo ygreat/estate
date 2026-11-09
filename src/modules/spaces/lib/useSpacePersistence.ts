@@ -1,7 +1,7 @@
 // Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { useCallback, useEffect, useRef } from "react";
 import type { Tab } from "@/modules/tabs";
-import { serializeLayout, type WorkspaceLayout } from "@/modules/layout/model";
+import { type Groups, serializeGroups } from "@/modules/layout/groups";
 import { useLayoutStore } from "@/modules/layout/store";
 import { isSerializableTab, serializeTabs } from "./serialize";
 import { saveState } from "./store";
@@ -13,22 +13,22 @@ type Snapshot = {
   tabs: Tab[];
   activeId: number;
   activeSpaceId: string;
-  layouts: Record<string, WorkspaceLayout>;
+  groups: Record<string, Groups>;
 };
 
-type Params = Omit<Snapshot, "layouts"> & {
+type Params = Omit<Snapshot, "groups"> & {
   /** Gate writes until boot hydration finished, so restore never round-trips. */
   enabled: boolean;
 };
 
 type LastWrite = { json: string; activeTabIndex: number };
 
-function layoutFor(group: Tab[], layout: WorkspaceLayout | undefined) {
-  if (!layout) return undefined;
+function groupsFor(group: Tab[], groups: Groups | undefined) {
+  if (!groups?.length) return undefined;
   const index = new Map<number, number>();
   const saved = group.filter(isSerializableTab);
   for (let i = 0; i < saved.length; i++) index.set(saved[i].id, i);
-  return serializeLayout(layout, (id) => index.get(id));
+  return serializeGroups(groups, (id) => index.get(id));
 }
 
 export function useSpacePersistence({
@@ -40,9 +40,9 @@ export function useSpacePersistence({
   const last = useRef<Map<string, LastWrite>>(new Map());
   const seeded = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const layouts = useLayoutStore((s) => s.layouts);
-  const latest = useRef<Snapshot>({ tabs, activeId, activeSpaceId, layouts });
-  latest.current = { tabs, activeId, activeSpaceId, layouts };
+  const groups = useLayoutStore((s) => s.groups);
+  const latest = useRef<Snapshot>({ tabs, activeId, activeSpaceId, groups });
+  latest.current = { tabs, activeId, activeSpaceId, groups };
 
   // Seed each space's last-known active index from disk so the first flush
   // preserves it for spaces the user never opens (empty json forces one write
@@ -74,8 +74,10 @@ export function useSpacePersistence({
           .findIndex((t) => t.id === snap.activeId);
         if (idx >= 0) activeTabIndex = idx;
       }
-      const layout = layoutFor(group, snap.layouts[spaceId]);
-      const json = JSON.stringify(layout ? [serialized, layout] : serialized);
+      const savedGroups = groupsFor(group, snap.groups[spaceId]);
+      const json = JSON.stringify(
+        savedGroups ? [serialized, savedGroups] : serialized,
+      );
       if (
         prev &&
         prev.json === json &&
@@ -87,14 +89,14 @@ export function useSpacePersistence({
       void saveState(spaceId, {
         tabs: serialized,
         activeTabIndex,
-        ...(layout && { layout }),
+        ...(savedGroups && { groups: savedGroups }),
       });
     }
   }, []);
 
   useEffect(() => {
     if (!enabled) return;
-    const snap: Snapshot = { tabs, activeId, activeSpaceId, layouts };
+    const snap: Snapshot = { tabs, activeId, activeSpaceId, groups };
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       timer.current = null;
@@ -103,7 +105,7 @@ export function useSpacePersistence({
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [tabs, activeId, activeSpaceId, layouts, enabled, flush]);
+  }, [tabs, activeId, activeSpaceId, groups, enabled, flush]);
 
   useEffect(() => {
     if (!enabled) return;

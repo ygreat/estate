@@ -19,6 +19,9 @@ export type SpaceState = {
   tabs: SerializedTab[];
   activeTabIndex: number;
   /** Estate: split view of tabs; leaves point at indexes in `tabs`. */
+  /** Estate: split groups; leaves point at indexes in `tabs`. */
+  groups?: SerializedLayoutNode[];
+  /** Estate (first version): one split layout. Read only, for old saves. */
   layout?: SerializedLayoutNode;
 };
 

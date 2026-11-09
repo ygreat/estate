@@ -7,7 +7,7 @@ import { isLeaf, type PaneNode } from "@/modules/terminal/lib/panes";
 import { parseWorkspaceScopeKey, type WorkspaceEnv } from "@/modules/workspace";
 import { useEffect, useRef } from "react";
 import { activeSpaceEnv, freshTabCwd } from "./activeSpace";
-import { hydrateLayout, type WorkspaceLayout } from "@/modules/layout/model";
+import { type Groups, hydrateGroups } from "@/modules/layout/groups";
 import { newLayoutId, useLayoutStore } from "@/modules/layout/store";
 import { freshTerminalTab, hydrateTabsAligned } from "./serialize";
 import { loadAll, type SpaceMeta, saveActiveId, saveSpacesList } from "./store";
@@ -82,18 +82,20 @@ export function useSpacesBoot({
         }
 
         const restored: Tab[] = [];
-        const layouts: Record<string, WorkspaceLayout> = {};
+        const groups: Record<string, Groups> = {};
         for (const space of spaces) {
           const st = states.get(space.id);
           if (!st) continue;
           const aligned = hydrateTabsAligned(st.tabs, space.id, allocId);
           for (const t of aligned) if (t) restored.push(t);
-          const layout = st.layout
-            ? hydrateLayout(st.layout, (i) => aligned[i]?.id, newLayoutId)
-            : undefined;
-          if (layout) layouts[space.id] = layout;
+          const restoredGroups = hydrateGroups(
+            st.groups ?? st.layout,
+            (i) => aligned[i]?.id,
+            newLayoutId,
+          );
+          if (restoredGroups.length) groups[space.id] = restoredGroups;
         }
-        useLayoutStore.getState().hydrate(layouts);
+        useLayoutStore.getState().hydrate(groups);
 
         const active =
           activeId && spaces.some((s) => s.id === activeId)

@@ -171,6 +171,7 @@ export default function App() {
     moveTabToSpace,
     reorderTab,
     reorderTabByGap,
+    gatherTabs,
     newTabInSpace,
     removeTabsForSpace,
     markBooted,
@@ -355,6 +356,7 @@ export default function App() {
     activeId,
     setActiveId,
     warmTab,
+    gatherTabs,
   });
 
   const {
@@ -1626,6 +1628,7 @@ export default function App() {
               onSplit={workspaceLayout.splitWithTab}
               onClosePane={workspaceLayout.closePaneOfTab}
               splitTabIds={workspaceLayout.splitTabIds}
+              groupOfTab={workspaceLayout.groupOfTab}
               onToggleSidebar={toggleSidebar}
               onOpenCommandPalette={() => openCommandPalette("commands")}
               onActivateAgent={onActivateAgent}

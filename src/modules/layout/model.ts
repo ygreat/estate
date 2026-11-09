@@ -1,9 +1,8 @@
 /**
  * Split view of tabs: the pure model.
  *
- * The workspace area is a tree of splits whose leaves each show one tab (of any
- * kind). One tab bar drives it: activating a tab that is already on screen
- * focuses its pane; activating one that is not shows it in the focused pane.
+ * One split: a tree whose leaves each show one tab (of any kind). groups.ts
+ * builds split groups out of these trees.
  * Every function here is pure and returns the input unchanged (same reference)
  * when nothing changes, so React state built on it re-renders only on change.
  */
@@ -47,10 +46,6 @@ export function singleLayout(tabId: number, newId: NewId): WorkspaceLayout {
 export function layoutLeaves(node: LayoutNode): LayoutLeaf[] {
   if (node.kind === "leaf") return [node];
   return node.children.flatMap(layoutLeaves);
-}
-
-export function isSplit(layout: WorkspaceLayout): boolean {
-  return layout.root.kind === "split";
 }
 
 export function findLeaf(
@@ -166,50 +161,6 @@ function withRoot(
   return { root, focusedLeafId: focus };
 }
 
-function setLeafTab(
-  layout: WorkspaceLayout,
-  leafId: string,
-  tabId: number,
-): WorkspaceLayout {
-  const leaf = findLeaf(layout, leafId);
-  if (!leaf || leaf.tabId === tabId) return layout;
-  return withRoot(layout, replaceNode(layout.root, leafId, { ...leaf, tabId }));
-}
-
-/**
- * Brings a layout in line with the space's tabs and the active tab:
- * panes whose tab closed are removed, the active tab is focused where it is
- * shown, and otherwise it replaces the focused pane's tab.
- */
-export function reconcileLayout(
-  layout: WorkspaceLayout | undefined,
-  tabIds: readonly number[],
-  activeId: number,
-  newId: NewId,
-): WorkspaceLayout {
-  const live = new Set(tabIds);
-  const activeLive = live.has(activeId);
-  if (!layout) return singleLayout(activeId, newId);
-
-  let next = layout;
-  const seen = new Set<number>();
-  for (const leaf of layoutLeaves(layout.root)) {
-    // A tab shows in at most one pane; a closed tab leaves no pane behind.
-    if (live.has(leaf.tabId) && !seen.has(leaf.tabId)) {
-      seen.add(leaf.tabId);
-      continue;
-    }
-    const root = removeLeafNode(next.root, leaf.id);
-    if (!root) return singleLayout(activeId, newId);
-    next = withRoot(next, root);
-  }
-
-  if (!activeLive) return next;
-  const shown = leafForTab(next, activeId);
-  if (shown) return withFocus(next, shown.id);
-  return setLeafTab(next, focusedLeaf(next).id, activeId);
-}
-
 export type DropResult =
   | { ok: true; layout: WorkspaceLayout }
   | { ok: false; reason: "same-pane" | "pane-limit" | "unknown-pane" };
@@ -314,6 +265,20 @@ function parentOf(node: LayoutNode, id: string): LayoutSplit | undefined {
     if (hit) return hit;
   }
   return undefined;
+}
+
+/**
+ * Removes the pane showing `tabId`. Returns null when that was the last pane,
+ * and the same layout when the tab isn't shown.
+ */
+export function removeTab(
+  layout: WorkspaceLayout,
+  tabId: number,
+): WorkspaceLayout | null {
+  const leaf = leafForTab(layout, tabId);
+  if (!leaf) return layout;
+  const root = removeLeafNode(layout.root, leaf.id);
+  return root ? withRoot(layout, root) : null;
 }
 
 /** Closes a pane. Its tab stays open; it just leaves the screen. */

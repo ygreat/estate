@@ -91,6 +91,8 @@ type Props = {
   onClosePane?: (id: number) => void;
   /** Estate: tabs shown in a pane of a split. */
   splitTabIds?: ReadonlySet<number>;
+  /** Estate: split group per grouped tab; a group's tabs share a background. */
+  groupOfTab?: ReadonlyMap<number, string>;
   compact?: boolean;
 };
 
@@ -116,6 +118,7 @@ export function TabBar({
   onSplit,
   onClosePane,
   splitTabIds,
+  groupOfTab,
   compact,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -387,6 +390,7 @@ export function TabBar({
                   className={cn(
                     "group relative z-[1] h-7 shrink-0 justify-between gap-1.5 rounded-md bg-transparent text-xs transition-colors data-active:bg-transparent dark:data-active:bg-transparent",
                     isNew && "estate-tab-in",
+                    groupClass(groupOfTab, tabs, i),
                     isActive
                       ? "text-foreground dark:text-foreground"
                       : "text-muted-foreground hover:text-foreground/80 dark:text-muted-foreground",
@@ -815,6 +819,23 @@ export function TabIcon({ tab }: { tab: Tab }) {
     return <AgentIcon agent={tab.agent} size={14} />;
   }
   return <TerminalTabIcon tab={tab} />;
+}
+
+/** Estate: a split group's tabs read as one run in the tab bar. */
+function groupClass(
+  groupOfTab: ReadonlyMap<number, string> | undefined,
+  tabs: Tab[],
+  i: number,
+): string | false {
+  const g = groupOfTab?.get(tabs[i].id);
+  if (!g) return false;
+  const prev = i > 0 && groupOfTab?.get(tabs[i - 1].id) === g;
+  const next = i < tabs.length - 1 && groupOfTab?.get(tabs[i + 1].id) === g;
+  return cn(
+    "bg-foreground/[0.045] ring-1 ring-inset ring-foreground/[0.06]",
+    prev && "rounded-l-none",
+    next && "rounded-r-none",
+  );
 }
 
 function TabRenameInput({

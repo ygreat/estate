@@ -53,6 +53,7 @@ type Props = {
   onSplit?: ComponentProps<typeof TabBar>["onSplit"];
   onClosePane?: ComponentProps<typeof TabBar>["onClosePane"];
   splitTabIds?: ReadonlySet<number>;
+  groupOfTab?: ReadonlyMap<number, string>;
   onOverrideLanguage?: (id: number, lang: string | null) => void;
   onToggleSidebar: () => void;
   onOpenCommandPalette: () => void;
@@ -87,6 +88,7 @@ export function Header({
   onSplit,
   onClosePane,
   splitTabIds,
+  groupOfTab,
   onOverrideLanguage,
   onToggleSidebar,
   onOpenCommandPalette,
@@ -210,6 +212,7 @@ export function Header({
           onSplit={onSplit}
           onClosePane={onClosePane}
           splitTabIds={splitTabIds}
+          groupOfTab={groupOfTab}
           onOverrideLanguage={onOverrideLanguage}
           compact={compact}
         />
