@@ -468,10 +468,11 @@ for label, user_zdotdir in (("with a user ZDOTDIR", True), ("without a user ZDOT
     for shape in "a", "b", "c":
         value = s.result(f"PERF{shape}")
         took = f"{float(value):.3f} ms" if value is not None else "?"
-        # About 0.5 ms here, almost all of it copying the argument; the best of
-        # eight samples under 2 ms is far from the 263 ms an unbounded parse of
-        # 60 KB cost, and no longer depends on a single scheduler hiccup.
-        check(f"{label}: a 200 KB command line ({shape}) costs next to nothing ({took})", value is not None and float(value) < 2.0, value)
+        # About 0.5 ms on fast hardware, almost all of it copying the argument.
+        # Estate: CI's Intel runner (and Monterey-era Macs) measure about 2 ms,
+        # so the bar is 10 ms: still far from the 263 ms an unbounded parse of
+        # 60 KB cost. Best of eight samples, so one scheduler hiccup can't fail it.
+        check(f"{label}: a 200 KB command line ({shape}) costs next to nothing ({took})", value is not None and float(value) < 10.0, value)
     s.close()
 
 # The implicit end of a command: exec zsh sends C and then the new shell's first
