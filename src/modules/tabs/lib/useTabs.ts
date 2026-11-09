@@ -681,6 +681,13 @@ export function useTabs(initial?: Partial<TerminalTab>) {
 
   const allocId = useCallback(() => nextIdRef.current++, []);
 
+  // Estate: the tab as of the latest action, before React re-renders (a tab
+  // created a moment ago isn't in the rendered list yet).
+  const peekTab = useCallback(
+    (id: number) => tabsRef.current.find((t) => t.id === id),
+    [],
+  );
+
   const markBooted = useCallback(() => setBooted(true), []);
 
   const setActiveSpaceForNewTabs = useCallback((spaceId: string) => {
@@ -1038,7 +1045,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
 
   // Estate: opens a terminal coding agent in chat mode.
   const newAgentChatTab = useCallback(
-    (agent: ChatAgentId, cwd: string) => {
+    (agent: ChatAgentId, cwd: string, chatId: string = newChatId()) => {
       const id = nextIdRef.current++;
       setTabs((t) => [
         ...t,
@@ -1047,7 +1054,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
           kind: "agent-chat",
           spaceId: activeSpaceIdRef.current,
           title: CHAT_AGENT_LABEL[agent],
-          chatId: newChatId(),
+          chatId,
           agent,
           cwd,
         },
@@ -1607,5 +1614,6 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     closePaneByLeaf,
     resetWorkspace,
     warmTab,
+    peekTab,
   };
 }
