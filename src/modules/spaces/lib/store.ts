@@ -1,6 +1,7 @@
 // Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { LazyStore } from "@tauri-apps/plugin-store";
 import type { WorkspaceEnv } from "@/modules/workspace";
+import type { SerializedLayoutNode } from "@/modules/layout/model";
 import type { SerializedTab } from "./serialize";
 
 export type SpaceMeta = {
@@ -17,6 +18,8 @@ export type SpaceMeta = {
 export type SpaceState = {
   tabs: SerializedTab[];
   activeTabIndex: number;
+  /** Estate: split view of tabs; leaves point at indexes in `tabs`. */
+  layout?: SerializedLayoutNode;
 };
 
 const STORE_PATH = "estate-spaces.json";

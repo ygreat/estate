@@ -7,7 +7,9 @@ import { isLeaf, type PaneNode } from "@/modules/terminal/lib/panes";
 import { parseWorkspaceScopeKey, type WorkspaceEnv } from "@/modules/workspace";
 import { useEffect, useRef } from "react";
 import { activeSpaceEnv, freshTabCwd } from "./activeSpace";
-import { freshTerminalTab, hydrateTabs } from "./serialize";
+import { hydrateLayout, type WorkspaceLayout } from "@/modules/layout/model";
+import { newLayoutId, useLayoutStore } from "@/modules/layout/store";
+import { freshTerminalTab, hydrateTabsAligned } from "./serialize";
 import { loadAll, type SpaceMeta, saveActiveId, saveSpacesList } from "./store";
 import { useSpaces } from "./useSpaces";
 
@@ -80,11 +82,18 @@ export function useSpacesBoot({
         }
 
         const restored: Tab[] = [];
+        const layouts: Record<string, WorkspaceLayout> = {};
         for (const space of spaces) {
           const st = states.get(space.id);
           if (!st) continue;
-          restored.push(...hydrateTabs(st.tabs, space.id, allocId));
+          const aligned = hydrateTabsAligned(st.tabs, space.id, allocId);
+          for (const t of aligned) if (t) restored.push(t);
+          const layout = st.layout
+            ? hydrateLayout(st.layout, (i) => aligned[i]?.id, newLayoutId)
+            : undefined;
+          if (layout) layouts[space.id] = layout;
         }
+        useLayoutStore.getState().hydrate(layouts);
 
         const active =
           activeId && spaces.some((s) => s.id === activeId)

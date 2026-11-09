@@ -1,4 +1,6 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { cn } from "@/lib/utils";
+import { placementStyle, useTabPlacement } from "@/modules/layout/placement";
 import type { PreviewTab, Tab } from "@/modules/tabs";
 import { useEffect, useRef } from "react";
 import { PreviewPane, type PreviewPaneHandle } from "./PreviewPane";
@@ -16,6 +18,7 @@ export function PreviewStack({
   onUrlChange,
   registerHandle,
 }: Props) {
+  const placementOf = useTabPlacement();
   const previews = tabs.filter(
     (t): t is PreviewTab => t.kind === "preview" && !t.cold,
   );
@@ -65,14 +68,13 @@ export function PreviewStack({
   return (
     <div className="relative h-full w-full">
       {previews.map((t) => {
-        const visible = t.id === activeId;
+        const placement = placementOf(t.id, activeId);
+        const visible = placement !== null;
         return (
           <div
             key={t.id}
-            className={cn(
-              "absolute inset-0",
-              !visible && "invisible pointer-events-none",
-            )}
+            style={placementStyle(placement)}
+            className={cn(!visible && "invisible pointer-events-none")}
             aria-hidden={!visible}
           >
             <PreviewPane

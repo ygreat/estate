@@ -1,7 +1,14 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { describe, expect, it } from "vitest";
 import type { PaneNode } from "@/modules/terminal/lib/panes";
 import type { Tab } from "@/modules/tabs/lib/useTabs";
-import { hydrateTabs, serializeTabs, type SerializedTab } from "./serialize";
+import { hydrateLayout, serializeLayout } from "@/modules/layout/model";
+import {
+  hydrateTabs,
+  hydrateTabsAligned,
+  serializeTabs,
+  type SerializedTab,
+} from "./serialize";
 
 function counter(start = 100): () => number {
   let n = start;
@@ -156,5 +163,70 @@ describe("hydrateTabs", () => {
       "localhost:5173",
       "README.md",
     ]);
+  });
+});
+
+describe("hydrateTabsAligned (Estate split layouts)", () => {
+  it("keeps a slot per saved entry so layout indexes still resolve", () => {
+    const serialized = [
+      { kind: "editor", path: "/a/one.ts" },
+      { kind: "bogus" },
+      { kind: "preview", url: "http://localhost:5173" },
+    ] as unknown as SerializedTab[];
+    const aligned = hydrateTabsAligned(serialized, "s1", counter());
+    expect(aligned).toHaveLength(3);
+    expect(aligned[1]).toBeNull();
+    expect(hydrateTabs(serialized, "s1", counter())).toHaveLength(2);
+  });
+
+  it("round-trips a split layout through saved tab indexes", () => {
+    const tabs: Tab[] = [
+      {
+        id: 1,
+        kind: "editor",
+        spaceId: "s1",
+        title: "a.ts",
+        path: "/a.ts",
+        dirty: false,
+        preview: false,
+      },
+      {
+        id: 2,
+        kind: "preview",
+        spaceId: "s1",
+        title: "app",
+        url: "http://localhost:5173",
+      },
+    ];
+    const ids = (() => {
+      let n = 0;
+      return () => `p${++n}`;
+    })();
+    const layout = hydrateLayout(
+      {
+        kind: "split",
+        dir: "row",
+        sizes: [60, 40],
+        children: [
+          { kind: "leaf", tab: 0 },
+          { kind: "leaf", tab: 1, focused: true },
+        ],
+      },
+      (i) => tabs[i]?.id,
+      ids,
+    );
+    expect(layout).toBeDefined();
+    const index = new Map(tabs.map((t, i) => [t.id, i]));
+    const saved = layout && serializeLayout(layout, (id) => index.get(id));
+    expect(saved).toEqual({
+      kind: "split",
+      dir: "row",
+      sizes: [60, 40],
+      children: [
+        { kind: "leaf", tab: 0 },
+        { kind: "leaf", tab: 1, focused: true },
+      ],
+    });
+    expect(serializeTabs(tabs)).toHaveLength(2);
   });
 });

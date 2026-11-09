@@ -21,9 +21,9 @@ import {
 } from "@/modules/terminal/lib/panes";
 import { disposeSession } from "@/modules/terminal/lib/terminalSessionApi";
 import {
+  type SetStateAction,
   useCallback,
   useEffect,
-  type SetStateAction,
   useRef,
   useState,
 } from "react";
@@ -632,6 +632,20 @@ export function useTabs(initial?: Partial<TerminalTab>) {
       return curr.map((x) => (x.id === activeId ? { ...x, cold: false } : x));
     });
   }, [activeId, booted, setTabs]);
+
+  // Estate: a split pane shows a tab without activating it, so restored (cold)
+  // tabs in other panes are warmed here. Gated on boot like activation.
+  const warmTab = useCallback(
+    (tabId: number) => {
+      if (!booted) return;
+      setTabs((curr) => {
+        const t = curr.find((x) => x.id === tabId);
+        if (!t?.cold) return curr;
+        return curr.map((x) => (x.id === tabId ? { ...x, cold: false } : x));
+      });
+    },
+    [booted, setTabs],
+  );
 
   const allocId = useCallback(() => nextIdRef.current++, []);
 
@@ -1529,5 +1543,6 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     closeActivePane,
     closePaneByLeaf,
     resetWorkspace,
+    warmTab,
   };
 }

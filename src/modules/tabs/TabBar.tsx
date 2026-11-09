@@ -23,6 +23,7 @@ import {
 } from "@/modules/editor/lib/languageDefinitions";
 import { resolveDisplayName } from "@/modules/editor/lib/languageResolver";
 import { FileIcon } from "@/modules/explorer/FileIcon";
+import { type PaneDropTarget, useTabDragStore } from "@/modules/layout/store";
 import {
   leafIds,
   ptyIdForLeaf,
@@ -38,6 +39,8 @@ import {
   GitCompareIcon,
   Globe02Icon,
   IncognitoIcon,
+  LayoutTwoColumnIcon,
+  LayoutTwoRowIcon,
   Message02Icon,
   PencilEdit02Icon,
   Tick02Icon,
@@ -80,6 +83,14 @@ type Props = {
   /** Move a dragged tab to a new position (insertion gap index 0..tabs.length). */
   onReorder: (fromId: number, toGapIndex: number) => void;
   onOverrideLanguage?: (id: number, lang: string | null) => void;
+  /** Estate: a tab dragged out of the bar was dropped on a workspace pane. */
+  onDropOnPane?: (id: number, target: PaneDropTarget) => void;
+  /** Estate: show the tab beside the focused pane. */
+  onSplit?: (id: number, zone: "right" | "bottom") => void;
+  /** Estate: close the split pane showing this tab (the tab stays open). */
+  onClosePane?: (id: number) => void;
+  /** Estate: tabs shown in a pane of a split. */
+  splitTabIds?: ReadonlySet<number>;
   compact?: boolean;
 };
 
@@ -101,6 +112,10 @@ export function TabBar({
   onRename,
   onReorder,
   onOverrideLanguage,
+  onDropOnPane,
+  onSplit,
+  onClosePane,
+  splitTabIds,
   compact,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -112,6 +127,7 @@ export function TabBar({
   const drag = useRef<{
     pointerId: number;
     startX: number;
+    startY: number;
     fromId: number;
     active: boolean;
   } | null>(null);
@@ -180,6 +196,7 @@ export function TabBar({
   const endDrag = (currentTarget: HTMLElement) => {
     const st = drag.current;
     if (st) currentTarget.releasePointerCapture?.(st.pointerId);
+    useTabDragStore.getState().leaveWorkspace();
     drag.current = null;
     setDraggingId(null);
     setDropGap(null);
@@ -296,6 +313,7 @@ export function TabBar({
                     drag.current = {
                       pointerId: e.pointerId,
                       startX: e.clientX,
+                      startY: e.clientY,
                       fromId: t.id,
                       active: false,
                     };
@@ -305,17 +323,38 @@ export function TabBar({
                     const st = drag.current;
                     if (!st || st.pointerId !== e.pointerId) return;
                     if (!st.active) {
-                      if (Math.abs(e.clientX - st.startX) < 4) return;
+                      // Estate: either direction starts a drag, so a tab can be
+                      // pulled straight down into the workspace to split it.
+                      if (
+                        Math.hypot(
+                          e.clientX - st.startX,
+                          e.clientY - st.startY,
+                        ) < 4
+                      )
+                        return;
                       st.active = true;
                       setDraggingId(st.fromId);
                       document.body.style.userSelect = "none";
                     }
                     e.preventDefault();
+                    const bar = scrollRef.current?.getBoundingClientRect();
+                    if (onDropOnPane && bar && e.clientY > bar.bottom + 6) {
+                      // Over the workspace: the layout frame shows where it lands.
+                      setDropGap(null);
+                      useTabDragStore
+                        .getState()
+                        .move(st.fromId, e.clientX, e.clientY);
+                      return;
+                    }
+                    useTabDragStore.getState().leaveWorkspace();
                     setDropGap(gapAtX(e.clientX));
                   }}
                   onPointerUp={(e) => {
                     const st = drag.current;
-                    if (st?.active && dropGap !== null) {
+                    const paneTarget = useTabDragStore.getState().end();
+                    if (st?.active && paneTarget && onDropOnPane) {
+                      onDropOnPane(st.fromId, paneTarget);
+                    } else if (st?.active && dropGap !== null) {
                       onReorder(st.fromId, dropGap);
                     } else if (st && !st.active) {
                       onSelect(t.id);
@@ -544,6 +583,48 @@ export function TabBar({
                             </ContextMenuItem>
                           </>
                         )}
+                      </>
+                    )}
+                    {onSplit && (
+                      <>
+                        <ContextMenuItem
+                          className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                          disabled={tabs.length <= 1}
+                          onSelect={() => onSplit(t.id, "right")}
+                        >
+                          <HugeiconsIcon
+                            icon={LayoutTwoColumnIcon}
+                            size={13}
+                            strokeWidth={1.75}
+                          />
+                          <span className="flex-1">Split right</span>
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                          disabled={tabs.length <= 1}
+                          onSelect={() => onSplit(t.id, "bottom")}
+                        >
+                          <HugeiconsIcon
+                            icon={LayoutTwoRowIcon}
+                            size={13}
+                            strokeWidth={1.75}
+                          />
+                          <span className="flex-1">Split down</span>
+                        </ContextMenuItem>
+                        {onClosePane && splitTabIds?.has(t.id) && (
+                          <ContextMenuItem
+                            className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                            onSelect={() => onClosePane(t.id)}
+                          >
+                            <HugeiconsIcon
+                              icon={Cancel01Icon}
+                              size={13}
+                              strokeWidth={1.75}
+                            />
+                            <span className="flex-1">Close pane</span>
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuSeparator />
                       </>
                     )}
                     <ContextMenuItem

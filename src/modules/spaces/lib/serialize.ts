@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import {
   isLeaf,
   type PaneNode,
@@ -222,15 +223,27 @@ export function hydrateTabs(
   spaceId: string,
   allocId: () => number,
 ): Tab[] {
+  return hydrateTabsAligned(serialized, spaceId, allocId).filter(
+    (t): t is Tab => t !== null,
+  );
+}
+
+/**
+ * Estate: like hydrateTabs, but keeps one slot per saved entry (null where an
+ * entry couldn't be restored), so a saved layout's tab indexes still resolve.
+ */
+export function hydrateTabsAligned(
+  serialized: SerializedTab[],
+  spaceId: string,
+  allocId: () => number,
+): (Tab | null)[] {
   if (!Array.isArray(serialized)) return [];
-  const out: Tab[] = [];
-  for (const s of serialized) {
+  return serialized.map((s) => {
     try {
-      const tab = hydrateTab(s, spaceId, allocId);
-      if (tab) out.push(tab);
+      return hydrateTab(s, spaceId, allocId);
     } catch {
       // Skip corrupted entries rather than failing the whole restore.
+      return null;
     }
-  }
-  return out;
+  });
 }
