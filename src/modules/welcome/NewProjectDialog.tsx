@@ -80,13 +80,19 @@ export function NewProjectDialog({
   const ready = !problem && root.trim().startsWith("/") && !busy;
 
   const choose = async () => {
-    const { open: pick } = await import("@tauri-apps/plugin-dialog");
-    const picked = await pick({
-      directory: true,
-      multiple: false,
-      title: "Choose where new projects go",
-      defaultPath: root || home || undefined,
-    });
+    let picked: string | string[] | null;
+    try {
+      const { open: pick } = await import("@tauri-apps/plugin-dialog");
+      picked = await pick({
+        directory: true,
+        multiple: false,
+        title: "Choose where new projects go",
+        defaultPath: root || home || undefined,
+      });
+    } catch (e) {
+      setError(`Couldn't open the folder picker: ${String(e)}`);
+      return;
+    }
     if (typeof picked === "string") setRoot(picked);
   };
 

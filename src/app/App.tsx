@@ -1450,12 +1450,22 @@ export default function App() {
     [switchProject, workspaceEnv, setActiveSpaceForNewTabs, newTab],
   );
   const pickProjectFolder = useCallback(async (): Promise<boolean> => {
-    const { open } = await import("@tauri-apps/plugin-dialog");
-    const picked = await open({
-      directory: true,
-      multiple: false,
-      title: "Open Project",
-    });
+    let picked: string | string[] | null;
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      picked = await open({
+        directory: true,
+        multiple: false,
+        title: "Open Project",
+      });
+    } catch (error) {
+      // Estate: say why instead of doing nothing.
+      console.error("Open Project failed:", error);
+      toast.error("Couldn't open the folder picker", {
+        description: String(error),
+      });
+      return false;
+    }
     if (typeof picked !== "string") return false;
     await openProjectFolder(picked);
     return true;
