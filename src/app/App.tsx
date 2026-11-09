@@ -65,7 +65,11 @@ import {
 } from "@/modules/spaces/lib/projects";
 import { ProjectButton } from "@/modules/statusbar/ProjectButton";
 import { WelcomeScreen } from "@/modules/welcome/WelcomeScreen";
-import { setShowWelcome } from "@/modules/settings/store";
+import { setOrchestratorAgent, setShowWelcome } from "@/modules/settings/store";
+import type { ChatAgentId } from "@/modules/agent-chat/model";
+import { resolveInstructions } from "@/modules/orchestrator/instructions";
+import { orchestratorPrompt } from "@/modules/orchestrator/plan";
+import { setOrchestratorHost } from "@/modules/orchestrator/runs";
 import type { FolderAction } from "@/modules/statusbar/CwdBreadcrumb";
 import {
   LOGIN_COMMANDS,
@@ -1442,6 +1446,7 @@ export default function App() {
   const welcomeChecked = useRef(false);
   const prefsHydrated = usePreferencesStore((s) => s.hydrated);
   const showWelcomePref = usePreferencesStore((s) => s.showWelcome);
+  const orchestratorAgentPref = usePreferencesStore((s) => s.orchestratorAgent);
   useEffect(() => {
     if (welcomeChecked.current || !spacesHydrated || !prefsHydrated) return;
     welcomeChecked.current = true;
@@ -1476,6 +1481,53 @@ export default function App() {
     },
     [welcomeProject, inheritedCwdForNewTab, home, newAgentChatTab],
   );
+  // Estate Orchestrator: plans a goal in its own chat, then runs the tasks.
+  const planWithOrchestrator = useCallback(
+    (goal: string, agent: ChatAgentId, remember: boolean) => {
+      setWelcomeOpen(false);
+      if (remember) void setOrchestratorAgent(agent);
+      const cwd = welcomeProject?.root ?? inheritedCwdForNewTab() ?? home;
+      if (!cwd) return;
+      const chatId = newChatId();
+      const instructions = resolveInstructions(
+        usePreferencesStore.getState().orchestratorInstructions,
+      );
+      void native
+        .workspaceAuthorize(cwd)
+        .then(() => {
+          newAgentChatTab(agent, cwd, chatId, {
+            title: "Orchestrator",
+            role: "orchestrator",
+          });
+          return import("@/modules/agent-chat/store").then(
+            ({ useAgentChatStore }) => {
+              const store = useAgentChatStore.getState();
+              store.open(chatId, { agent, cwd });
+              void store.send(chatId, orchestratorPrompt(instructions, goal));
+            },
+          );
+        })
+        .catch((error) =>
+          toast.error("Could not open this folder for the agent", {
+            description: String(error),
+          }),
+        );
+    },
+    [welcomeProject, inheritedCwdForNewTab, home, newAgentChatTab],
+  );
+  useEffect(() => {
+    setOrchestratorHost({
+      openChat: (agent, cwd, chatId, title) =>
+        newAgentChatTab(agent, cwd, chatId, { title, background: true }),
+      focusChat: (chatId) => {
+        const tab = tabsRef.current.find(
+          (t) => t.kind === "agent-chat" && t.chatId === chatId,
+        );
+        if (tab) setActiveId(tab.id);
+      },
+    });
+    return () => setOrchestratorHost(null);
+  }, [newAgentChatTab, setActiveId]);
   const folderActions = useCallback(
     (path: string): FolderAction[] => [
       { label: "Open as project", run: () => void openProjectFolder(path) },
@@ -1819,6 +1871,8 @@ export default function App() {
             onOpenFolder={pickProjectFolder}
             onSwitchProject={switchProject}
             onStartChat={startChatFromWelcome}
+            planAgent={orchestratorAgentPref}
+            onPlan={planWithOrchestrator}
             onNewTerminal={() => {
               setWelcomeOpen(false);
               newTab(welcomeProject?.root ?? undefined);

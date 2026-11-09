@@ -11,6 +11,13 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  CHAT_AGENT_LABEL,
+  CHAT_AGENTS,
+  type ChatAgentId,
+} from "@/modules/agent-chat/model";
+import { availableChatAgents } from "@/modules/agent-chat/store";
+import type { OrchestratorDelegate } from "@/modules/orchestrator/instructions";
 import { folderName, shortPath } from "@/modules/spaces/lib/projects";
 import type { SpaceMeta } from "@/modules/spaces/lib/store";
 
@@ -26,8 +33,10 @@ type Props = {
   onSwitchProject: (spaceId: string) => void;
   /** Starts an agent chat, optionally with a first message. */
   onStartChat: (prompt: string) => void;
-  /** Plans the goal with the Orchestrator (absent until it's available). */
-  onPlan?: (goal: string) => void;
+  /** Which agent plans: a fixed one, or "ask" to choose each time. */
+  planAgent: OrchestratorDelegate;
+  /** Plans the goal with the Orchestrator; `remember` saves the agent choice. */
+  onPlan: (goal: string, agent: ChatAgentId, remember: boolean) => void;
   onNewTerminal: () => void;
   onOpenCommandPalette: () => void;
   onClose: () => void;
@@ -43,6 +52,7 @@ export function WelcomeScreen({
   onOpenFolder,
   onSwitchProject,
   onStartChat,
+  planAgent,
   onPlan,
   onNewTerminal,
   onOpenCommandPalette,
@@ -51,6 +61,22 @@ export function WelcomeScreen({
   // The open project counts as chosen only once the user confirms it here.
   const [chosen, setChosen] = useState(false);
   const [goal, setGoal] = useState("");
+  // "ask": the agent chooser shows under the goal before planning.
+  const [choosing, setChoosing] = useState(false);
+  const [installed, setInstalled] = useState<ChatAgentId[] | null>(null);
+  const [remember, setRemember] = useState(false);
+  const plan = () => {
+    if (!goal.trim()) return;
+    if (planAgent !== "ask") {
+      onPlan(goal.trim(), planAgent, false);
+      return;
+    }
+    setChoosing(true);
+    if (installed === null)
+      void availableChatAgents()
+        .then(setInstalled)
+        .catch(() => setInstalled([...CHAT_AGENTS]));
+  };
   const goalRef = useRef<HTMLTextAreaElement | null>(null);
   const project = chosen ? current : null;
 
@@ -220,12 +246,12 @@ export function WelcomeScreen({
                   className="w-full resize-none bg-transparent text-[13.5px] leading-6 outline-none placeholder:text-muted-foreground"
                 />
                 <div className="flex items-center justify-end gap-2">
-                  {onPlan && (
+                  {!choosing && (
                     <Button
                       variant="outline"
                       size="sm"
                       disabled={!goal.trim()}
-                      onClick={() => onPlan(goal.trim())}
+                      onClick={plan}
                       title="Break the goal into tasks and hand them to agents"
                       className="gap-1.5"
                     >
@@ -251,6 +277,46 @@ export function WelcomeScreen({
                     Start building
                   </Button>
                 </div>
+                {choosing && (
+                  <div className="mt-2 border-t border-border/60 pt-2.5">
+                    <div className="mb-2 text-[12px] text-muted-foreground">
+                      Which agent should plan this?
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CHAT_AGENTS.map((a) => {
+                        const missing =
+                          installed !== null && !installed.includes(a);
+                        return (
+                          <Button
+                            key={a}
+                            size="sm"
+                            variant="outline"
+                            disabled={missing || !goal.trim()}
+                            title={missing ? "Not installed" : undefined}
+                            onClick={() => onPlan(goal.trim(), a, remember)}
+                          >
+                            {CHAT_AGENT_LABEL[a]}
+                          </Button>
+                        );
+                      })}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setChoosing(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                    <label className="mt-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={remember}
+                        onChange={(e) => setRemember(e.target.checked)}
+                      />
+                      Remember my choice (change it in Settings &gt; Agents)
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 grid w-full grid-cols-3 gap-2">

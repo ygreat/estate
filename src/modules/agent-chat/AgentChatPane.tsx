@@ -6,7 +6,14 @@ import {
   InformationCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +27,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import { git } from "@/modules/git";
+import { PlanCard } from "@/modules/orchestrator/PlanCard";
+import {
+  parsePlan,
+  shownUserText,
+  withoutPlan,
+} from "@/modules/orchestrator/plan";
+import { focusOrchestratedChat } from "@/modules/orchestrator/runs";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { ChatStatusItem } from "@/modules/settings/store";
 import {
@@ -62,6 +76,8 @@ type Props = {
   chatId: string;
   agent: ChatAgentId;
   cwd: string;
+  /** Estate: an Orchestrator chat shows its plans as plan cards. */
+  role?: "orchestrator";
   visible: boolean;
 };
 
@@ -72,7 +88,7 @@ function folderName(path: string): string {
   return parts[parts.length - 1] ?? path;
 }
 
-export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
+export function AgentChatPane({ chatId, agent, cwd, role, visible }: Props) {
   const open = useAgentChatStore((s) => s.open);
   const {
     auth,
@@ -110,6 +126,17 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
   const running = chat?.running ?? false;
   const access = chat?.access ?? "read";
   const loaded = chat?.loaded ?? false;
+  const orchestrator = role === "orchestrator";
+  // Only the latest plan is live; earlier ones were superseded.
+  const planItemId = useMemo(() => {
+    if (!orchestrator) return null;
+    for (let i = items.length - 1; i >= 0; i--) {
+      const item = items[i];
+      if (item.kind === "assistant" && !item.streaming && parsePlan(item.text))
+        return item.id;
+    }
+    return null;
+  }, [orchestrator, items]);
 
   // Follow new output while the reader is at the bottom.
   useLayoutEffect(() => {
@@ -249,6 +276,16 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
                     access={access}
                     running={running}
                     onRetry={(a) => void retryWithAccess(chatId, a)}
+                    orchestrator={
+                      orchestrator
+                        ? {
+                            chatId,
+                            cwd,
+                            agent,
+                            live: item.id === planItemId,
+                          }
+                        : undefined
+                    }
                   />
                 ))}
                 {offerGenericRetry && (
@@ -544,27 +581,53 @@ const ChatRow = memo(function ChatRow({
   access,
   running,
   onRetry,
+  orchestrator,
 }: {
   item: ChatItem;
   access: ChatAccess;
   running: boolean;
   onRetry: (access: ChatAccess) => void;
+  orchestrator?: {
+    chatId: string;
+    cwd: string;
+    agent: ChatAgentId;
+    live: boolean;
+  };
 }) {
   switch (item.kind) {
     case "user":
       return (
         <div className="ml-auto max-w-[85%] whitespace-pre-wrap break-words rounded-xl bg-muted px-3 py-2 text-[13px] leading-5">
-          {item.text}
+          {orchestrator ? shownUserText(item.text) : item.text}
         </div>
       );
-    case "assistant":
+    case "assistant": {
+      const plan =
+        orchestrator && !item.streaming ? parsePlan(item.text) : null;
+      const text = orchestrator ? withoutPlan(item.text) : item.text;
       return (
         <div className="text-[13px] leading-6">
-          <MessageResponse streaming={item.streaming}>
-            {item.text}
-          </MessageResponse>
+          <MessageResponse streaming={item.streaming}>{text}</MessageResponse>
+          {plan &&
+            orchestrator &&
+            (orchestrator.live ? (
+              <PlanCard
+                plan={plan}
+                orchestratorChatId={orchestrator.chatId}
+                cwd={orchestrator.cwd}
+                agent={orchestrator.agent}
+                onOpenTask={focusOrchestratedChat}
+              />
+            ) : (
+              <div className="mt-1 text-[11.5px] text-muted-foreground">
+                Earlier plan ({plan.tasks.length}{" "}
+                {plan.tasks.length === 1 ? "task" : "tasks"}), replaced by a
+                newer one.
+              </div>
+            ))}
         </div>
       );
+    }
     case "tool":
       return <ToolRow item={item} />;
     case "notice":

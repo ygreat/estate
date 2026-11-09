@@ -32,7 +32,14 @@ export type SerializedTab =
   | { kind: "editor"; path: string }
   | { kind: "preview"; url: string }
   | { kind: "markdown"; path: string }
-  | { kind: "agent-chat"; chatId: string; agent: ChatAgentId; cwd: string };
+  | {
+      kind: "agent-chat";
+      chatId: string;
+      agent: ChatAgentId;
+      cwd: string;
+      title?: string;
+      role?: "orchestrator";
+    };
 
 function basename(path: string): string {
   const parts = path.split(/[\\/]/).filter(Boolean);
@@ -98,6 +105,8 @@ function serializeTab(tab: Tab): SerializedTab | null {
         chatId: tab.chatId,
         agent: tab.agent,
         cwd: tab.cwd,
+        ...(tab.title !== CHAT_AGENT_LABEL[tab.agent] && { title: tab.title }),
+        ...(tab.role && { role: tab.role }),
       };
     default:
       return null;
@@ -220,10 +229,14 @@ function hydrateTab(
         kind: "agent-chat",
         spaceId,
         cold: true,
-        title: CHAT_AGENT_LABEL[agent],
+        title:
+          typeof s.title === "string" && s.title.trim()
+            ? s.title.slice(0, 120)
+            : CHAT_AGENT_LABEL[agent],
         chatId: s.chatId,
         agent,
         cwd: s.cwd,
+        ...(s.role === "orchestrator" && { role: "orchestrator" as const }),
       } satisfies AgentChatTab;
     }
     default:
