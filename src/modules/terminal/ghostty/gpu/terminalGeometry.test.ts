@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { describe, expect, it } from "vitest";
 import {
   normalizeSelectionBounds,
@@ -81,7 +82,10 @@ describe("selectionUniform", () => {
     expect(selectionUniformContains(uniform, 23, 79)).toBe(true);
   });
 
-  it("matches the legacy selectionBoundsContain rules for every cell", () => {
+  // Estate: CPU-heavy; takes 5-10 s on Intel Macs and CI's macos-15-intel runner.
+  it("matches the legacy selectionBoundsContain rules for every cell", {
+    timeout: 30_000,
+  }, () => {
     let seed = 7;
     const random = (limit: number) => {
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
