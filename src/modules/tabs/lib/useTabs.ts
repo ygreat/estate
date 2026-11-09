@@ -360,6 +360,23 @@ export function reorderTabsByGap(
 }
 
 /**
+ * Estate: puts the given tabs next to each other, in the given order, where the
+ * first of them currently sits (split-view groups stay together in the bar).
+ * Returns the same array when they already are.
+ */
+export function gatherTabs(tabs: Tab[], ids: readonly number[]): Tab[] {
+  const wanted = ids.filter((id) => tabs.some((t) => t.id === id));
+  if (wanted.length < 2) return tabs;
+  const set = new Set(wanted);
+  const firstAt = tabs.findIndex((t) => set.has(t.id));
+  const rest = tabs.filter((t) => !set.has(t.id));
+  const insertAt = tabs.slice(0, firstAt).filter((t) => !set.has(t.id)).length;
+  const moved = wanted.map((id) => tabs.find((t) => t.id === id) as Tab);
+  const next = [...rest.slice(0, insertAt), ...moved, ...rest.slice(insertAt)];
+  return next.every((t, i) => t === tabs[i]) ? tabs : next;
+}
+
+/**
  * Plans a Chrome-style "close tabs to the right" within the anchor's space.
  * Returns the ids strictly to the right of the anchor plus the id to keep
  * active: the anchor when the active tab is being closed, unchanged otherwise.
@@ -1537,6 +1554,13 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     [setTabs],
   );
 
+  const gatherTabsTogether = useCallback(
+    (ids: readonly number[]) => {
+      setTabs((prev) => gatherTabs(prev, ids));
+    },
+    [setTabs],
+  );
+
   return {
     tabs,
     activeId,
@@ -1547,6 +1571,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     moveTabToSpace,
     reorderTab,
     reorderTabByGap,
+    gatherTabs: gatherTabsTogether,
     newTabInSpace,
     removeTabsForSpace,
     markBooted,

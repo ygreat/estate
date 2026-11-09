@@ -8,7 +8,6 @@ import {
   layoutLeaves,
   MAX_LAYOUT_PANES,
   MAX_TERMINAL_PANES_ON_SCREEN,
-  reconcileLayout,
   serializeLayout,
   setSplitSizes,
   singleLayout,
@@ -38,55 +37,6 @@ function split(
   if (!r.ok) throw new Error(r.reason);
   return r.layout;
 }
-
-describe("reconcileLayout", () => {
-  it("starts with one pane showing the active tab", () => {
-    const l = reconcileLayout(undefined, [1, 2], 1, ids());
-    expect(shape(l.root)).toBe(1);
-  });
-
-  it("shows a newly activated tab in the focused pane", () => {
-    const newId = ids();
-    const l = reconcileLayout(singleLayout(1, newId), [1, 2], 2, newId);
-    expect(shape(l.root)).toBe(2);
-  });
-
-  it("focuses the pane that already shows the active tab", () => {
-    const newId = ids();
-    let l = singleLayout(1, newId);
-    l = split(l, 2, l.focusedLeafId, "right", newId);
-    const left = layoutLeaves(l.root)[0];
-    const next = reconcileLayout(l, [1, 2], 1, newId);
-    expect(next.focusedLeafId).toBe(left.id);
-    expect(shape(next.root)).toEqual({ row: [1, 2] });
-  });
-
-  it("returns the same layout when nothing changes", () => {
-    const newId = ids();
-    const l = singleLayout(1, newId);
-    expect(reconcileLayout(l, [1, 2], 1, newId)).toBe(l);
-  });
-
-  it("removes the pane of a closed tab and collapses the split", () => {
-    const newId = ids();
-    let l = singleLayout(1, newId);
-    l = split(l, 2, l.focusedLeafId, "right", newId);
-    const next = reconcileLayout(l, [1, 3], 1, newId);
-    expect(shape(next.root)).toBe(1);
-  });
-
-  it("falls back to one pane when every shown tab closed", () => {
-    const newId = ids();
-    const l = singleLayout(1, newId);
-    expect(shape(reconcileLayout(l, [5], 5, newId).root)).toBe(5);
-  });
-
-  it("ignores an active tab that isn't in this space", () => {
-    const newId = ids();
-    const l = singleLayout(1, newId);
-    expect(reconcileLayout(l, [1], 99, newId)).toBe(l);
-  });
-});
 
 describe("dropTab", () => {
   it("splits a pane on each edge", () => {

@@ -1,26 +1,27 @@
 import { create } from "zustand";
-import type { DropZone, WorkspaceLayout } from "./model";
+import type { Groups } from "./groups";
+import type { DropZone } from "./model";
 
 let counter = 0;
 /** Ids for layout nodes. Session-local; saved layouts get fresh ids on restore. */
 export const newLayoutId = (): string => `pane-${++counter}`;
 
 type LayoutState = {
-  /** Split layout per space (project). */
-  layouts: Record<string, WorkspaceLayout>;
-  setLayout: (spaceId: string, layout: WorkspaceLayout) => void;
-  hydrate: (layouts: Record<string, WorkspaceLayout>) => void;
+  /** Split groups per space (project). */
+  groups: Record<string, Groups>;
+  setGroups: (spaceId: string, groups: Groups) => void;
+  hydrate: (groups: Record<string, Groups>) => void;
 };
 
 export const useLayoutStore = create<LayoutState>((set) => ({
-  layouts: {},
-  setLayout: (spaceId, layout) =>
+  groups: {},
+  setGroups: (spaceId, groups) =>
     set((s) =>
-      s.layouts[spaceId] === layout
+      s.groups[spaceId] === groups
         ? s
-        : { layouts: { ...s.layouts, [spaceId]: layout } },
+        : { groups: { ...s.groups, [spaceId]: groups } },
     ),
-  hydrate: (layouts) => set((s) => ({ layouts: { ...s.layouts, ...layouts } })),
+  hydrate: (groups) => set((s) => ({ groups: { ...s.groups, ...groups } })),
 }));
 
 export type PaneDropTarget = { leafId: string; zone: DropZone };

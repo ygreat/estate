@@ -3,18 +3,22 @@ import { leafIds } from "@/modules/terminal/lib/panes";
 import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import {
-  closePane,
+  closePaneOf,
+  dropInView,
+  type Groups,
+  groupedTabIds,
+  groupTabOrder,
+  NO_GROUPS,
+  reconcileGroups,
+  setGroupSizes,
+  viewFor,
+} from "./groups";
+import {
   type DropZone,
-  dropTab,
   findLeaf,
-  focusedLeaf,
-  isSplit,
-  leafForTab,
+  layoutLeaves,
   MAX_LAYOUT_PANES,
   MAX_TERMINAL_PANES_ON_SCREEN,
-  reconcileLayout,
-  setSplitSizes,
-  visibleTabIds,
   type WorkspaceLayout,
 } from "./model";
 import { newLayoutId, useLayoutStore } from "./store";
@@ -26,14 +30,15 @@ type Params = {
   activeId: number;
   setActiveId: (id: number) => void;
   warmTab: (id: number) => void;
+  /** Keeps a group's tabs next to each other in the tab bar. */
+  gatherTabs: (ids: readonly number[]) => void;
 };
 
-/**
- * Terminal panes on screen across every visible tab. The WebGL renderer (the
- * one Monterey uses) has a fixed pool of slots, so a split can't exceed it.
- */
-function visibleTerminalPanes(layout: WorkspaceLayout, tabs: Tab[]): number {
-  const shown = new Set(visibleTabIds(layout));
+/** The leaf id of the one-pane view (a standalone tab). */
+export const SINGLE_LEAF_ID = "single";
+
+function terminalPanes(tabIds: number[], tabs: Tab[]): number {
+  const shown = new Set(tabIds);
   let n = 0;
   for (const t of tabs) {
     if (t.kind === "terminal" && shown.has(t.id))
@@ -48,93 +53,104 @@ export function useWorkspaceLayout({
   activeId,
   setActiveId,
   warmTab,
+  gatherTabs,
 }: Params) {
-  const stored = useLayoutStore((s) => s.layouts[spaceId]);
-  const setLayout = useLayoutStore((s) => s.setLayout);
+  const stored = useLayoutStore((s) => s.groups[spaceId]) ?? NO_GROUPS;
+  const setGroups = useLayoutStore((s) => s.setGroups);
 
   const tabIds = useMemo(() => spaceTabs.map((t) => t.id), [spaceTabs]);
-  // Derived during render so a tab switch never paints a stale layout.
-  const layout = useMemo(
-    () => reconcileLayout(stored, tabIds, activeId, newLayoutId),
-    [stored, tabIds, activeId],
+  const groups = useMemo(
+    () => reconcileGroups(stored, tabIds),
+    [stored, tabIds],
   );
   useEffect(() => {
-    if (layout !== stored) setLayout(spaceId, layout);
-  }, [layout, stored, setLayout, spaceId]);
+    if (groups !== stored) setGroups(spaceId, groups);
+  }, [groups, stored, setGroups, spaceId]);
 
-  // Panes other than the focused one show tabs that were never activated.
+  const view = useMemo(() => viewFor(groups, activeId), [groups, activeId]);
+
+  // What the frame draws: the active tab's group, or the active tab alone.
+  const layout: WorkspaceLayout = useMemo(
+    () =>
+      view.kind === "group"
+        ? { root: view.group.root, focusedLeafId: view.focusedLeafId }
+        : {
+            root: { kind: "leaf", id: SINGLE_LEAF_ID, tabId: view.tabId },
+            focusedLeafId: SINGLE_LEAF_ID,
+          },
+    [view],
+  );
+  const split = view.kind === "group";
+
+  // A group shows tabs that may never have been activated (restored, cold).
   useEffect(() => {
-    for (const id of visibleTabIds(layout)) {
-      if (spaceTabs.find((t) => t.id === id)?.cold) warmTab(id);
+    if (view.kind !== "group") return;
+    for (const l of layoutLeaves(view.group.root)) {
+      if (spaceTabs.find((t) => t.id === l.tabId)?.cold) warmTab(l.tabId);
     }
-  }, [layout, spaceTabs, warmTab]);
+  }, [view, spaceTabs, warmTab]);
 
   const commit = useCallback(
-    (next: WorkspaceLayout, focusTabId: number) => {
-      if (
-        visibleTerminalPanes(next, spaceTabs) > MAX_TERMINAL_PANES_ON_SCREEN
-      ) {
+    (next: Groups, focus: number) => {
+      const shown = viewFor(next, focus);
+      const shownTabs =
+        shown.kind === "group" ? groupTabOrder(shown.group) : [shown.tabId];
+      if (terminalPanes(shownTabs, spaceTabs) > MAX_TERMINAL_PANES_ON_SCREEN) {
         toast.message("Too many terminal panes on screen", {
           description: `A split can show up to ${MAX_TERMINAL_PANES_ON_SCREEN} terminal panes at once.`,
         });
         return false;
       }
-      setLayout(spaceId, next);
-      setActiveId(focusTabId);
+      setGroups(spaceId, next);
+      setActiveId(focus);
+      if (shown.kind === "group") gatherTabs(groupTabOrder(shown.group));
       return true;
     },
-    [setLayout, setActiveId, spaceId, spaceTabs],
+    [setGroups, setActiveId, gatherTabs, spaceId, spaceTabs],
+  );
+
+  /** The tab to fill the other half when the shown tab is split with itself. */
+  const fillFor = useCallback(
+    (tabId: number): number | undefined => {
+      const grouped = groupedTabIds(groups);
+      const i = tabIds.indexOf(tabId);
+      const order = [...tabIds.slice(i + 1), ...tabIds.slice(0, i).reverse()];
+      return order.find((id) => !grouped.has(id)) ?? order[0];
+    },
+    [groups, tabIds],
   );
 
   const dropTabOnPane = useCallback(
     (tabId: number, leafId: string, zone: DropZone) => {
-      const r = dropTab(layout, tabId, leafId, zone, newLayoutId);
+      const r = dropInView(
+        groups,
+        activeId,
+        tabId,
+        leafId,
+        zone,
+        fillFor(tabId),
+        newLayoutId,
+      );
       if (!r.ok) {
         if (r.reason === "pane-limit") {
           toast.message(`Up to ${MAX_LAYOUT_PANES} panes`, {
             description: "Close a pane before splitting again.",
           });
+        } else if (r.reason === "nothing-to-split") {
+          toast.message("Open another tab to split with");
         }
         return false;
       }
-      return commit(r.layout, tabId);
+      return commit(r.groups, r.focus);
     },
-    [layout, commit],
+    [groups, activeId, fillFor, commit],
   );
 
-  /**
-   * Splits the focused pane and shows `tabId` beside it. When that tab is the
-   * focused pane's own, the pane keeps the nearest tab that isn't on screen.
-   */
+  /** "Split right / down" from a tab's menu: beside the focused pane. */
   const splitWithTab = useCallback(
-    (tabId: number, zone: Exclude<DropZone, "center">) => {
-      let base = layout;
-      const focus = focusedLeaf(base);
-      if (focus.tabId === tabId) {
-        const shown = new Set(visibleTabIds(base));
-        const i = tabIds.indexOf(tabId);
-        const order = [...tabIds.slice(i + 1), ...tabIds.slice(0, i).reverse()];
-        const fill = order.find((id) => !shown.has(id));
-        if (fill === undefined) {
-          toast.message("Open another tab to split with");
-          return false;
-        }
-        const swapped = dropTab(base, fill, focus.id, "center", newLayoutId);
-        if (!swapped.ok) return false;
-        base = swapped.layout;
-      }
-      const r = dropTab(base, tabId, focus.id, zone, newLayoutId);
-      if (!r.ok) {
-        if (r.reason === "pane-limit") {
-          toast.message(`Up to ${MAX_LAYOUT_PANES} panes`, {
-            description: "Close a pane before splitting again.",
-          });
-        }
-        return false;
-      }
-      return commit(r.layout, tabId);
-    },
-    [layout, tabIds, commit],
+    (tabId: number, zone: Exclude<DropZone, "center">) =>
+      dropTabOnPane(tabId, layout.focusedLeafId, zone),
+    [dropTabOnPane, layout.focusedLeafId],
   );
 
   const focusPane = useCallback(
@@ -147,35 +163,37 @@ export function useWorkspaceLayout({
 
   const closePaneOfTab = useCallback(
     (tabId: number) => {
-      const leaf = leafForTab(layout, tabId);
-      if (!leaf) return;
-      const next = closePane(layout, leaf.id);
-      if (next === layout) return;
-      setLayout(spaceId, next);
-      setActiveId(focusedLeaf(next).tabId);
+      const r = closePaneOf(groups, tabId);
+      if (!r) return;
+      setGroups(spaceId, r.groups);
+      setActiveId(r.focus);
     },
-    [layout, setLayout, setActiveId, spaceId],
+    [groups, setGroups, setActiveId, spaceId],
   );
 
   const setSizes = useCallback(
     (splitId: string, sizes: number[]) => {
-      const next = setSplitSizes(layout, splitId, sizes);
-      if (next !== layout) setLayout(spaceId, next);
+      if (view.kind !== "group") return;
+      const next = setGroupSizes(groups, view.group.id, splitId, sizes);
+      if (next !== groups) setGroups(spaceId, next);
     },
-    [layout, setLayout, spaceId],
+    [view, groups, setGroups, spaceId],
   );
 
-  const split = isSplit(layout);
-  const splitTabIds = useMemo(
-    () => new Set(split ? visibleTabIds(layout) : []),
-    [layout, split],
-  );
+  const splitTabIds = useMemo(() => groupedTabIds(groups), [groups]);
+  /** Group id per grouped tab, for drawing groups in the tab bar. */
+  const groupOfTab = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const g of groups) for (const id of groupTabOrder(g)) m.set(id, g.id);
+    return m;
+  }, [groups]);
 
   return {
     layout,
     split,
-    /** Tabs shown in a pane of a split (empty when there is one pane). */
+    /** Tabs that belong to a split group. */
     splitTabIds,
+    groupOfTab,
     dropTabOnPane,
     splitWithTab,
     focusPane,
