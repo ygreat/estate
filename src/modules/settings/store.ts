@@ -335,6 +335,7 @@ export const CHAT_STATUS_ITEMS = [
   "context",
   "tokens",
   "cost",
+  "limits",
 ] as const;
 export type ChatStatusItem = (typeof CHAT_STATUS_ITEMS)[number];
 export const DEFAULT_CHAT_STATUS_ITEMS: readonly ChatStatusItem[] = [
@@ -343,6 +344,7 @@ export const DEFAULT_CHAT_STATUS_ITEMS: readonly ChatStatusItem[] = [
   "model",
   "context",
   "cost",
+  "limits",
 ];
 
 /** Keeps known items, in the canonical order; anything else gives the default. */

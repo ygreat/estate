@@ -175,3 +175,21 @@ describe("status line data", () => {
     expect(second.totals.turns).toBe(2);
   });
 });
+
+describe("usage limits (Claude Code)", () => {
+  it("reads the 5-hour and 7-day windows from the recorded run", () => {
+    const adapter = createTurnAdapter("claude");
+    const events = readFileSync(join(FIXTURES, "claude-read.jsonl"), "utf8")
+      .split("\n")
+      .filter((l) => l.trim())
+      .flatMap((l) => adapter.push(JSON.parse(l)));
+    const limits = events.find((e) => e.type === "limits");
+    expect(limits).toEqual({
+      type: "limits",
+      windows: [
+        { id: "five_hour", utilization: 0.71, resetsAt: 1794240600 },
+        { id: "seven_day", utilization: 0.15, resetsAt: 1794560400 },
+      ],
+    });
+  });
+});

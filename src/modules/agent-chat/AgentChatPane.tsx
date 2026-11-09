@@ -32,6 +32,7 @@ import {
   CHAT_AGENT_LABEL,
   type Transcript,
   type TurnStats,
+  type UsageWindow,
 } from "./model";
 import { useAgentChatStore } from "./store";
 
@@ -245,6 +246,7 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
         </div>
         {chat && (
           <ChatStatusLine
+            agent={agent}
             cwd={cwd}
             access={access}
             transcript={chat.transcript}
@@ -288,15 +290,18 @@ type StatusPart = { key: ChatStatusItem; text: string; title?: string };
 
 /** Estate: configurable line under the composer (Settings > Agents). */
 function ChatStatusLine({
+  agent,
   cwd,
   access,
   transcript,
 }: {
+  agent: ChatAgentId;
   cwd: string;
   access: ChatAccess;
   transcript: Transcript;
 }) {
   const items = usePreferencesStore((s) => s.agentChatStatusItems);
+  const limits = useAgentChatStore((s) => s.limits[agent]);
   const repo = useRepo(cwd, transcript.totals.turns);
   if (items.length === 0) return null;
 
@@ -362,7 +367,8 @@ function ChatStatusLine({
         break;
     }
   }
-  if (parts.length === 0) return null;
+  const gauges = items.includes("limits") && limits ? limits.windows : [];
+  if (parts.length === 0 && gauges.length === 0) return null;
   return (
     <div className="mx-auto mt-1.5 flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] text-muted-foreground">
       {parts.map((part, i) => (
@@ -383,7 +389,60 @@ function ChatStatusLine({
           </span>
         </span>
       ))}
+      {gauges.length > 0 && (
+        <span className="ml-auto flex items-center gap-3">
+          {gauges.map((w) => (
+            <UsageGauge key={w.id} window={w} />
+          ))}
+        </span>
+      )}
     </div>
+  );
+}
+
+function resetLabel(resetsAt: number | undefined): string {
+  if (!resetsAt) return "";
+  const at = new Date(resetsAt * 1000);
+  const soon = at.getTime() - Date.now() < 24 * 60 * 60 * 1000;
+  const when = at.toLocaleString(
+    undefined,
+    soon
+      ? { hour: "numeric", minute: "2-digit" }
+      : { weekday: "short", hour: "numeric", minute: "2-digit" },
+  );
+  return `, resets ${when}`;
+}
+
+/** Estate: how much of a usage window is left, as a small bar. */
+function UsageGauge({ window: w }: { window: UsageWindow }) {
+  const left = Math.max(0, Math.min(1, 1 - w.utilization));
+  const pct = Math.round(left * 100);
+  const label = w.id === "five_hour" ? "5h" : "7d";
+  const name = w.id === "five_hour" ? "5-hour" : "7-day";
+  const tone =
+    left > 0.4 ? "bg-emerald-500" : left > 0.15 ? "bg-amber-500" : "bg-red-500";
+  return (
+    <span
+      className="flex items-center gap-1.5"
+      title={`${name} limit: ${pct}% left${resetLabel(w.resetsAt)}`}
+    >
+      <span>{label}</span>
+      <span
+        aria-hidden="true"
+        className="relative h-1.5 w-12 overflow-hidden rounded-full bg-foreground/10"
+      >
+        <span
+          className={cn(
+            "absolute inset-y-0 left-0 rounded-full transition-[width]",
+            tone,
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </span>
+      <span className="tabular-nums">
+        {pct}%<span className="sr-only"> of the {name} limit left</span>
+      </span>
+    </span>
   );
 }
 
