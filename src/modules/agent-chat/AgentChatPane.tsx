@@ -33,6 +33,8 @@ import {
   type TurnStats,
   type UsageWindow,
 } from "./model";
+import { needsSignIn, useAgentAuth } from "./auth";
+import { AuthScreen } from "./AuthScreen";
 import { ChatComposer } from "./ChatComposer";
 import { HistorySidebar, SessionList, useChatSessions } from "./HistorySidebar";
 import { ModelPicker } from "./ModelPicker";
@@ -72,6 +74,11 @@ function folderName(path: string): string {
 
 export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
   const open = useAgentChatStore((s) => s.open);
+  const {
+    auth,
+    checking: authChecking,
+    recheck: recheckAuth,
+  } = useAgentAuth(agent);
   const chat = useAgentChatStore((s) => s.chats[chatId]);
   const send = useAgentChatStore((s) => s.send);
   const cancel = useAgentChatStore((s) => s.cancel);
@@ -192,98 +199,110 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1">
-        {historyOpen && (
-          <HistorySidebar
+      {auth && needsSignIn(auth) ? (
+        <div className="min-h-0 flex-1">
+          <AuthScreen
             agent={agent}
             cwd={cwd}
-            currentSessionId={chat?.transcript.sessionId}
-            running={running}
-            refresh={chat?.transcript.totals.turns ?? 0}
-            onOpen={(sid) => void openSession(chatId, sid)}
-            onNew={() => newSession(chatId)}
+            auth={auth}
+            checking={authChecking}
+            onRecheck={recheckAuth}
           />
-        )}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div
-            ref={scrollRef}
-            className="min-h-0 flex-1 overflow-y-auto"
-            onScroll={(e) => {
-              const el = e.currentTarget;
-              stickToBottom.current =
-                el.scrollHeight - el.scrollTop - el.clientHeight < 48;
-            }}
-          >
-            <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-4">
-              {items.length === 0 && (
-                <EmptyState
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1">
+          {historyOpen && (
+            <HistorySidebar
+              agent={agent}
+              cwd={cwd}
+              currentSessionId={chat?.transcript.sessionId}
+              running={running}
+              refresh={chat?.transcript.totals.turns ?? 0}
+              onOpen={(sid) => void openSession(chatId, sid)}
+              onNew={() => newSession(chatId)}
+            />
+          )}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div
+              ref={scrollRef}
+              className="min-h-0 flex-1 overflow-y-auto"
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                stickToBottom.current =
+                  el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+              }}
+            >
+              <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-4">
+                {items.length === 0 && (
+                  <EmptyState
+                    agent={agent}
+                    cwd={cwd}
+                    access={access}
+                    loaded={loaded}
+                    onOpenSession={(sid) => void openSession(chatId, sid)}
+                  />
+                )}
+                {items.map((item) => (
+                  <ChatRow
+                    key={`${item.kind}:${item.id}`}
+                    item={item}
+                    access={access}
+                    running={running}
+                    onRetry={(a) => void retryWithAccess(chatId, a)}
+                  />
+                ))}
+                {offerGenericRetry && (
+                  <div className="flex items-center gap-2 text-[11.5px] text-muted-foreground">
+                    <span>Blocked by this chat's access level?</span>
+                    <button
+                      type="button"
+                      className="underline-offset-2 hover:text-foreground hover:underline"
+                      onClick={() => void retryWithAccess(chatId, "edit")}
+                    >
+                      Allow edits and retry
+                    </button>
+                  </div>
+                )}
+                {!running && chat?.transcript.stats && (
+                  <Stats stats={chat.transcript.stats} />
+                )}
+              </div>
+            </div>
+
+            <div className="shrink-0 border-t border-border/60 px-3 py-2.5">
+              <ChatComposer
+                ref={inputRef}
+                placeholder={`Message ${CHAT_AGENT_LABEL[agent]}… (/ for commands)`}
+                disabled={!loaded}
+                running={running}
+                agentCommands={agentCommands}
+                onStop={() => cancel(chatId)}
+                onAction={(action) => {
+                  if (action.kind === "clear") {
+                    newSession(chatId);
+                    return;
+                  }
+                  if (action.kind === "model") {
+                    if (action.model) setModel(chatId, action.model);
+                    else setModelOpen(true);
+                    return;
+                  }
+                  stickToBottom.current = true;
+                  void send(chatId, action.text);
+                }}
+              />
+              {chat && (
+                <ChatStatusLine
                   agent={agent}
                   cwd={cwd}
                   access={access}
-                  loaded={loaded}
-                  onOpenSession={(sid) => void openSession(chatId, sid)}
+                  transcript={chat.transcript}
                 />
-              )}
-              {items.map((item) => (
-                <ChatRow
-                  key={`${item.kind}:${item.id}`}
-                  item={item}
-                  access={access}
-                  running={running}
-                  onRetry={(a) => void retryWithAccess(chatId, a)}
-                />
-              ))}
-              {offerGenericRetry && (
-                <div className="flex items-center gap-2 text-[11.5px] text-muted-foreground">
-                  <span>Blocked by this chat's access level?</span>
-                  <button
-                    type="button"
-                    className="underline-offset-2 hover:text-foreground hover:underline"
-                    onClick={() => void retryWithAccess(chatId, "edit")}
-                  >
-                    Allow edits and retry
-                  </button>
-                </div>
-              )}
-              {!running && chat?.transcript.stats && (
-                <Stats stats={chat.transcript.stats} />
               )}
             </div>
           </div>
-
-          <div className="shrink-0 border-t border-border/60 px-3 py-2.5">
-            <ChatComposer
-              ref={inputRef}
-              placeholder={`Message ${CHAT_AGENT_LABEL[agent]}… (/ for commands)`}
-              disabled={!loaded}
-              running={running}
-              agentCommands={agentCommands}
-              onStop={() => cancel(chatId)}
-              onAction={(action) => {
-                if (action.kind === "clear") {
-                  newSession(chatId);
-                  return;
-                }
-                if (action.kind === "model") {
-                  if (action.model) setModel(chatId, action.model);
-                  else setModelOpen(true);
-                  return;
-                }
-                stickToBottom.current = true;
-                void send(chatId, action.text);
-              }}
-            />
-            {chat && (
-              <ChatStatusLine
-                agent={agent}
-                cwd={cwd}
-                access={access}
-                transcript={chat.transcript}
-              />
-            )}
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

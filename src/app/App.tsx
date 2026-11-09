@@ -53,6 +53,11 @@ import {
   type SearchTarget,
 } from "@/modules/header";
 import { useWorkspaceLayout } from "@/modules/layout/useWorkspaceLayout";
+import {
+  LOGIN_COMMANDS,
+  RUN_IN_TERMINAL_EVENT,
+  type RunInTerminalDetail,
+} from "@/modules/agent-chat/auth";
 import { setLspNavigator } from "@/modules/lsp";
 import type { PreviewPaneHandle } from "@/modules/preview";
 import { openSettingsWindow } from "@/modules/settings/openSettingsWindow";
@@ -761,6 +766,24 @@ export default function App() {
     },
     [activeLeafId],
   );
+
+  // Estate: an agent chat's sign-in screen asks for a terminal running the
+  // agent's login. Only the fixed login commands are accepted.
+  useEffect(() => {
+    const onRun = (event: Event) => {
+      const detail = (event as CustomEvent<RunInTerminalDetail>).detail;
+      if (!detail || !LOGIN_COMMANDS.includes(detail.command)) return;
+      const tabId = newTab(detail.cwd);
+      const tab = tabsRef.current.find((x) => x.id === tabId);
+      const leafId = tab?.kind === "terminal" ? tab.activeLeafId : null;
+      if (leafId === null) return;
+      void whenSessionReady(leafId).then(() => {
+        writeToSession(leafId, `${detail.command}\r`);
+      });
+    };
+    window.addEventListener(RUN_IN_TERMINAL_EVENT, onRun);
+    return () => window.removeEventListener(RUN_IN_TERMINAL_EVENT, onRun);
+  }, [newTab]);
 
   const cdInNewTab = useCallback(
     (path: string) => {
