@@ -39,7 +39,13 @@ export type ToolStatus = "running" | "done" | "error";
 
 /** What adapters emit. */
 export type ChatEvent =
-  | { type: "session"; id: string; model?: string }
+  | {
+      type: "session";
+      id: string;
+      model?: string;
+      /** Slash commands the agent accepts in headless mode. */
+      commands?: string[];
+    }
   /** Tokens currently in the model's context (Claude Code reports this). */
   | { type: "context"; tokens: number }
   /** Account usage windows (Claude Code's 5-hour and 7-day limits). */

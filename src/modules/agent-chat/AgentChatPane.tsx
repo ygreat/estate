@@ -1,10 +1,8 @@
 import {
   Alert02Icon,
-  ArrowUp02Icon,
   CheckmarkCircle02Icon,
   CancelCircleIcon,
   InformationCircleIcon,
-  SquareIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -34,7 +32,11 @@ import {
   type TurnStats,
   type UsageWindow,
 } from "./model";
+import { ChatComposer } from "./ChatComposer";
+import { ModelPicker } from "./ModelPicker";
 import { useAgentChatStore } from "./store";
+
+const NO_COMMANDS: string[] = [];
 
 type Props = {
   chatId: string;
@@ -57,12 +59,16 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
   const cancel = useAgentChatStore((s) => s.cancel);
   const setAccess = useAgentChatStore((s) => s.setAccess);
   const retryWithAccess = useAgentChatStore((s) => s.retryWithAccess);
+  const setModel = useAgentChatStore((s) => s.setModel);
+  const newSession = useAgentChatStore((s) => s.newSession);
+  const agentCommands =
+    useAgentChatStore((s) => s.commands[agent]) ?? NO_COMMANDS;
 
   useEffect(() => {
     open(chatId, { agent, cwd });
   }, [open, chatId, agent, cwd]);
 
-  const [draft, setDraft] = useState("");
+  const [modelOpen, setModelOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const stickToBottom = useRef(true);
@@ -81,14 +87,6 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
   useEffect(() => {
     if (visible && loaded) inputRef.current?.focus();
   }, [visible, loaded]);
-
-  const submit = () => {
-    const text = draft.trim();
-    if (!text || running || !loaded) return;
-    stickToBottom.current = true;
-    setDraft("");
-    void send(chatId, text);
-  };
 
   const lastIndex = items.length - 1;
   const lastIsReply = lastIndex >= 0 && items[lastIndex].kind !== "user";
@@ -121,6 +119,15 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">
+          <ModelPicker
+            agent={agent}
+            value={chat?.model}
+            reported={chat?.transcript.model}
+            disabled={running}
+            open={modelOpen}
+            onOpenChange={setModelOpen}
+            onChange={(m) => setModel(chatId, m)}
+          />
           <Select
             value={access}
             onValueChange={(v) => setAccess(chatId, v as ChatAccess)}
@@ -195,55 +202,27 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
       </div>
 
       <div className="shrink-0 border-t border-border/60 px-3 py-2.5">
-        <div className="mx-auto flex max-w-3xl items-end gap-2">
-          <textarea
-            ref={inputRef}
-            value={draft}
-            rows={1}
-            disabled={!loaded}
-            placeholder={`Message ${CHAT_AGENT_LABEL[agent]}…`}
-            onChange={(e) => {
-              setDraft(e.target.value);
-              const el = e.target;
-              el.style.height = "auto";
-              el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-            }}
-            onKeyDown={(e) => {
-              if (
-                e.key === "Enter" &&
-                !e.shiftKey &&
-                !e.nativeEvent.isComposing
-              ) {
-                e.preventDefault();
-                submit();
-              }
-            }}
-            className="max-h-[200px] min-h-9 flex-1 resize-none rounded-lg border border-border/70 bg-card px-3 py-2 text-[13px] leading-5 outline-none placeholder:text-muted-foreground focus-visible:border-ring"
-          />
-          {running ? (
-            <Button
-              size="icon"
-              variant="outline"
-              className="size-9 shrink-0"
-              onClick={() => cancel(chatId)}
-              aria-label="Stop"
-              title="Stop"
-            >
-              <HugeiconsIcon icon={SquareIcon} size={14} strokeWidth={2} />
-            </Button>
-          ) : (
-            <Button
-              size="icon"
-              className="size-9 shrink-0"
-              onClick={submit}
-              disabled={!draft.trim() || !loaded}
-              aria-label="Send"
-              title="Send (Enter)"
-            >
-              <HugeiconsIcon icon={ArrowUp02Icon} size={15} strokeWidth={2} />
-            </Button>
-          )}
-        </div>
+        <ChatComposer
+          ref={inputRef}
+          placeholder={`Message ${CHAT_AGENT_LABEL[agent]}… (/ for commands)`}
+          disabled={!loaded}
+          running={running}
+          agentCommands={agentCommands}
+          onStop={() => cancel(chatId)}
+          onAction={(action) => {
+            if (action.kind === "clear") {
+              newSession(chatId);
+              return;
+            }
+            if (action.kind === "model") {
+              if (action.model) setModel(chatId, action.model);
+              else setModelOpen(true);
+              return;
+            }
+            stickToBottom.current = true;
+            void send(chatId, action.text);
+          }}
+        />
         {chat && (
           <ChatStatusLine
             agent={agent}

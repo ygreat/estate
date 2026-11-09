@@ -193,3 +193,27 @@ describe("usage limits (Claude Code)", () => {
     });
   });
 });
+
+describe("built-in commands (Claude Code)", () => {
+  it("shows a command's result when the turn had no reply text", () => {
+    const a = createTurnAdapter("claude");
+    const events = a.push({
+      type: "result",
+      subtype: "success",
+      is_error: false,
+      uuid: "r1",
+      result: "## Context Usage",
+    });
+    expect(events).toContainEqual({
+      type: "text",
+      id: "result:r1",
+      text: "## Context Usage",
+      final: true,
+    });
+  });
+
+  it("doesn't repeat the result when the reply was already shown", () => {
+    const t = replay("claude", "claude-read.jsonl");
+    expect(t.items.filter((i) => i.kind === "assistant")).toHaveLength(1);
+  });
+});
