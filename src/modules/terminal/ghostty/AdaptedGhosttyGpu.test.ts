@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { readFile } from "node:fs/promises";
 import {
   ADAPTED_GHOSTTY_SCALAR_WASM_SHA256,
@@ -949,7 +950,10 @@ describe.each([
   });
 
   describe("periodic render-state renewal", () => {
-    it("re-uploads once and stays correct across the 100,000-update renewal", () => {
+    // Estate: CPU-heavy; takes 5-10 s on Intel Macs and CI's macos-15-intel runner.
+    it("re-uploads once and stays correct across the 100,000-update renewal", {
+      timeout: 30_000,
+    }, () => {
       const harness = gpu(20, 4);
       try {
         harness.write("\x1b[2;1Hstable row");
