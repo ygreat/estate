@@ -133,6 +133,9 @@ P0 items block the first release, P1 items should ship in it, and P2 items can f
 | FR-18 | In-app browser | Isolate browsing from the app. | The browser webview has no Tauri command access; external sites show a warning bar. | P0 |
 | FR-19 | Git | Stage hunks, commit, push, pull, branch and history, local first. | All complete using the Xcode tools Git. | P0 |
 | FR-20 | Git | Git over SSH sessions. | Status, commit and push work on a remote repository. | P2 |
+| FR-21 | Workspace | Split view of tabs: up to four panes, each showing a tab of any kind, saved per project. | Drag a tab onto a pane edge to split; dividers resize; the layout returns after relaunch; terminals and browser frames keep their state when the layout changes. | P1 |
+| FR-22 | Workspace | Files and source control sidebar on the right by default, configurable. | Settings > General > Layout moves it to either side without reloading the workspace. | P1 |
+| FR-23 | AI agent | Chat mode for Claude Code, Codex, Gemini CLI and OpenCode, as an alternative to the terminal. | The launcher opens a chat that streams replies and tool calls, resumes the agent's session on follow-ups, and can be stopped. | P1 |
 
 ## Non-functional requirements
 
@@ -145,7 +148,7 @@ Compatibility comes first: a feature that breaks launch on Monterey does not shi
 - **No telemetry:** no analytics, crash upload or usage ping. Update checks are manual or opt-in. Network calls happen only for user-started actions.
 - **Secrets:** API keys, SSH passphrases and database passwords stay in Keychain, never in files or `localStorage`.
 - **Untrusted output:** treat remote terminal output as hostile. Keep upstream's [fix for PTY output opening local files](https://newreleases.io/project/github/crynta/terax-ai/release/v0.6.4), and retest it over SSH.
-- **Agent approval:** bash and file-edit tools keep user approval, including on remote hosts.
+- **Agent approval:** terminal agents keep their own approval prompts, including on remote hosts. In chat mode (FR-23) headless agents can't pause mid-turn to ask, so each chat has an access level the user sets: Read only (default), Edit files, or Full access, mapped to each agent's own permission flags. Blocked actions are shown in the chat with an "Allow and retry" choice; nothing is raised automatically.
 - **Security disclosure:** the README states that Monterey [received its last update in July 2024](https://discussions.apple.com/thread/255745285), so the in-app browser is not for banking or personal accounts.
 - **Licensing:** keep Apache-2.0 and upstream copyright notices, and mark modified files. Details are in the Licensing section.
 

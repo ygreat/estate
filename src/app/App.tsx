@@ -31,6 +31,7 @@ import {
 } from "@/modules/ai";
 import { AiComposerProvider } from "@/modules/ai/lib/composer";
 import { native } from "@/modules/ai/lib/native";
+import { isChatCapable } from "@/modules/agents/lib/launcher";
 import {
   CommandPalette,
   createCommandItems,
@@ -178,6 +179,7 @@ export default function App() {
     newBlockTab,
     newAgentTab,
     newAgentGroupTab,
+    newAgentChatTab,
     newPrivateTab,
     openFileTab,
     pinTab,
@@ -332,6 +334,20 @@ export default function App() {
     () => tabs.filter((t) => t.spaceId === (activeSpaceId ?? DEFAULT_SPACE_ID)),
     [tabs, activeSpaceId],
   );
+
+  // Estate: a chat tab that closed stops its agent and forgets its transcript.
+  // The chat store loads on demand, so it stays out of the startup bundle.
+  const chatIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const now = new Set<string>();
+    for (const t of tabs) if (t.kind === "agent-chat") now.add(t.chatId);
+    const gone = [...chatIdsRef.current].filter((id) => !now.has(id));
+    chatIdsRef.current = now;
+    if (gone.length === 0 || !booted) return;
+    void import("@/modules/agent-chat/store").then((m) => {
+      for (const id of gone) m.deleteSavedChat(id);
+    });
+  }, [tabs, booted]);
 
   const workspaceLayout = useWorkspaceLayout({
     spaceId: activeSpaceId ?? DEFAULT_SPACE_ID,
@@ -632,6 +648,25 @@ export default function App() {
 
   const launchAgentGroup = useCallback(
     (request: AgentLaunchRequest) => {
+      // Estate: chat mode runs the agent headless in a chat tab.
+      if (request.view === "chat") {
+        if (!isChatCapable(request.agent)) return;
+        const cwd = inheritedCwdForNewTab() ?? home;
+        if (!cwd) {
+          toast.error("Open a folder before starting a chat");
+          return;
+        }
+        const agent = request.agent;
+        void native
+          .workspaceAuthorize(cwd)
+          .then(() => newAgentChatTab(agent, cwd))
+          .catch((error) =>
+            toast.error("Could not open this folder for the agent", {
+              description: String(error),
+            }),
+          );
+        return;
+      }
       const command = validateAgentLaunchCommand(request.command);
       if (!command.ok) return;
       const launcher = findAgentLauncher(request.agent);
@@ -666,7 +701,7 @@ export default function App() {
         })();
       }
     },
-    [inheritedCwdForNewTab, newAgentGroupTab],
+    [inheritedCwdForNewTab, newAgentGroupTab, newAgentChatTab, home],
   );
 
   const sendCd = useCallback(

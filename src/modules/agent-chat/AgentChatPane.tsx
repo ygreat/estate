@@ -1,0 +1,431 @@
+import {
+  Alert02Icon,
+  ArrowUp02Icon,
+  CheckmarkCircle02Icon,
+  CancelCircleIcon,
+  InformationCircleIcon,
+  SquareIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { MessageResponse } from "@/components/ai-elements/message";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
+import { AgentIcon } from "@/modules/agents/lib/agentIcon";
+import {
+  ACCESS_HINT,
+  ACCESS_LABEL,
+  type ChatAccess,
+  type ChatAgentId,
+  type ChatItem,
+  CHAT_AGENT_LABEL,
+  type TurnStats,
+} from "./model";
+import { useAgentChatStore } from "./store";
+
+type Props = {
+  chatId: string;
+  agent: ChatAgentId;
+  cwd: string;
+  visible: boolean;
+};
+
+const ACCESS_ORDER: ChatAccess[] = ["read", "edit", "full"];
+
+function folderName(path: string): string {
+  const parts = path.split(/[\\/]/).filter(Boolean);
+  return parts[parts.length - 1] ?? path;
+}
+
+export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
+  const open = useAgentChatStore((s) => s.open);
+  const chat = useAgentChatStore((s) => s.chats[chatId]);
+  const send = useAgentChatStore((s) => s.send);
+  const cancel = useAgentChatStore((s) => s.cancel);
+  const setAccess = useAgentChatStore((s) => s.setAccess);
+  const retryWithAccess = useAgentChatStore((s) => s.retryWithAccess);
+
+  useEffect(() => {
+    open(chatId, { agent, cwd });
+  }, [open, chatId, agent, cwd]);
+
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const stickToBottom = useRef(true);
+
+  const items = chat?.transcript.items ?? [];
+  const running = chat?.running ?? false;
+  const access = chat?.access ?? "read";
+  const loaded = chat?.loaded ?? false;
+
+  // Follow new output while the reader is at the bottom.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
+  });
+
+  useEffect(() => {
+    if (visible && loaded) inputRef.current?.focus();
+  }, [visible, loaded]);
+
+  const submit = () => {
+    const text = draft.trim();
+    if (!text || running || !loaded) return;
+    stickToBottom.current = true;
+    setDraft("");
+    void send(chatId, text);
+  };
+
+  const lastIndex = items.length - 1;
+  const lastIsReply = lastIndex >= 0 && items[lastIndex].kind !== "user";
+  // Codex, Gemini and OpenCode don't always report what was refused; offer a
+  // retry with more access after any reply in a read-only chat.
+  const offerGenericRetry =
+    !running &&
+    lastIsReply &&
+    !chat?.transcript.denied &&
+    access === "read" &&
+    agent !== "claude";
+
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border/60 px-3">
+        <AgentIcon agent={agent} size={15} />
+        <span className="text-[12.5px] font-medium">
+          {CHAT_AGENT_LABEL[agent]}
+        </span>
+        <span
+          className="truncate text-[11.5px] text-muted-foreground"
+          title={cwd}
+        >
+          in {folderName(cwd)}
+        </span>
+        {running && (
+          <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+            <Spinner className="size-3" />
+            Working…
+          </span>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <Select
+            value={access}
+            onValueChange={(v) => setAccess(chatId, v as ChatAccess)}
+            disabled={running}
+          >
+            <SelectTrigger
+              className="h-7 w-32 text-[11.5px]"
+              title={ACCESS_HINT[access]}
+              aria-label="Access level"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ACCESS_ORDER.map((a) => (
+                <SelectItem key={a} value={a} className="text-[12px]">
+                  <span className="flex flex-col">
+                    <span>{ACCESS_LABEL[a]}</span>
+                    <span className="text-[10.5px] text-muted-foreground">
+                      {ACCESS_HINT[a]}
+                    </span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 overflow-y-auto"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          stickToBottom.current =
+            el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+        }}
+      >
+        <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-4">
+          {items.length === 0 && (
+            <EmptyState
+              agent={agent}
+              cwd={cwd}
+              access={access}
+              loaded={loaded}
+            />
+          )}
+          {items.map((item) => (
+            <ChatRow
+              key={`${item.kind}:${item.id}`}
+              item={item}
+              access={access}
+              running={running}
+              onRetry={(a) => void retryWithAccess(chatId, a)}
+            />
+          ))}
+          {offerGenericRetry && (
+            <div className="flex items-center gap-2 text-[11.5px] text-muted-foreground">
+              <span>Blocked by this chat's access level?</span>
+              <button
+                type="button"
+                className="underline-offset-2 hover:text-foreground hover:underline"
+                onClick={() => void retryWithAccess(chatId, "edit")}
+              >
+                Allow edits and retry
+              </button>
+            </div>
+          )}
+          {!running && chat?.transcript.stats && (
+            <Stats stats={chat.transcript.stats} />
+          )}
+        </div>
+      </div>
+
+      <div className="shrink-0 border-t border-border/60 px-3 py-2.5">
+        <div className="mx-auto flex max-w-3xl items-end gap-2">
+          <textarea
+            ref={inputRef}
+            value={draft}
+            rows={1}
+            disabled={!loaded}
+            placeholder={`Message ${CHAT_AGENT_LABEL[agent]}…`}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              const el = e.target;
+              el.style.height = "auto";
+              el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+            }}
+            onKeyDown={(e) => {
+              if (
+                e.key === "Enter" &&
+                !e.shiftKey &&
+                !e.nativeEvent.isComposing
+              ) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            className="max-h-[200px] min-h-9 flex-1 resize-none rounded-lg border border-border/70 bg-card px-3 py-2 text-[13px] leading-5 outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+          />
+          {running ? (
+            <Button
+              size="icon"
+              variant="outline"
+              className="size-9 shrink-0"
+              onClick={() => cancel(chatId)}
+              aria-label="Stop"
+              title="Stop"
+            >
+              <HugeiconsIcon icon={SquareIcon} size={14} strokeWidth={2} />
+            </Button>
+          ) : (
+            <Button
+              size="icon"
+              className="size-9 shrink-0"
+              onClick={submit}
+              disabled={!draft.trim() || !loaded}
+              aria-label="Send"
+              title="Send (Enter)"
+            >
+              <HugeiconsIcon icon={ArrowUp02Icon} size={15} strokeWidth={2} />
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({
+  agent,
+  cwd,
+  access,
+  loaded,
+}: {
+  agent: ChatAgentId;
+  cwd: string;
+  access: ChatAccess;
+  loaded: boolean;
+}) {
+  if (!loaded) return null;
+  return (
+    <div className="mt-16 flex flex-col items-center gap-2 text-center">
+      <AgentIcon agent={agent} size={26} />
+      <p className="text-[13px] font-medium">
+        Chat with {CHAT_AGENT_LABEL[agent]} in {folderName(cwd)}
+      </p>
+      <p className="max-w-sm text-[11.5px] text-muted-foreground">
+        Access: {ACCESS_LABEL[access]}. {ACCESS_HINT[access]} You can change it
+        at the top right.
+      </p>
+    </div>
+  );
+}
+
+const ChatRow = memo(function ChatRow({
+  item,
+  access,
+  running,
+  onRetry,
+}: {
+  item: ChatItem;
+  access: ChatAccess;
+  running: boolean;
+  onRetry: (access: ChatAccess) => void;
+}) {
+  switch (item.kind) {
+    case "user":
+      return (
+        <div className="ml-auto max-w-[85%] whitespace-pre-wrap break-words rounded-xl bg-muted px-3 py-2 text-[13px] leading-5">
+          {item.text}
+        </div>
+      );
+    case "assistant":
+      return (
+        <div className="text-[13px] leading-6">
+          <MessageResponse streaming={item.streaming}>
+            {item.text}
+          </MessageResponse>
+        </div>
+      );
+    case "tool":
+      return <ToolRow item={item} />;
+    case "notice":
+      if (item.tone === "denied") {
+        const next = ACCESS_ORDER.filter(
+          (a) => ACCESS_ORDER.indexOf(a) > ACCESS_ORDER.indexOf(access),
+        );
+        return (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-[12px]">
+            <div className="flex items-center gap-1.5 font-medium">
+              <HugeiconsIcon
+                icon={Alert02Icon}
+                size={13}
+                strokeWidth={2}
+                className="text-amber-500"
+              />
+              {item.text}
+            </div>
+            {item.tools && (
+              <ul className="mt-1.5 flex flex-col gap-0.5 text-[11.5px] text-muted-foreground">
+                {item.tools.map((t) => (
+                  <li
+                    key={`${t.name}:${t.title}`}
+                    className="truncate font-mono"
+                  >
+                    {t.title}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {next.length > 0 && (
+              <div className="mt-2 flex gap-2">
+                {next.map((a) => (
+                  <Button
+                    key={a}
+                    size="sm"
+                    variant={a === "edit" ? "default" : "outline"}
+                    className="h-7 text-[11.5px]"
+                    disabled={running}
+                    onClick={() => onRetry(a)}
+                  >
+                    {a === "edit"
+                      ? "Allow edits and retry"
+                      : "Allow everything and retry"}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+      return (
+        <div
+          className={cn(
+            "flex items-start gap-1.5 whitespace-pre-wrap break-words text-[12px]",
+            item.tone === "error"
+              ? "text-destructive"
+              : "text-muted-foreground",
+          )}
+        >
+          <HugeiconsIcon
+            icon={
+              item.tone === "error" ? CancelCircleIcon : InformationCircleIcon
+            }
+            size={13}
+            strokeWidth={2}
+            className="mt-0.5 shrink-0"
+          />
+          <span>{item.text}</span>
+        </div>
+      );
+  }
+});
+
+function ToolRow({ item }: { item: Extract<ChatItem, { kind: "tool" }> }) {
+  const [open, setOpen] = useState(false);
+  const hasBody = Boolean(item.output || item.detail?.includes("\n"));
+  return (
+    <div className="rounded-lg border border-border/60 bg-card/60 text-[12px]">
+      <button
+        type="button"
+        className="flex w-full min-w-0 items-center gap-2 px-2.5 py-1.5 text-left"
+        onClick={() => hasBody && setOpen((v) => !v)}
+        aria-expanded={hasBody ? open : undefined}
+      >
+        {item.status === "running" ? (
+          <Spinner className="size-3 shrink-0" />
+        ) : (
+          <HugeiconsIcon
+            icon={
+              item.status === "error" ? CancelCircleIcon : CheckmarkCircle02Icon
+            }
+            size={13}
+            strokeWidth={2}
+            className={cn(
+              "shrink-0",
+              item.status === "error" ? "text-destructive" : "text-emerald-500",
+            )}
+          />
+        )}
+        <span className="shrink-0 font-medium">{item.title}</span>
+        {item.detail && (
+          <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+            {item.detail.split("\n")[0]}
+          </span>
+        )}
+      </button>
+      {open && hasBody && (
+        <pre className="max-h-64 overflow-auto border-t border-border/60 px-2.5 py-2 font-mono text-[11px] leading-4 whitespace-pre-wrap break-words text-muted-foreground">
+          {[item.detail?.includes("\n") ? item.detail : null, item.output]
+            .filter(Boolean)
+            .join("\n\n")}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function Stats({ stats }: { stats: TurnStats }) {
+  const parts: string[] = [];
+  if (stats.costUsd !== undefined)
+    parts.push(`$${stats.costUsd.toFixed(stats.costUsd < 0.01 ? 4 : 2)}`);
+  if (stats.inputTokens !== undefined)
+    parts.push(`${stats.inputTokens.toLocaleString()} in`);
+  if (stats.outputTokens !== undefined)
+    parts.push(`${stats.outputTokens.toLocaleString()} out`);
+  if (parts.length === 0) return null;
+  return (
+    <p className="text-[10.5px] text-muted-foreground/80">
+      {parts.join(" · ")}
+    </p>
+  );
+}

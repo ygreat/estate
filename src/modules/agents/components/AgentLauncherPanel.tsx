@@ -11,6 +11,7 @@ import {
   type AgentLaunchRequest,
   DEFAULT_AGENT_LAUNCH_COMMANDS,
   findAgentLauncher,
+  isChatCapable,
   validateAgentLaunchCommand,
 } from "@/modules/agents/lib/launcher";
 import { usePreferencesStore } from "@/modules/settings/preferences";
@@ -35,6 +36,8 @@ export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
   const hydrated = usePreferencesStore((s) => s.hydrated);
   const [agentId, setAgentId] = useState<AgentLauncherId>("claude");
   const [instances, setInstances] = useState<AgentInstanceCount>(2);
+  // Estate: open the agent in terminals or as a chat.
+  const [view, setView] = useState<"terminal" | "chat">("terminal");
   const [drafts, setDrafts] = useState<AgentLaunchCommands>(storedCommands);
   const hydratedRef = useRef(hydrated);
   const persistedRef = useRef(storedCommands);
@@ -88,7 +91,14 @@ export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
     save(next);
   };
 
+  const chatAvailable = isChatCapable(agentId);
+  const asChat = view === "chat" && chatAvailable;
+
   const submit = () => {
+    if (asChat) {
+      onLaunch({ agent: agentId, command, instances: 1, view: "chat" });
+      return;
+    }
     const next = persist(agentId, command);
     if (!next) return;
     onLaunch({
@@ -122,10 +132,32 @@ export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
             Launch agents
           </div>
           <div className="text-[10px] text-muted-foreground">
-            One workspace, up to four panes
+            {asChat
+              ? "A chat with the agent, no terminal"
+              : "One workspace, up to four panes"}
           </div>
         </div>
       </div>
+
+      <fieldset className="mt-1 grid grid-cols-2 gap-1 rounded-xl bg-foreground/[0.035] p-0.5">
+        <legend className="sr-only">Open as</legend>
+        {(["terminal", "chat"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={view === v}
+            onClick={() => setView(v)}
+            className={cn(
+              "h-7 rounded-[10px] text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/25",
+              view === v
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {v === "terminal" ? "Terminal" : "Chat"}
+          </button>
+        ))}
+      </fieldset>
 
       <div className="mt-1 grid grid-cols-2 gap-1 border-t border-border/60 pt-1.5">
         {AGENT_LAUNCHERS.map((agent) => {
@@ -160,92 +192,116 @@ export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
         })}
       </div>
 
-      <fieldset className="mt-3">
-        <legend className="mb-1.5 text-[11px] font-medium text-muted-foreground">
-          Instances
-        </legend>
-        <div className="grid grid-cols-4 gap-1">
-          {INSTANCE_COUNTS.map((count) => (
-            <button
-              key={count}
-              type="button"
+      {view === "chat" && !chatAvailable && (
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          Chat mode supports Claude Code, Codex, Gemini CLI and OpenCode.
+          {` ${launcher.label}`} opens in a terminal.
+        </p>
+      )}
+      {asChat && (
+        <p className="mt-3 text-[11px] leading-4 text-muted-foreground">
+          Runs the installed {launcher.label} in its headless mode, in this
+          folder. New chats start read only; you can raise access per chat.
+        </p>
+      )}
+
+      {!asChat && (
+        <>
+          <fieldset className="mt-3">
+            <legend className="mb-1.5 text-[11px] font-medium text-muted-foreground">
+              Instances
+            </legend>
+            <div className="grid grid-cols-4 gap-1">
+              {INSTANCE_COUNTS.map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  disabled={!hydrated}
+                  aria-label={`${count} ${count === 1 ? "instance" : "instances"}`}
+                  aria-pressed={instances === count}
+                  onClick={() => setInstances(count)}
+                  className={cn(
+                    "flex h-9 items-center justify-center gap-1.5 rounded-xl border text-xs font-medium transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25 disabled:pointer-events-none disabled:opacity-50",
+                    instances === count
+                      ? "border-primary/35 bg-primary/10 text-foreground"
+                      : "border-border/60 bg-background/30 text-muted-foreground hover:bg-accent hover:text-foreground",
+                  )}
+                >
+                  <PaneGlyph count={count} />
+                  {count}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          <div className="mt-3">
+            <div className="mb-1.5 flex items-center">
+              <label
+                htmlFor="agent-start-command"
+                className="text-[11px] font-medium text-muted-foreground"
+              >
+                Start command
+              </label>
+              <button
+                type="button"
+                onClick={resetCommand}
+                disabled={
+                  !hydrated ||
+                  command === DEFAULT_AGENT_LAUNCH_COMMANDS[agentId]
+                }
+                className="ml-auto flex items-center gap-1 rounded-md px-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                title={`Reset to ${launcher.defaultCommand}`}
+              >
+                <HugeiconsIcon
+                  icon={Refresh01Icon}
+                  size={11}
+                  strokeWidth={1.75}
+                />
+                Reset
+              </button>
+            </div>
+            <Input
+              id="agent-start-command"
               disabled={!hydrated}
-              aria-label={`${count} ${count === 1 ? "instance" : "instances"}`}
-              aria-pressed={instances === count}
-              onClick={() => setInstances(count)}
+              value={command}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              aria-invalid={!validation.ok}
+              onChange={(event) =>
+                setDrafts((current) => ({
+                  ...current,
+                  [agentId]: event.target.value,
+                }))
+              }
+              onBlur={() => persist(agentId, command)}
+              className="h-8 rounded-xl bg-input/40 px-2.5 font-mono text-xs"
+              placeholder={launcher.defaultCommand}
+            />
+            <div
               className={cn(
-                "flex h-9 items-center justify-center gap-1.5 rounded-xl border text-xs font-medium transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25 disabled:pointer-events-none disabled:opacity-50",
-                instances === count
-                  ? "border-primary/35 bg-primary/10 text-foreground"
-                  : "border-border/60 bg-background/30 text-muted-foreground hover:bg-accent hover:text-foreground",
+                "mt-1 min-h-4 text-[10px]",
+                validation.ok ? "text-muted-foreground" : "text-destructive",
               )}
             >
-              <PaneGlyph count={count} />
-              {count}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      <div className="mt-3">
-        <div className="mb-1.5 flex items-center">
-          <label
-            htmlFor="agent-start-command"
-            className="text-[11px] font-medium text-muted-foreground"
-          >
-            Start command
-          </label>
-          <button
-            type="button"
-            onClick={resetCommand}
-            disabled={
-              !hydrated || command === DEFAULT_AGENT_LAUNCH_COMMANDS[agentId]
-            }
-            className="ml-auto flex items-center gap-1 rounded-md px-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-            title={`Reset to ${launcher.defaultCommand}`}
-          >
-            <HugeiconsIcon icon={Refresh01Icon} size={11} strokeWidth={1.75} />
-            Reset
-          </button>
-        </div>
-        <Input
-          id="agent-start-command"
-          disabled={!hydrated}
-          value={command}
-          spellCheck={false}
-          autoCapitalize="off"
-          autoCorrect="off"
-          aria-invalid={!validation.ok}
-          onChange={(event) =>
-            setDrafts((current) => ({
-              ...current,
-              [agentId]: event.target.value,
-            }))
-          }
-          onBlur={() => persist(agentId, command)}
-          className="h-8 rounded-xl bg-input/40 px-2.5 font-mono text-xs"
-          placeholder={launcher.defaultCommand}
-        />
-        <div
-          className={cn(
-            "mt-1 min-h-4 text-[10px]",
-            validation.ok ? "text-muted-foreground" : "text-destructive",
-          )}
-        >
-          {validation.ok
-            ? "Aliases and flags are supported."
-            : validation.error}
-        </div>
-      </div>
+              {validation.ok
+                ? "Aliases and flags are supported."
+                : validation.error}
+            </div>
+          </div>
+        </>
+      )}
 
       <Button
         type="submit"
         size="sm"
-        className="mt-1 w-full rounded-xl"
-        disabled={!hydrated || !validation.ok}
+        className="mt-3 w-full rounded-xl"
+        disabled={!hydrated || (!asChat && !validation.ok)}
       >
         <HugeiconsIcon icon={PlayIcon} size={13} strokeWidth={2} />
-        Launch {instances} {instances === 1 ? "agent" : "agents"}
+        {asChat
+          ? "Open chat"
+          : `Launch ${instances} ${instances === 1 ? "agent" : "agents"}`}
       </Button>
     </form>
   );

@@ -811,6 +811,9 @@ export function TabIcon({ tab }: { tab: Tab }) {
       />
     );
   }
+  if (tab.kind === "agent-chat") {
+    return <AgentIcon agent={tab.agent} size={14} />;
+  }
   return <TerminalTabIcon tab={tab} />;
 }
 

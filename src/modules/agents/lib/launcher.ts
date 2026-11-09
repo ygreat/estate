@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { PaneNode } from "@/modules/terminal";
 
 export const AGENT_LAUNCHERS = [
@@ -47,7 +48,22 @@ export type AgentLaunchRequest = {
   agent: AgentLauncherId;
   command: string;
   instances: AgentInstanceCount;
+  /** Estate: open in a terminal (default) or as a chat. */
+  view?: "terminal" | "chat";
 };
+
+/** Estate: agents with a headless JSON mode that chat mode can drive. */
+export const CHAT_CAPABLE_AGENTS = [
+  "claude",
+  "codex",
+  "gemini",
+  "opencode",
+] as const;
+export type ChatCapableAgent = (typeof CHAT_CAPABLE_AGENTS)[number];
+
+export function isChatCapable(id: AgentLauncherId): id is ChatCapableAgent {
+  return (CHAT_CAPABLE_AGENTS as readonly string[]).includes(id);
+}
 
 export const DEFAULT_AGENT_LAUNCH_COMMANDS: AgentLaunchCommands =
   Object.fromEntries(
