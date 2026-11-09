@@ -1,4 +1,5 @@
-mod env;
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+pub(crate) mod env;
 mod framing;
 mod session;
 

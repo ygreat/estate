@@ -53,6 +53,13 @@ These came with the Terax 0.9.0 code Estate started from, and need verifying on 
 - [ ] Editor, Git and the built-in AI agent work under Safari 17.6
 - [ ] In-app browser: no Tauri command access, warning bar on external sites
 
+## Workspace and agents (built ahead of the phases)
+
+- [x] Split view of tabs, saved per project (up to four panes)
+- [x] Sidebar on the right by default, configurable
+- [x] Chat mode for Claude Code and Codex (tested), Gemini CLI and OpenCode (built from published formats, untested)
+- [ ] Verify split view and chat mode on the reference Mac
+
 ## Phase 2: New tools
 
 - [ ] SSH: saved hosts, `~/.ssh/config` import, key/agent/password login, host key checks

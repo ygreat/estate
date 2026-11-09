@@ -1,5 +1,7 @@
 // Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { isMarkdownPath } from "@/lib/utils";
+import { type ChatAgentId, CHAT_AGENT_LABEL } from "@/modules/agent-chat/model";
+import { newChatId } from "@/modules/agent-chat/ids";
 import {
   type AgentInstanceCount,
   createAgentPanePlan,
@@ -126,8 +128,21 @@ export type GitCommitFileDiffTab = TabBase & {
   originalPath: string | null;
 };
 
+/** Estate: a terminal coding agent in chat mode (headless, no terminal). */
+export type AgentChatTab = TabBase & {
+  id: number;
+  kind: "agent-chat";
+  title: string;
+  /** Key of the chat's transcript and running turn. */
+  chatId: string;
+  agent: ChatAgentId;
+  /** Workspace folder the agent works in. */
+  cwd: string;
+};
+
 export type Tab =
   | TerminalTab
+  | AgentChatTab
   | EditorTab
   | PreviewTab
   | MarkdownTab
@@ -1004,6 +1019,28 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     [setTabs, setActiveId],
   );
 
+  // Estate: opens a terminal coding agent in chat mode.
+  const newAgentChatTab = useCallback(
+    (agent: ChatAgentId, cwd: string) => {
+      const id = nextIdRef.current++;
+      setTabs((t) => [
+        ...t,
+        {
+          id,
+          kind: "agent-chat",
+          spaceId: activeSpaceIdRef.current,
+          title: CHAT_AGENT_LABEL[agent],
+          chatId: newChatId(),
+          agent,
+          cwd,
+        },
+      ]);
+      setActiveId(id);
+      return id;
+    },
+    [setTabs, setActiveId],
+  );
+
   const newPreviewTab = useCallback(
     (url: string) => {
       const id = nextIdRef.current++;
@@ -1523,6 +1560,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     openFileTab,
     pinTab,
     newPreviewTab,
+    newAgentChatTab,
     newMarkdownTab,
     setMarkdownView,
     openAiDiffTab,

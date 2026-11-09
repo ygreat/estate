@@ -270,6 +270,7 @@ pub fn run() {
         .manage(git::watch::GitWatchState::default())
         .manage(history::HistoryState::default())
         .manage(lsp::LspState::default())
+        .manage(modules::agent_chat::AgentChatState::default())
         .manage(fs::supersede::Supersede::default())
         .manage(fs::index::FileIndexState::default())
         .manage({
@@ -324,6 +325,9 @@ pub fn run() {
             lsp::lsp_host_pid,
             lsp::lsp_resolve_root,
             lsp::lsp_spawn,
+            modules::agent_chat::agent_chat_run,
+            modules::agent_chat::agent_chat_cancel,
+            modules::agent_chat::agent_chat_available,
             lsp::lsp_send,
             lsp::lsp_kill,
             fs::search::fs_search,

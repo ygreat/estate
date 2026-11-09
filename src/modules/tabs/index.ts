@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 export { TabBar, TabIcon } from "./TabBar";
 export { TabSwitcherHud } from "./TabSwitcherHud";
 export { useTabSwitcher } from "./lib/useTabSwitcher";
@@ -11,6 +12,7 @@ export {
   type CloseTabsPlan,
   type Tab,
   type EditorTab,
+  type AgentChatTab,
   type PreviewTab,
   type MarkdownTab,
   type AiDiffTab,

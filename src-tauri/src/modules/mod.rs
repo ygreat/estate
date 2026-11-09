@@ -1,4 +1,6 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 pub mod agent;
+pub mod agent_chat;
 pub mod agent_events;
 pub mod agent_json;
 pub mod ai_sessions;

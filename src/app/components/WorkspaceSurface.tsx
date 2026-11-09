@@ -1,5 +1,6 @@
 // Modified by ygreat for Estate, 2026. Originally part of Terax.
 
+import { AgentChatStack } from "@/modules/agent-chat/AgentChatStackLazy";
 import { AiDiffStack, EditorStack, GitDiffStack } from "@/modules/editor";
 import { GitHistoryStack } from "@/modules/git-history";
 import type { WorkspaceLayout } from "@/modules/layout/model";
@@ -136,6 +137,9 @@ export function WorkspaceSurface({
           onOpenCommitFile={onOpenCommitFile}
           onSearchHandle={onGitHistorySearchHandle}
         />
+      </div>
+      <div className={LAYER}>
+        <AgentChatStack tabs={tabs} activeId={activeId} />
       </div>
     </WorkspaceLayoutFrame>
   );

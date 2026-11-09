@@ -4,7 +4,13 @@ import {
   type PaneNode,
   type SplitDir,
 } from "@/modules/terminal/lib/panes";
+import {
+  CHAT_AGENT_LABEL,
+  CHAT_AGENTS,
+  type ChatAgentId,
+} from "@/modules/agent-chat/model";
 import type {
+  AgentChatTab,
   EditorTab,
   MarkdownTab,
   PreviewTab,
@@ -25,7 +31,8 @@ export type SerializedTab =
     }
   | { kind: "editor"; path: string }
   | { kind: "preview"; url: string }
-  | { kind: "markdown"; path: string };
+  | { kind: "markdown"; path: string }
+  | { kind: "agent-chat"; chatId: string; agent: ChatAgentId; cwd: string };
 
 function basename(path: string): string {
   const parts = path.split(/[\\/]/).filter(Boolean);
@@ -62,6 +69,7 @@ export function isSerializableTab(tab: Tab): boolean {
     case "editor":
     case "preview":
     case "markdown":
+    case "agent-chat":
       return true;
     default:
       return false;
@@ -84,6 +92,13 @@ function serializeTab(tab: Tab): SerializedTab | null {
       return { kind: "preview", url: tab.url };
     case "markdown":
       return { kind: "markdown", path: tab.path };
+    case "agent-chat":
+      return {
+        kind: "agent-chat",
+        chatId: tab.chatId,
+        agent: tab.agent,
+        cwd: tab.cwd,
+      };
     default:
       return null;
   }
@@ -195,6 +210,22 @@ function hydrateTab(
         title: basename(s.path),
         path: s.path,
       } satisfies MarkdownTab;
+    case "agent-chat": {
+      const agent = s.agent;
+      if (!CHAT_AGENTS.includes(agent)) return null;
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(s.chatId) || typeof s.cwd !== "string")
+        return null;
+      return {
+        id: allocId(),
+        kind: "agent-chat",
+        spaceId,
+        cold: true,
+        title: CHAT_AGENT_LABEL[agent],
+        chatId: s.chatId,
+        agent,
+        cwd: s.cwd,
+      } satisfies AgentChatTab;
+    }
     default:
       return null;
   }

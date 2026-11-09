@@ -1,0 +1,7 @@
+{"type": "thread.started", "thread_id": "01a1c0f6-36f0-7fb3-9afc-d6350040807f"}
+{"type": "turn.started"}
+{"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", "text": "I’ll list the files in the current directory."}}
+{"type": "item.started", "item": {"id": "item_1", "type": "command_execution", "command": "/bin/bash -lc 'ls -la'", "aggregated_output": "", "exit_code": null, "status": "in_progress"}}
+{"type": "item.completed", "item": {"id": "item_1", "type": "command_execution", "command": "/bin/bash -lc 'ls -la'", "aggregated_output": "total 8\ndrwxr-xr-x@ 3 user  wheel   96 Jan  1 00:00 .\ndrwxr-xr-x@ 9 user  wheel  288 Jan  1 00:00 ..\n-rw-r--r--@ 1 user  wheel    6 Jan  1 00:00 notes.txt\n", "exit_code": 0, "status": "completed"}}
+{"type": "item.completed", "item": {"id": "item_2", "type": "agent_message", "text": "The current directory contains one file: `notes.txt`."}}
+{"type": "turn.completed", "usage": {"input_tokens": 30880, "cached_input_tokens": 27520, "cache_write_input_tokens": 0, "output_tokens": 67, "reasoning_output_tokens": 0}}
