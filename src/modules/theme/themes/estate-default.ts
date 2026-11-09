@@ -10,7 +10,7 @@ import type { Theme } from "../types";
 export const estateDefault: Theme = {
   id: "estate-default",
   name: "Estate Default",
-  description: "Clean neutral greys with a full-color terminal.",
+  description: "Clean neutral greys with dark-green-to-lime accents.",
   editorTheme: { dark: "github-dark", light: "github-light" },
   variants: {
     light: {},
