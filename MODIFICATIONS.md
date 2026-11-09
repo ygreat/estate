@@ -19,7 +19,7 @@ Files that can't hold comments, such as JSON, are listed here instead, along wit
 | `package.json` | Version restarted at 0.1.0 (Terax was 0.9.0). Package name and the `@estate/ghostty-core` dependency renamed from Terax. |
 | `src-tauri/tauri.windows.conf.json` | Terax names changed to Estate. |
 | `packages/ghostty-core/package.json` | Package renamed from `@terax/ghostty-core` to `@estate/ghostty-core`. |
-| `.size-limit.json` | Font file names changed to Estate. |
+| `.size-limit.json` | Font file names changed to Estate. Total client JS budget raised from 1505 KB to 1560 KB for split view and chat mode (both load lazily; the startup budget is unchanged). |
 | `src/modules/ai/lib/pathPolicy.json` | Terax names changed to Estate. |
 | `scripts/app-lab/experiments/tab-switch-toggles.patch` | Terax names changed to Estate. |
 | `AGENTS.md`, `CLAUDE.md` | Point to `ESTATE.md` instead of `TERAX.md`. |
