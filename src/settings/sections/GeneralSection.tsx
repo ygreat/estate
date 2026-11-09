@@ -37,6 +37,7 @@ import {
   setTerminalLetterSpacing,
   setTerminalMacOptionAsAlt,
   setTerminalRenderer,
+  setShowWelcome,
   setTerminalScreenReader,
   setTerminalScrollback,
   setTerminalScrollSpeed,
@@ -107,6 +108,7 @@ export function GeneralSection() {
 
   const autostart = usePreferencesStore((s) => s.autostart);
   const restoreWindowState = usePreferencesStore((s) => s.restoreWindowState);
+  const showWelcome = usePreferencesStore((s) => s.showWelcome);
   const showHidden = usePreferencesStore((s) => s.showHidden);
   const explorerGitDecorations = usePreferencesStore(
     (s) => s.explorerGitDecorations,
@@ -644,6 +646,15 @@ export function GeneralSection() {
             <Switch
               checked={restoreWindowState}
               onCheckedChange={(v) => void setRestoreWindowState(v)}
+            />
+          </SettingRow>
+          <SettingRow
+            title="Show the welcome screen"
+            description="Open on a calm screen to pick a project and how to start."
+          >
+            <Switch
+              checked={showWelcome}
+              onCheckedChange={(v) => void setShowWelcome(v)}
             />
           </SettingRow>
         </div>

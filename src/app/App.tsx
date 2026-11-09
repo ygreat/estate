@@ -64,6 +64,8 @@ import {
   recentProjects,
 } from "@/modules/spaces/lib/projects";
 import { ProjectButton } from "@/modules/statusbar/ProjectButton";
+import { WelcomeScreen } from "@/modules/welcome/WelcomeScreen";
+import { setShowWelcome } from "@/modules/settings/store";
 import type { FolderAction } from "@/modules/statusbar/CwdBreadcrumb";
 import {
   LOGIN_COMMANDS,
@@ -1423,15 +1425,57 @@ export default function App() {
     },
     [switchProject, workspaceEnv, setActiveSpaceForNewTabs, newTab],
   );
-  const pickProjectFolder = useCallback(async () => {
+  const pickProjectFolder = useCallback(async (): Promise<boolean> => {
     const { open } = await import("@tauri-apps/plugin-dialog");
     const picked = await open({
       directory: true,
       multiple: false,
       title: "Open a project folder",
     });
-    if (typeof picked === "string") await openProjectFolder(picked);
+    if (typeof picked !== "string") return false;
+    await openProjectFolder(picked);
+    return true;
   }, [openProjectFolder]);
+
+  // Estate: the welcome screen, once per launch (Settings > General > Startup).
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const welcomeChecked = useRef(false);
+  const prefsHydrated = usePreferencesStore((s) => s.hydrated);
+  const showWelcomePref = usePreferencesStore((s) => s.showWelcome);
+  useEffect(() => {
+    if (welcomeChecked.current || !spacesHydrated || !prefsHydrated) return;
+    welcomeChecked.current = true;
+    if (showWelcomePref) setWelcomeOpen(true);
+  }, [spacesHydrated, prefsHydrated, showWelcomePref]);
+  const welcomeProject =
+    spacesForProjects.find((sp) => sp.id === activeSpaceId) ?? null;
+  const startChatFromWelcome = useCallback(
+    (prompt: string) => {
+      setWelcomeOpen(false);
+      const cwd = welcomeProject?.root ?? inheritedCwdForNewTab() ?? home;
+      if (!cwd) return;
+      const chatId = newChatId();
+      void native
+        .workspaceAuthorize(cwd)
+        .then(() => {
+          newAgentChatTab("claude", cwd, chatId);
+          if (!prompt) return;
+          return import("@/modules/agent-chat/store").then(
+            ({ useAgentChatStore }) => {
+              const store = useAgentChatStore.getState();
+              store.open(chatId, { agent: "claude", cwd });
+              void store.send(chatId, prompt);
+            },
+          );
+        })
+        .catch((error) =>
+          toast.error("Could not open this folder for the agent", {
+            description: String(error),
+          }),
+        );
+    },
+    [welcomeProject, inheritedCwdForNewTab, home, newAgentChatTab],
+  );
   const folderActions = useCallback(
     (path: string): FolderAction[] => [
       { label: "Open as project", run: () => void openProjectFolder(path) },
@@ -1765,6 +1809,27 @@ export default function App() {
             />
           </Suspense>
         )}
+        {welcomeOpen && (
+          <WelcomeScreen
+            current={welcomeProject}
+            recent={recent}
+            home={home}
+            showOnStartup={showWelcomePref}
+            onShowOnStartupChange={(v) => void setShowWelcome(v)}
+            onOpenFolder={pickProjectFolder}
+            onSwitchProject={switchProject}
+            onStartChat={startChatFromWelcome}
+            onNewTerminal={() => {
+              setWelcomeOpen(false);
+              newTab(welcomeProject?.root ?? undefined);
+            }}
+            onOpenCommandPalette={() => {
+              setWelcomeOpen(false);
+              openCommandPalette("commands");
+            }}
+            onClose={() => setWelcomeOpen(false)}
+          />
+        )}
         <div className="relative flex h-screen flex-col overflow-hidden bg-frame text-foreground">
           {!zenMode && (
             <Header
@@ -1887,6 +1952,7 @@ export default function App() {
                   home={home}
                   onSwitch={switchProject}
                   onOpenFolder={() => void pickProjectFolder()}
+                  onShowWelcome={() => setWelcomeOpen(true)}
                 />
               }
               onWorkspaceChange={handleWorkspaceChange}
