@@ -29,6 +29,21 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 - Each is colour-coded: Needs you, Working, Idle or Ready, with how long ago it changed. Agents in other projects are listed with the project's name. Click one to jump to it.
 - The folder's saved Claude Code sessions are listed below and resume in a new chat. The Agents tab shows how many agents need you.
 
+**Orchestrator**
+- Describe a goal on the welcome screen and choose Plan with Orchestrator. An agent of your choice (Claude Code, Codex, Gemini CLI or OpenCode) reads the project and splits the goal into up to six tasks that can run at the same time.
+- The plan shows as a card you can edit before anything runs: each task's title, instructions, agent, model size (Fast, Balanced, Deep) and whether it edits code.
+- Run starts every task in its own agent chat tab. Tasks that edit code get their own git worktree and branch and "Edit files" access; the others are read only. The card shows each task's progress and opens its chat.
+- When every task has finished, their results go back to the Orchestrator, which summarizes what was done, what's left and how to review and merge each branch.
+- Settings > Agents: the Orchestrator's instructions (editable, with Reset to default), which agent plans (or ask each time, with "remember my choice"), and whether editing tasks get worktrees.
+
+**Welcome screen**
+- Opens on launch (Settings > General can turn it off). First pick a project: the open one, a recent one or a new folder.
+- Then: "What are we building today?" Describe it and start an agent chat, or plan it with the Orchestrator. Shortcuts open an agent chat, a terminal or the command palette.
+
+**Themes**
+- Estate Default now uses green to lime accents.
+- New Estate OLED theme: true black (#000000) background with the same green to lime accents.
+
 ### Quality of life
 
 - The files and source control sidebar sits on the right by default; Settings > General > Layout moves it. The sidebar toggle follows it to the same side of the header.
@@ -36,6 +51,11 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 - A new block tab keeps its welcome screen (logo and key hints) until you start typing.
 - When a breadcrumb `cd` can't run, the message says why: an agent or full-screen program is running, a command is still running, or the shell isn't at a prompt. It offers to open the folder in a new tab.
 - A chat tab shows its folder in the status bar, and the file explorer follows it.
+- Switching projects: the project button at the bottom left lists recent projects and opens a folder as a project, instead of typing `cd` into the terminal. Folder menus offer Open as project, New terminal here and cd in this terminal.
+- Editor, markdown and browser tabs keep the project folder in the status bar and explorer instead of showing "no directory".
+- Settings > Agents is reorganized: Orchestrator first, the chat status line at the end below Snippets.
+- Resuming a saved Claude Code session from the Agents panel opens it correctly.
+- Settings > About describes Estate as lightweight and built for older Macs.
 - Settings > About credits Terax 0.9.0 as the base, with a link to the project.
 - Estate's own app icon and logo.
 

@@ -30,6 +30,7 @@ export function AgentChatStack({ tabs, activeId }: Props) {
               chatId={t.chatId}
               agent={t.agent}
               cwd={t.cwd}
+              role={t.role}
               visible={visible}
             />
           </div>

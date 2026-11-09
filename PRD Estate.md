@@ -141,8 +141,10 @@ P0 items block the first release, P1 items should ship in it, and P2 items can f
 | FR-26 | AI agent | Configurable chat status line with usage limits. | Shows folder, branch, model, access, context, tokens, cost and 5-hour / 7-day gauges, each toggled in Settings. | P2 |
 | FR-27 | AI agent | Sign-in screen when a chat's agent isn't installed or signed in. | Signed-out agents show the screen with a terminal sign-in; account details are never read into the app. | P1 |
 | FR-28 | Workspace | Agents sidebar panel for every running coding agent. | Lists terminal and chat agents colour-coded Needs you / Working / Idle / Ready; clicking one activates its tab and pane. | P1 |
+| FR-29 | AI agent | Orchestrator: a chat agent of the user's choice splits a goal into parallel tasks and delegates them to agent chats. | The plan is shown and editable before anything runs; editing tasks get their own git worktree and Edit files access, others are read only; results go back to the Orchestrator for a summary. Instructions and planning agent are set in Settings > Agents. | P2 |
+| FR-30 | Workspace | Welcome screen and project switching. | Launch shows a project picker, then a goal box with chat, Orchestrator, terminal and command palette; the status bar's project button switches projects without typing `cd`. | P1 |
 
-FR-21 to FR-28 are enhancements and quality-of-life improvements added while building Estate, beyond the seven tools; [CHANGELOG.md](CHANGELOG.md) lists them with the smaller fixes.
+FR-21 to FR-30 are enhancements and quality-of-life improvements added while building Estate, beyond the seven tools; [CHANGELOG.md](CHANGELOG.md) lists them with the smaller fixes.
 
 ## Non-functional requirements
 

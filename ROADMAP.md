@@ -67,6 +67,9 @@ Additions beyond the PRD's seven tools, from using Estate day to day. Details in
 - [x] Agent chat: configurable status line with 5-hour and 7-day usage gauges
 - [x] Agent chat: sign-in screen when the agent isn't installed or signed in
 - [x] Agents sidebar panel: every running agent, colour-coded by state, click to jump
+- [x] Orchestrator: plan a goal with any chat agent, edit the plan, run tasks as agent chats in their own worktrees, results summarized
+- [x] Welcome screen: pick a project, then start a chat, the Orchestrator, a terminal or the command palette
+- [x] Estate Default (green to lime) and Estate OLED (true black) themes
 
 **Quality of life**
 
@@ -76,12 +79,14 @@ Additions beyond the PRD's seven tools, from using Estate day to day. Details in
 - [x] "Terminal is busy" says why and offers a new tab
 - [x] Chat tabs show their folder in the status bar and explorer
 - [x] Estate icon, logo and About credit for Terax
+- [x] Project switching from the status bar's project button
 
 **Still to do**
 
 - [ ] Verify all of the above on the reference Mac
 - [ ] Fix Claude Code's input box being partly hidden in a terminal after a resize (inherited from Terax; needs a diagnostic report)
 - [ ] Session history for Codex chats
+- [ ] Orchestrator: keep a run's progress across restarts, and run each worktree's setup script before its task starts
 
 ## Phase 2: New tools
 

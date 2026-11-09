@@ -138,6 +138,8 @@ export type AgentChatTab = TabBase & {
   agent: ChatAgentId;
   /** Workspace folder the agent works in. */
   cwd: string;
+  /** "orchestrator" plans and delegates; plain chats have none. */
+  role?: "orchestrator";
 };
 
 export type Tab =
@@ -1045,7 +1047,16 @@ export function useTabs(initial?: Partial<TerminalTab>) {
 
   // Estate: opens a terminal coding agent in chat mode.
   const newAgentChatTab = useCallback(
-    (agent: ChatAgentId, cwd: string, chatId: string = newChatId()) => {
+    (
+      agent: ChatAgentId,
+      cwd: string,
+      chatId: string = newChatId(),
+      opts: {
+        title?: string;
+        role?: "orchestrator";
+        background?: boolean;
+      } = {},
+    ) => {
       const id = nextIdRef.current++;
       setTabs((t) => [
         ...t,
@@ -1053,13 +1064,14 @@ export function useTabs(initial?: Partial<TerminalTab>) {
           id,
           kind: "agent-chat",
           spaceId: activeSpaceIdRef.current,
-          title: CHAT_AGENT_LABEL[agent],
+          title: opts.title || CHAT_AGENT_LABEL[agent],
           chatId,
           agent,
           cwd,
+          ...(opts.role && { role: opts.role }),
         },
       ]);
-      setActiveId(id);
+      if (!opts.background) setActiveId(id);
       return id;
     },
     [setTabs, setActiveId],
