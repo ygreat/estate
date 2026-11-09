@@ -1,6 +1,7 @@
 import {
   Alert02Icon,
   CheckmarkCircle02Icon,
+  Clock01Icon,
   CancelCircleIcon,
   InformationCircleIcon,
 } from "@hugeicons/core-free-icons";
@@ -33,10 +34,27 @@ import {
   type UsageWindow,
 } from "./model";
 import { ChatComposer } from "./ChatComposer";
+import { HistorySidebar, SessionList, useChatSessions } from "./HistorySidebar";
 import { ModelPicker } from "./ModelPicker";
 import { useAgentChatStore } from "./store";
 
 const NO_COMMANDS: string[] = [];
+
+const HISTORY_OPEN_KEY = "estate:agent-chat-history-open";
+function readHistoryOpen(): boolean {
+  try {
+    return localStorage.getItem(HISTORY_OPEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function writeHistoryOpen(open: boolean): void {
+  try {
+    localStorage.setItem(HISTORY_OPEN_KEY, open ? "1" : "0");
+  } catch {
+    // Private storage off: the sidebar just won't be remembered.
+  }
+}
 
 type Props = {
   chatId: string;
@@ -61,6 +79,14 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
   const retryWithAccess = useAgentChatStore((s) => s.retryWithAccess);
   const setModel = useAgentChatStore((s) => s.setModel);
   const newSession = useAgentChatStore((s) => s.newSession);
+  const openSession = useAgentChatStore((s) => s.openSession);
+  const [historyOpen, setHistoryOpen] = useState(readHistoryOpen);
+  const toggleHistory = () => {
+    setHistoryOpen((v) => {
+      writeHistoryOpen(!v);
+      return !v;
+    });
+  };
   const agentCommands =
     useAgentChatStore((s) => s.commands[agent]) ?? NO_COMMANDS;
 
@@ -102,6 +128,16 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
       <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border/60 px-3">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="-ml-1 size-7 text-muted-foreground"
+          aria-pressed={historyOpen}
+          title={historyOpen ? "Hide sessions" : "Show sessions"}
+          onClick={() => toggleHistory()}
+        >
+          <HugeiconsIcon icon={Clock01Icon} size={15} strokeWidth={1.75} />
+        </Button>
         <AgentIcon agent={agent} size={15} />
         <span className="text-[12.5px] font-medium">
           {CHAT_AGENT_LABEL[agent]}
@@ -156,81 +192,97 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
         </div>
       </div>
 
-      <div
-        ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto"
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          stickToBottom.current =
-            el.scrollHeight - el.scrollTop - el.clientHeight < 48;
-        }}
-      >
-        <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-4">
-          {items.length === 0 && (
-            <EmptyState
-              agent={agent}
-              cwd={cwd}
-              access={access}
-              loaded={loaded}
-            />
-          )}
-          {items.map((item) => (
-            <ChatRow
-              key={`${item.kind}:${item.id}`}
-              item={item}
-              access={access}
-              running={running}
-              onRetry={(a) => void retryWithAccess(chatId, a)}
-            />
-          ))}
-          {offerGenericRetry && (
-            <div className="flex items-center gap-2 text-[11.5px] text-muted-foreground">
-              <span>Blocked by this chat's access level?</span>
-              <button
-                type="button"
-                className="underline-offset-2 hover:text-foreground hover:underline"
-                onClick={() => void retryWithAccess(chatId, "edit")}
-              >
-                Allow edits and retry
-              </button>
-            </div>
-          )}
-          {!running && chat?.transcript.stats && (
-            <Stats stats={chat.transcript.stats} />
-          )}
-        </div>
-      </div>
-
-      <div className="shrink-0 border-t border-border/60 px-3 py-2.5">
-        <ChatComposer
-          ref={inputRef}
-          placeholder={`Message ${CHAT_AGENT_LABEL[agent]}… (/ for commands)`}
-          disabled={!loaded}
-          running={running}
-          agentCommands={agentCommands}
-          onStop={() => cancel(chatId)}
-          onAction={(action) => {
-            if (action.kind === "clear") {
-              newSession(chatId);
-              return;
-            }
-            if (action.kind === "model") {
-              if (action.model) setModel(chatId, action.model);
-              else setModelOpen(true);
-              return;
-            }
-            stickToBottom.current = true;
-            void send(chatId, action.text);
-          }}
-        />
-        {chat && (
-          <ChatStatusLine
+      <div className="flex min-h-0 flex-1">
+        {historyOpen && (
+          <HistorySidebar
             agent={agent}
             cwd={cwd}
-            access={access}
-            transcript={chat.transcript}
+            currentSessionId={chat?.transcript.sessionId}
+            running={running}
+            refresh={chat?.transcript.totals.turns ?? 0}
+            onOpen={(sid) => void openSession(chatId, sid)}
+            onNew={() => newSession(chatId)}
           />
         )}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div
+            ref={scrollRef}
+            className="min-h-0 flex-1 overflow-y-auto"
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              stickToBottom.current =
+                el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+            }}
+          >
+            <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-4">
+              {items.length === 0 && (
+                <EmptyState
+                  agent={agent}
+                  cwd={cwd}
+                  access={access}
+                  loaded={loaded}
+                  onOpenSession={(sid) => void openSession(chatId, sid)}
+                />
+              )}
+              {items.map((item) => (
+                <ChatRow
+                  key={`${item.kind}:${item.id}`}
+                  item={item}
+                  access={access}
+                  running={running}
+                  onRetry={(a) => void retryWithAccess(chatId, a)}
+                />
+              ))}
+              {offerGenericRetry && (
+                <div className="flex items-center gap-2 text-[11.5px] text-muted-foreground">
+                  <span>Blocked by this chat's access level?</span>
+                  <button
+                    type="button"
+                    className="underline-offset-2 hover:text-foreground hover:underline"
+                    onClick={() => void retryWithAccess(chatId, "edit")}
+                  >
+                    Allow edits and retry
+                  </button>
+                </div>
+              )}
+              {!running && chat?.transcript.stats && (
+                <Stats stats={chat.transcript.stats} />
+              )}
+            </div>
+          </div>
+
+          <div className="shrink-0 border-t border-border/60 px-3 py-2.5">
+            <ChatComposer
+              ref={inputRef}
+              placeholder={`Message ${CHAT_AGENT_LABEL[agent]}… (/ for commands)`}
+              disabled={!loaded}
+              running={running}
+              agentCommands={agentCommands}
+              onStop={() => cancel(chatId)}
+              onAction={(action) => {
+                if (action.kind === "clear") {
+                  newSession(chatId);
+                  return;
+                }
+                if (action.kind === "model") {
+                  if (action.model) setModel(chatId, action.model);
+                  else setModelOpen(true);
+                  return;
+                }
+                stickToBottom.current = true;
+                void send(chatId, action.text);
+              }}
+            />
+            {chat && (
+              <ChatStatusLine
+                agent={agent}
+                cwd={cwd}
+                access={access}
+                transcript={chat.transcript}
+              />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -430,12 +482,15 @@ function EmptyState({
   cwd,
   access,
   loaded,
+  onOpenSession,
 }: {
   agent: ChatAgentId;
   cwd: string;
   access: ChatAccess;
   loaded: boolean;
+  onOpenSession: (sessionId: string) => void;
 }) {
+  const { sessions } = useChatSessions(agent, cwd, 0);
   if (!loaded) return null;
   return (
     <div className="mt-16 flex flex-col items-center gap-2 text-center">
@@ -447,6 +502,20 @@ function EmptyState({
         Access: {ACCESS_LABEL[access]}. {ACCESS_HINT[access]} You can change it
         at the top right.
       </p>
+      {sessions && sessions.length > 0 && (
+        <div className="mt-6 w-full max-w-sm text-left">
+          <p className="mb-1 px-2 text-[11px] font-medium text-muted-foreground">
+            Continue a session in this folder
+          </p>
+          <SessionList
+            sessions={sessions}
+            currentId={undefined}
+            disabled={false}
+            onOpen={onOpenSession}
+            limit={5}
+          />
+        </div>
+      )}
     </div>
   );
 }
