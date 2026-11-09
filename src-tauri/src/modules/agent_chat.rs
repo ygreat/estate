@@ -784,6 +784,200 @@ pub async fn agent_chat_session_history(
     .map_err(|e| e.to_string())?
 }
 
+// ---- Sign-in status ---------------------------------------------------------
+
+/// Whether an agent can be used. Only the state and the sign-in method leave
+/// Rust: never the account email, organisation or tokens.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentAuth {
+    /// "signed-in", "signed-out", "missing" (not installed) or "unknown".
+    pub state: &'static str,
+    pub method: Option<String>,
+    /// What to run in a terminal to sign in.
+    pub login_command: &'static str,
+}
+
+fn login_command(agent: ChatAgent) -> &'static str {
+    match agent {
+        ChatAgent::Claude => "claude auth login",
+        ChatAgent::Codex => "codex login",
+        // Gemini CLI asks how to sign in on its first interactive run.
+        ChatAgent::Gemini => "gemini",
+        ChatAgent::Opencode => "opencode auth login",
+    }
+}
+
+/// `claude auth status --json`: `{"loggedIn": bool, "authMethod": "..."}`.
+pub fn parse_claude_auth(stdout: &str) -> (&'static str, Option<String>) {
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(stdout.trim()) else {
+        return ("unknown", None);
+    };
+    match v.get("loggedIn").and_then(|b| b.as_bool()) {
+        Some(true) => (
+            "signed-in",
+            v.get("authMethod")
+                .and_then(|m| m.as_str())
+                .map(|m| m.chars().take(40).collect()),
+        ),
+        Some(false) => ("signed-out", None),
+        None => ("unknown", None),
+    }
+}
+
+/// `codex login status`: "Logged in using ChatGPT" / "Not logged in".
+pub fn parse_codex_auth(output: &str, exit: Option<i32>) -> (&'static str, Option<String>) {
+    let text = output.trim();
+    if text.to_ascii_lowercase().starts_with("not logged in") {
+        return ("signed-out", None);
+    }
+    if let Some(rest) = text.strip_prefix("Logged in") {
+        let method = rest
+            .trim()
+            .strip_prefix("using")
+            .map(|m| {
+                m.trim()
+                    .lines()
+                    .next()
+                    .unwrap_or("")
+                    .chars()
+                    .take(40)
+                    .collect::<String>()
+            })
+            .filter(|m| !m.is_empty());
+        return ("signed-in", method);
+    }
+    match exit {
+        Some(0) => ("unknown", None),
+        Some(_) => ("signed-out", None),
+        None => ("unknown", None),
+    }
+}
+
+fn env_has(keys: &[&str]) -> bool {
+    let overlay = crate::modules::lsp::env::server_env_overlay();
+    keys.iter().any(|k| {
+        overlay
+            .get(*k)
+            .cloned()
+            .or_else(|| std::env::var(k).ok())
+            .is_some_and(|v| !v.trim().is_empty())
+    })
+}
+
+fn non_empty_json_object(path: &std::path::Path) -> bool {
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+        .and_then(|v| v.as_object().map(|o| !o.is_empty()))
+        .unwrap_or(false)
+}
+
+fn run_status(
+    program: &std::path::Path,
+    args: &[&str],
+) -> Option<crate::modules::proc::capture::Captured> {
+    let mut cmd = Command::new(program);
+    cmd.args(args)
+        .envs(crate::modules::lsp::env::server_env_overlay())
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    crate::modules::proc::hide_console(&mut cmd);
+    crate::modules::proc::capture::run(
+        &mut cmd,
+        std::time::Duration::from_secs(10),
+        crate::modules::proc::capture::Limits {
+            stdout: 64 * 1024,
+            stderr: 16 * 1024,
+            stop_on_stdout_cap: true,
+        },
+    )
+    .ok()
+}
+
+fn check_auth(agent: ChatAgent) -> AgentAuth {
+    let program = match agent {
+        ChatAgent::Claude => "claude",
+        ChatAgent::Codex => "codex",
+        ChatAgent::Gemini => "gemini",
+        ChatAgent::Opencode => "opencode",
+    };
+    let login = login_command(agent);
+    let Some(binary) = crate::modules::lsp::env::resolve_binary(program) else {
+        return AgentAuth {
+            state: "missing",
+            method: None,
+            login_command: login,
+        };
+    };
+    let (state, method) = match agent {
+        ChatAgent::Claude => match run_status(&binary, &["auth", "status", "--json"]) {
+            Some(out) if !out.timed_out => parse_claude_auth(&String::from_utf8_lossy(&out.stdout)),
+            _ => ("unknown", None),
+        },
+        ChatAgent::Codex => match run_status(&binary, &["login", "status"]) {
+            Some(out) if !out.timed_out => {
+                // Codex prints the status on stderr in some versions.
+                let text = format!(
+                    "{}{}",
+                    String::from_utf8_lossy(&out.stdout),
+                    String::from_utf8_lossy(&out.stderr)
+                );
+                parse_codex_auth(&text, out.exit_code)
+            }
+            _ => ("unknown", None),
+        },
+        ChatAgent::Gemini => {
+            let home = dirs::home_dir();
+            if env_has(&[
+                "GEMINI_API_KEY",
+                "GOOGLE_API_KEY",
+                "GOOGLE_GENAI_USE_VERTEXAI",
+            ]) {
+                ("signed-in", Some("API key".into()))
+            } else if home
+                .is_some_and(|h| non_empty_json_object(&h.join(".gemini/oauth_creds.json")))
+            {
+                ("signed-in", Some("Google account".into()))
+            } else {
+                ("signed-out", None)
+            }
+        }
+        ChatAgent::Opencode => {
+            let data = std::env::var("XDG_DATA_HOME")
+                .ok()
+                .map(std::path::PathBuf::from)
+                .or_else(|| dirs::home_dir().map(|h| h.join(".local/share")));
+            if data.is_some_and(|d| non_empty_json_object(&d.join("opencode/auth.json"))) {
+                ("signed-in", None)
+            } else if env_has(&[
+                "ANTHROPIC_API_KEY",
+                "OPENAI_API_KEY",
+                "GEMINI_API_KEY",
+                "OPENROUTER_API_KEY",
+            ]) {
+                ("signed-in", Some("API key".into()))
+            } else {
+                ("signed-out", None)
+            }
+        }
+    };
+    AgentAuth {
+        state,
+        method,
+        login_command: login,
+    }
+}
+
+/// Whether the agent is installed and signed in.
+#[tauri::command]
+pub async fn agent_chat_auth(agent: ChatAgent) -> Result<AgentAuth, String> {
+    tauri::async_runtime::spawn_blocking(move || check_auth(agent))
+        .await
+        .map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1055,6 +1249,47 @@ mod tests {
         let (lines, truncated) = history_lines(&text, false);
         assert_eq!(lines.len(), MAX_HISTORY_LINES);
         assert!(truncated);
+    }
+
+    #[test]
+    fn reads_claude_sign_in_status_without_account_details() {
+        let out =
+            r#"{"loggedIn":true,"authMethod":"claude.ai","email":"me@example.com","orgName":"Me"}"#;
+        assert_eq!(
+            parse_claude_auth(out),
+            ("signed-in", Some("claude.ai".into()))
+        );
+        assert_eq!(
+            parse_claude_auth(r#"{"loggedIn":false}"#),
+            ("signed-out", None)
+        );
+        assert_eq!(parse_claude_auth("not json"), ("unknown", None));
+        assert_eq!(parse_claude_auth("{}"), ("unknown", None));
+    }
+
+    #[test]
+    fn reads_codex_sign_in_status() {
+        assert_eq!(
+            parse_codex_auth("Logged in using ChatGPT\n", Some(0)),
+            ("signed-in", Some("ChatGPT".into()))
+        );
+        assert_eq!(
+            parse_codex_auth("Logged in using an API key - sk-***", Some(0)).0,
+            "signed-in"
+        );
+        assert_eq!(
+            parse_codex_auth("Not logged in", Some(1)),
+            ("signed-out", None)
+        );
+        assert_eq!(parse_codex_auth("", Some(1)), ("signed-out", None));
+        assert_eq!(parse_codex_auth("???", Some(0)), ("unknown", None));
+    }
+
+    #[test]
+    fn login_commands_are_fixed_per_agent() {
+        assert_eq!(login_command(ChatAgent::Claude), "claude auth login");
+        assert_eq!(login_command(ChatAgent::Codex), "codex login");
+        assert_eq!(login_command(ChatAgent::Opencode), "opencode auth login");
     }
 
     #[test]
