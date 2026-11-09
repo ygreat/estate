@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useCallback, useEffect, useState } from "react";
-import type { ChatAgentId } from "./model";
+import { emitTo } from "@tauri-apps/api/event";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CHAT_AGENTS, type ChatAgentId } from "./model";
 
 /** Mirrors `AgentAuth` in src-tauri/src/modules/agent_chat.rs. */
 export type AgentAuth = {
@@ -67,10 +69,79 @@ export const RUN_IN_TERMINAL_EVENT = "estate:run-in-new-terminal";
 
 export type RunInTerminalDetail = { command: string; cwd: string };
 
+function isMainWindow(): boolean {
+  try {
+    return getCurrentWebviewWindow().label === "main";
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Asks the main window for a terminal running `command`. From another window
+ * (Settings) it goes over a Tauri event; App applies the same allow-list.
+ */
 export function runInNewTerminal(detail: RunInTerminalDetail): void {
-  window.dispatchEvent(
-    new CustomEvent<RunInTerminalDetail>(RUN_IN_TERMINAL_EVENT, { detail }),
+  if (isMainWindow()) {
+    window.dispatchEvent(
+      new CustomEvent<RunInTerminalDetail>(RUN_IN_TERMINAL_EVENT, { detail }),
+    );
+    return;
+  }
+  void emitTo("main", RUN_IN_TERMINAL_EVENT, detail);
+}
+
+/** How to install each agent, shown when it isn't found. */
+export const INSTALL_HINT: Record<ChatAgentId, string> = {
+  claude: "curl -fsSL https://claude.ai/install.sh | bash",
+  codex: "npm install -g @openai/codex",
+  gemini: "npm install -g @google/gemini-cli",
+  opencode: "npm install -g opencode-ai",
+};
+
+/** What each agent signs in with, for people choosing between them. */
+export const SIGN_IN_WITH: Record<ChatAgentId, string> = {
+  claude: "Claude account or API key",
+  codex: "ChatGPT account or API key",
+  gemini: "Google account or API key",
+  opencode: "Provider of your choice",
+};
+
+/**
+ * Sign-in state of every chat agent. Re-checks the ones not signed in when the
+ * window regains focus (after a sign-in in the terminal or browser).
+ */
+export function useAgentStatuses() {
+  const [auth, setAuth] = useState<Partial<Record<ChatAgentId, AgentAuth>>>({});
+  const authRef = useRef(auth);
+  authRef.current = auth;
+  const [checking, setChecking] = useState<ChatAgentId[]>([]);
+  const check = useCallback((agent: ChatAgentId, fresh: boolean) => {
+    setChecking((c) => (c.includes(agent) ? c : [...c, agent]));
+    void fetchAuth(agent, fresh).then((a) => {
+      setAuth((m) => ({ ...m, [agent]: a }));
+      setChecking((c) => c.filter((x) => x !== agent));
+    });
+  }, []);
+  useEffect(() => {
+    for (const a of CHAT_AGENTS) check(a, false);
+  }, [check]);
+  useEffect(() => {
+    const onFocus = () => {
+      for (const a of CHAT_AGENTS) {
+        if (authRef.current[a]?.state !== "signed-in") check(a, true);
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [check]);
+  const recheck = useCallback(
+    (agent?: ChatAgentId) => {
+      for (const a of agent ? [agent] : CHAT_AGENTS) check(a, true);
+    },
+    [check],
   );
+  return { auth, checking, recheck };
 }
 
 /** Whether chat should wait for sign-in (unknown never blocks). */

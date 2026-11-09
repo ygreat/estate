@@ -1,17 +1,14 @@
 // Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { invoke } from "@tauri-apps/api/core";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useWhisperRecording } from "../hooks/useWhisperRecording";
 import { expandSnippetTokens, type Snippet } from "../lib/snippets";
 import { tryRunSlashCommand, type SlashCommandMeta } from "./slashCommands";
 import { getChat, useChatStore } from "../store/chatStore";
 import { useSnippetsStore } from "../store/snippetsStore";
+import { useAgentsStore } from "../store/agentsStore";
+import { ORCHESTRATOR_AGENT_ID } from "./agents";
+import { requestOrchestration } from "@/modules/orchestrator/events";
 import { currentWorkspaceEnv } from "@/modules/workspace";
 
 export type FileAttachment = {
@@ -132,9 +129,7 @@ export function AiComposerProvider({ children }: ProviderProps) {
         next.push({
           id: sel.id,
           name:
-            sel.source === "editor"
-              ? "Editor selection"
-              : "Terminal selection",
+            sel.source === "editor" ? "Editor selection" : "Terminal selection",
           kind: "selection",
           mediaType: "text/plain",
           text: sel.text,
@@ -227,12 +222,30 @@ export function AiComposerProvider({ children }: ProviderProps) {
     )
       return;
 
+    // Estate: with the Orchestrator selected, a goal goes to an Orchestrator
+    // chat instead of the model (slash commands still run here).
+    if (
+      useAgentsStore.getState().activeId === ORCHESTRATOR_AGENT_ID &&
+      trimmed &&
+      !trimmed.startsWith("/") &&
+      !trimmed.startsWith("#") &&
+      pickedCommands.length === 0
+    ) {
+      requestOrchestration(trimmed);
+      setValue("");
+      return;
+    }
+
     // Slash-command interception. `/plan` toggles plan mode; `/init` rewrites
     // the prompt to the ESTATE.md scan template before sending.
     let effectiveText = trimmed;
     let commandMarker: string | null = null;
     let commandSource = trimmed;
-    if (pickedCommands.length > 0 && !trimmed.startsWith("/") && !trimmed.startsWith("#")) {
+    if (
+      pickedCommands.length > 0 &&
+      !trimmed.startsWith("/") &&
+      !trimmed.startsWith("#")
+    ) {
       commandSource = `#${pickedCommands[0].name} ${trimmed}`.trim();
     }
     if (commandSource.startsWith("/") || commandSource.startsWith("#")) {
@@ -263,10 +276,8 @@ export function AiComposerProvider({ children }: ProviderProps) {
         (f) =>
           `<selection source="${f.source ?? "terminal"}">\n${f.text ?? ""}\n</selection>`,
       );
-    const { body: bodyAfterTokens, blocks: snippetBlocks } = expandSnippetTokens(
-      effectiveText,
-      useSnippetsStore.getState().snippets,
-    );
+    const { body: bodyAfterTokens, blocks: snippetBlocks } =
+      expandSnippetTokens(effectiveText, useSnippetsStore.getState().snippets);
     const seenHandles = new Set<string>();
     const allSnippetBlocks: string[] = [];
     for (const s of pickedSnippets) {

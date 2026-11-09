@@ -11,6 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { AGENT_ICONS } from "@/modules/ai/components/AgentSwitcher";
+import { AuthStatus, signIn } from "@/modules/agent-chat/AgentPicker";
+import {
+  INSTALL_HINT,
+  SIGN_IN_WITH,
+  useAgentStatuses,
+} from "@/modules/agent-chat/auth";
+import { CHAT_AGENT_LABEL, CHAT_AGENTS } from "@/modules/agent-chat/model";
+import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import {
   type Agent,
   type AgentIconId,
@@ -99,6 +107,8 @@ export function AgentsSection() {
         title="Agents"
         description="Personas and snippets the AI uses. Switch agents from the input bar."
       />
+
+      <CodingAgentsBlock />
 
       <OrchestratorBlock />
 
@@ -613,6 +623,82 @@ const DELEGATE_LABEL: Record<OrchestratorDelegate, string> = {
 };
 
 /** Estate: the global Orchestrator agent. */
+/** Estate: the coding agents chats and the Orchestrator run, and their sign-in. */
+function CodingAgentsBlock() {
+  const { auth, checking, recheck } = useAgentStatuses();
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-end justify-between">
+        <div className="flex flex-col">
+          <Label>Coding agents</Label>
+          <span className="text-[10.5px] text-muted-foreground">
+            Used by agent chats and the Orchestrator. Each signs in with its own
+            account; Estate only checks whether you're signed in.
+          </span>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 shrink-0 px-2 text-[11px]"
+          disabled={checking.length > 0}
+          onClick={() => recheck()}
+        >
+          Check again
+        </Button>
+      </div>
+      <div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/60">
+        {CHAT_AGENTS.map((a) => {
+          const state = auth[a]?.state;
+          return (
+            <div key={a} className="flex items-center gap-3 px-3 py-2.5">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/70 text-muted-foreground">
+                <AgentIcon agent={a} size={14} />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="text-[12px] font-medium">
+                  {CHAT_AGENT_LABEL[a]}
+                  <span className="ml-1.5 font-normal text-muted-foreground">
+                    {SIGN_IN_WITH[a]}
+                  </span>
+                </span>
+                {state === "missing" ? (
+                  <code className="truncate font-mono text-[10.5px] text-muted-foreground">
+                    {INSTALL_HINT[a]}
+                  </code>
+                ) : (
+                  <AuthStatus auth={auth[a]} checking={checking.includes(a)} />
+                )}
+              </span>
+              {state === "signed-out" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2.5 text-[11px]"
+                  onClick={() => signIn(auth[a], "")}
+                >
+                  Sign in
+                </Button>
+              )}
+              {state === "missing" && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2.5 text-[11px]"
+                  onClick={() =>
+                    void navigator.clipboard.writeText(INSTALL_HINT[a])
+                  }
+                >
+                  Copy
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function OrchestratorBlock() {
   const instructions = usePreferencesStore((s) => s.orchestratorInstructions);
   const delegate = usePreferencesStore((s) => s.orchestratorAgent);
@@ -628,7 +714,8 @@ function OrchestratorBlock() {
         <Label>Orchestrator</Label>
         <span className="text-[10.5px] text-muted-foreground">
           Plans a goal, splits it into tasks, and hands them to coding agents in
-          parallel. Start it from the welcome screen's Plan button.
+          parallel. Start it from the welcome screen, or pick Orchestrator in
+          the AI panel's agent switcher.
         </span>
       </div>
       <SettingRow
