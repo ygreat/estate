@@ -46,6 +46,8 @@ Modern agent workspaces and CLIs are dropping Monterey, and Intel Macs that stop
 
 ## Install
 
+Estate has its own version numbers, starting at 0.1.0. The 0.9.0 mentioned elsewhere is the Terax version Estate started from.
+
 There are no releases yet. When there are, they'll be on the [Releases](https://github.com/ygreat/estate/releases) page.
 
 Estate is not notarized by Apple. After moving the app to Applications, clear the download quarantine:
