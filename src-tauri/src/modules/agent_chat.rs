@@ -530,6 +530,260 @@ pub async fn agent_chat_available() -> Result<Vec<String>, String> {
     .map_err(|e| e.to_string())
 }
 
+// ---- Session history (Claude Code) -------------------------------------------
+
+/// Where Claude Code keeps sessions: `$CLAUDE_CONFIG_DIR` or `~/.claude`, then
+/// `projects/<folder with every non-alphanumeric character turned into '-'>`.
+fn claude_projects_dir() -> Option<std::path::PathBuf> {
+    let overlay = crate::modules::lsp::env::server_env_overlay();
+    let config = overlay
+        .get("CLAUDE_CONFIG_DIR")
+        .cloned()
+        .or_else(|| std::env::var("CLAUDE_CONFIG_DIR").ok())
+        .filter(|v| !v.trim().is_empty())
+        .map(std::path::PathBuf::from)
+        .or_else(|| dirs::home_dir().map(|h| h.join(".claude")))?;
+    Some(config.join("projects"))
+}
+
+/// Claude Code's folder name for a project directory.
+pub fn encode_claude_project(cwd: &std::path::Path) -> String {
+    cwd.to_string_lossy()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect()
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionSummary {
+    pub id: String,
+    pub title: Option<String>,
+    pub last_prompt: Option<String>,
+    pub branch: Option<String>,
+    pub modified_ms: u64,
+    pub bytes: u64,
+}
+
+const SUMMARY_PEEK_BYTES: u64 = 64 * 1024;
+const MAX_SESSIONS_LISTED: usize = 100;
+const HISTORY_READ_BYTES: u64 = 24 * 1024 * 1024;
+const MAX_HISTORY_LINES: usize = 400;
+
+fn json_lines(text: &str) -> impl Iterator<Item = serde_json::Value> + '_ {
+    text.lines()
+        .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+}
+
+/// A typed prompt (not a tool result, internal note or command markup).
+fn prompt_text(v: &serde_json::Value) -> Option<String> {
+    if v.get("type")?.as_str()? != "user" || v.get("isMeta").and_then(|m| m.as_bool()) == Some(true)
+    {
+        return None;
+    }
+    let text = v.get("message")?.get("content")?.as_str()?.trim();
+    if text.is_empty() || text.starts_with('<') {
+        return None;
+    }
+    Some(text.chars().take(200).collect())
+}
+
+/// Title, latest prompt and branch from the start and end of a session file.
+pub fn summarize_session(
+    head: &str,
+    tail: &str,
+) -> (Option<String>, Option<String>, Option<String>) {
+    let mut title = None;
+    let mut last_prompt = None;
+    for v in json_lines(tail) {
+        match v.get("type").and_then(|t| t.as_str()) {
+            Some("ai-title") => {
+                if let Some(t) = v.get("aiTitle").and_then(|t| t.as_str()) {
+                    title = Some(t.chars().take(120).collect());
+                }
+            }
+            Some("last-prompt") => {
+                if let Some(t) = v.get("lastPrompt").and_then(|t| t.as_str()) {
+                    last_prompt = Some(t.trim().chars().take(200).collect());
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut branch = None;
+    for v in json_lines(head) {
+        if title.is_none() && v.get("type").and_then(|t| t.as_str()) == Some("ai-title") {
+            title = v
+                .get("aiTitle")
+                .and_then(|t| t.as_str())
+                .map(|t| t.chars().take(120).collect());
+        }
+        if last_prompt.is_none() {
+            last_prompt = prompt_text(&v);
+        }
+        if branch.is_none() {
+            branch = v
+                .get("gitBranch")
+                .and_then(|b| b.as_str())
+                .filter(|b| !b.is_empty())
+                .map(str::to_string);
+        }
+    }
+    (title, last_prompt, branch)
+}
+
+/// The conversation lines of a session: user and assistant messages from the
+/// main thread (subagent internals skipped), the last `MAX_HISTORY_LINES`.
+pub fn history_lines(text: &str, starts_mid_line: bool) -> (Vec<String>, bool) {
+    let mut lines: Vec<&str> = text.lines().collect();
+    if starts_mid_line && !lines.is_empty() {
+        lines.remove(0);
+    }
+    let kept: Vec<String> = lines
+        .into_iter()
+        .filter(|l| {
+            let Ok(v) = serde_json::from_str::<serde_json::Value>(l) else {
+                return false;
+            };
+            let kind = v.get("type").and_then(|t| t.as_str());
+            matches!(kind, Some("user") | Some("assistant"))
+                && v.get("isSidechain").and_then(|b| b.as_bool()) != Some(true)
+        })
+        .map(str::to_string)
+        .collect();
+    let truncated = starts_mid_line || kept.len() > MAX_HISTORY_LINES;
+    let start = kept.len().saturating_sub(MAX_HISTORY_LINES);
+    (kept[start..].to_vec(), truncated)
+}
+
+fn read_range(path: &std::path::Path, from: u64, len: u64) -> std::io::Result<String> {
+    use std::io::Seek;
+    let mut f = std::fs::File::open(path)?;
+    f.seek(std::io::SeekFrom::Start(from))?;
+    let mut buf = Vec::with_capacity(len as usize);
+    f.take(len).read_to_end(&mut buf)?;
+    Ok(String::from_utf8_lossy(&buf).into_owned())
+}
+
+fn session_dir(
+    registry: &WorkspaceRegistry,
+    agent: ChatAgent,
+    cwd: &str,
+) -> Result<Option<std::path::PathBuf>, String> {
+    if agent != ChatAgent::Claude {
+        return Ok(None);
+    }
+    let cwd = authorize_spawn_cwd(registry, Some(cwd), &WorkspaceEnv::Local)?
+        .ok_or("agent chat: a workspace folder is required")?;
+    Ok(claude_projects_dir().map(|d| d.join(encode_claude_project(&cwd))))
+}
+
+/// Sessions the agent has for this folder, newest first. Empty for agents
+/// whose history Estate doesn't read yet.
+#[tauri::command]
+pub async fn agent_chat_sessions(
+    registry: tauri::State<'_, WorkspaceRegistry>,
+    agent: ChatAgent,
+    cwd: String,
+) -> Result<Vec<SessionSummary>, String> {
+    let Some(dir) = session_dir(&registry, agent, &cwd)? else {
+        return Ok(Vec::new());
+    };
+    tauri::async_runtime::spawn_blocking(move || {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            return Vec::new();
+        };
+        let mut files: Vec<(std::path::PathBuf, String, u64, u64)> = entries
+            .filter_map(Result::ok)
+            .filter_map(|e| {
+                let path = e.path();
+                if path.extension().and_then(|x| x.to_str()) != Some("jsonl") {
+                    return None;
+                }
+                let id = path.file_stem()?.to_str()?.to_string();
+                if !valid_token(&id, 128, &[]) {
+                    return None;
+                }
+                let meta = e.metadata().ok()?;
+                if !meta.is_file() {
+                    return None;
+                }
+                let modified = meta
+                    .modified()
+                    .ok()
+                    .and_then(|m| m.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|d| d.as_millis() as u64)
+                    .unwrap_or(0);
+                Some((path, id, modified, meta.len()))
+            })
+            .collect();
+        files.sort_by_key(|f| std::cmp::Reverse(f.2));
+        files.truncate(MAX_SESSIONS_LISTED);
+        files
+            .into_iter()
+            .map(|(path, id, modified_ms, bytes)| {
+                let head = read_range(&path, 0, SUMMARY_PEEK_BYTES).unwrap_or_default();
+                let tail_from = bytes.saturating_sub(SUMMARY_PEEK_BYTES);
+                let tail = if tail_from == 0 {
+                    head.clone()
+                } else {
+                    read_range(&path, tail_from, SUMMARY_PEEK_BYTES).unwrap_or_default()
+                };
+                let (title, last_prompt, branch) = summarize_session(&head, &tail);
+                SessionSummary {
+                    id,
+                    title,
+                    last_prompt,
+                    branch,
+                    modified_ms,
+                    bytes,
+                }
+            })
+            .collect()
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionHistory {
+    pub lines: Vec<String>,
+    /// Older messages were left out.
+    pub truncated: bool,
+}
+
+/// The recent conversation of one session, as the agent saved it.
+#[tauri::command]
+pub async fn agent_chat_session_history(
+    registry: tauri::State<'_, WorkspaceRegistry>,
+    agent: ChatAgent,
+    cwd: String,
+    session_id: String,
+) -> Result<SessionHistory, String> {
+    let session_id = validate_session(Some(&session_id))?
+        .ok_or("agent chat: invalid session id")?
+        .to_string();
+    let Some(dir) = session_dir(&registry, agent, &cwd)? else {
+        return Ok(SessionHistory {
+            lines: Vec::new(),
+            truncated: false,
+        });
+    };
+    let path = dir.join(format!("{session_id}.jsonl"));
+    tauri::async_runtime::spawn_blocking(move || {
+        let len = std::fs::metadata(&path)
+            .map_err(|_| "agent chat: session not found".to_string())?
+            .len();
+        let from = len.saturating_sub(HISTORY_READ_BYTES);
+        let text = read_range(&path, from, HISTORY_READ_BYTES).map_err(|e| e.to_string())?;
+        let (lines, truncated) = history_lines(&text, from > 0);
+        Ok(SessionHistory { lines, truncated })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -728,6 +982,79 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(200));
         let alive = unsafe { libc::killpg(pgid, 0) } == 0;
         assert!(!alive, "a process of the agent's group survived cancel");
+    }
+
+    #[test]
+    fn encodes_project_folders_like_claude_code() {
+        assert_eq!(
+            encode_claude_project(std::path::Path::new("/Users/me/estate")),
+            "-Users-me-estate"
+        );
+        assert_eq!(
+            encode_claude_project(std::path::Path::new("/private/tmp/a_b.c/work")),
+            "-private-tmp-a-b-c-work"
+        );
+    }
+
+    #[test]
+    fn summarizes_a_session_from_its_ends() {
+        let head = concat!(
+            r#"{"type":"user","isMeta":true,"message":{"role":"user","content":"<caveat>"},"gitBranch":"main"}"#,
+            "\n",
+            r#"{"type":"user","message":{"role":"user","content":"Fix the build"},"gitBranch":"main"}"#,
+            "\n",
+        );
+        let tail = concat!(
+            r#"{"type":"ai-title","aiTitle":"Fix the build","sessionId":"s"}"#,
+            "\n",
+            r#"{"type":"last-prompt","lastPrompt":"Now run the tests","sessionId":"s"}"#,
+            "\n",
+        );
+        assert_eq!(
+            summarize_session(head, tail),
+            (
+                Some("Fix the build".into()),
+                Some("Now run the tests".into()),
+                Some("main".into())
+            )
+        );
+        let (title, prompt, branch) = summarize_session(head, "");
+        assert_eq!(
+            (title, prompt, branch),
+            (None, Some("Fix the build".into()), Some("main".into()))
+        );
+    }
+
+    #[test]
+    fn history_keeps_main_thread_messages_only() {
+        let text = concat!(
+            "partial line from the middle\n",
+            r#"{"type":"user","message":{"role":"user","content":"hi"}}"#,
+            "\n",
+            r#"{"type":"assistant","message":{"id":"m","content":[]}}"#,
+            "\n",
+            r#"{"type":"assistant","isSidechain":true,"message":{"id":"x","content":[]}}"#,
+            "\n",
+            r#"{"type":"ai-title","aiTitle":"t"}"#,
+            "\n",
+            "not json\n",
+        );
+        let (lines, truncated) = history_lines(text, true);
+        assert_eq!(lines.len(), 2);
+        assert!(truncated);
+        let (all, truncated) =
+            history_lines(&text["partial line from the middle\n".len()..], false);
+        assert_eq!(all.len(), 2);
+        assert!(!truncated);
+    }
+
+    #[test]
+    fn history_is_capped_to_the_most_recent_lines() {
+        let line = r#"{"type":"user","message":{"role":"user","content":"x"}}"#;
+        let text = vec![line; MAX_HISTORY_LINES + 5].join("\n");
+        let (lines, truncated) = history_lines(&text, false);
+        assert_eq!(lines.len(), MAX_HISTORY_LINES);
+        assert!(truncated);
     }
 
     #[test]

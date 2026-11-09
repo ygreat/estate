@@ -2,6 +2,7 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import { LazyStore } from "@tauri-apps/plugin-store";
 import { create } from "zustand";
 import { createTurnAdapter } from "./adapters";
+import { transcriptFromHistory } from "./history";
 import {
   ACCESS_LABEL,
   applyChatEvent,
@@ -45,6 +46,8 @@ type State = {
   setModel: (id: string, model: string | undefined) => void;
   /** Starts a fresh agent session in this chat (like /clear). */
   newSession: (id: string) => void;
+  /** Shows a saved agent session in this chat and continues it. */
+  openSession: (id: string, sessionId: string) => Promise<void>;
   /** Creates the chat in memory (if new) and loads its saved transcript. */
   open: (id: string, init: { agent: ChatAgentId; cwd: string }) => void;
   send: (id: string, text: string) => Promise<void>;
@@ -371,6 +374,36 @@ export const useAgentChatStore = create<State>((set, get) => ({
     scheduleSave(id);
   },
 
+  async openSession(id, sessionId) {
+    const chat = get().chats[id];
+    if (!chat || chat.running) return;
+    if (chat.transcript.sessionId === sessionId) return;
+    try {
+      const history = await invoke<{ lines: string[]; truncated: boolean }>(
+        "agent_chat_session_history",
+        { agent: chat.agent, cwd: chat.cwd, sessionId },
+      );
+      const transcript = transcriptFromHistory(history.lines, sessionId);
+      const items = history.truncated
+        ? [
+            {
+              kind: "notice" as const,
+              id: "history-truncated",
+              tone: "info" as const,
+              text: "Earlier messages of this session aren't shown.",
+            },
+            ...transcript.items,
+          ]
+        : transcript.items;
+      updateChat(id, (c) =>
+        c.running ? c : { ...c, transcript: { ...transcript, items } },
+      );
+      scheduleSave(id);
+    } catch (err) {
+      applyEvents(id, [{ type: "error", message: String(err) }]);
+    }
+  },
+
   setAccess(id, access) {
     updateChat(id, (c) => (c.access === access ? c : { ...c, access }));
     scheduleSave(id);
@@ -390,4 +423,21 @@ let available: Promise<ChatAgentId[]> | null = null;
 export function availableChatAgents(): Promise<ChatAgentId[]> {
   available ??= invoke<ChatAgentId[]>("agent_chat_available").catch(() => []);
   return available;
+}
+
+/** A saved agent session for a folder (from `agent_chat_sessions`). */
+export type SessionSummary = {
+  id: string;
+  title: string | null;
+  lastPrompt: string | null;
+  branch: string | null;
+  modifiedMs: number;
+  bytes: number;
+};
+
+export function listChatSessions(
+  agent: ChatAgentId,
+  cwd: string,
+): Promise<SessionSummary[]> {
+  return invoke<SessionSummary[]>("agent_chat_sessions", { agent, cwd });
 }

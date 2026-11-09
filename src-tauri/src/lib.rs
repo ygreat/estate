@@ -328,6 +328,8 @@ pub fn run() {
             modules::agent_chat::agent_chat_run,
             modules::agent_chat::agent_chat_cancel,
             modules::agent_chat::agent_chat_available,
+            modules::agent_chat::agent_chat_sessions,
+            modules::agent_chat::agent_chat_session_history,
             lsp::lsp_send,
             lsp::lsp_kill,
             fs::search::fs_search,
