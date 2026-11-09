@@ -24,6 +24,11 @@ function fetchAuth(agent: ChatAgentId, fresh: boolean): Promise<AgentAuth> {
   return p;
 }
 
+/** Whether an agent is installed and signed in (cached per app session). */
+export function checkAgentAuth(agent: ChatAgentId): Promise<AgentAuth> {
+  return fetchAuth(agent, false);
+}
+
 export function useAgentAuth(agent: ChatAgentId) {
   const [auth, setAuth] = useState<AgentAuth | null>(null);
   const [checking, setChecking] = useState(true);

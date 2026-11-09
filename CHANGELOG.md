@@ -30,7 +30,7 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 - The folder's saved Claude Code sessions are listed below and resume in a new chat. The Agents tab shows how many agents need you.
 
 **Orchestrator**
-- Describe a goal on the welcome screen and choose Plan with Orchestrator. An agent of your choice (Claude Code, Codex, Gemini CLI or OpenCode) reads the project and splits the goal into up to six tasks that can run at the same time.
+- Describe a goal on the welcome screen and choose Plan with Orchestrator. The agent set in Settings > Agents (or the one picked on the welcome screen) (Claude Code, Codex, Gemini CLI or OpenCode) reads the project and splits the goal into up to six tasks that can run at the same time.
 - The plan shows as a card you can edit before anything runs: each task's title, instructions, agent, model size (Fast, Balanced, Deep) and whether it edits code.
 - Run starts every task in its own agent chat tab. Tasks that edit code get their own git worktree and branch and "Edit files" access; the others are read only. The card shows each task's progress and opens its chat.
 - When every task has finished, their results go back to the Orchestrator, which summarizes what was done, what's left and how to review and merge each branch.
@@ -38,7 +38,7 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 
 **Welcome screen**
 - Opens on launch (Settings > General can turn it off). First pick a project: the open one, a recent one or a new folder.
-- Then: "What are we building today?" Describe it and start an agent chat, or plan it with the Orchestrator. Shortcuts open an agent chat, a terminal or the command palette.
+- Then: "What are we building today?" Pick an agent (each shows whether it's installed and signed in), describe the idea, and start a chat or plan it with the Orchestrator. New terminal and Command palette sit below with their shortcuts.
 
 **Themes**
 - Estate Default now uses green to lime accents.

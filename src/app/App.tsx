@@ -65,7 +65,7 @@ import {
 } from "@/modules/spaces/lib/projects";
 import { ProjectButton } from "@/modules/statusbar/ProjectButton";
 import { WelcomeScreen } from "@/modules/welcome/WelcomeScreen";
-import { setOrchestratorAgent, setShowWelcome } from "@/modules/settings/store";
+import { setShowWelcome } from "@/modules/settings/store";
 import type { ChatAgentId } from "@/modules/agent-chat/model";
 import { resolveInstructions } from "@/modules/orchestrator/instructions";
 import { orchestratorPrompt } from "@/modules/orchestrator/plan";
@@ -1455,7 +1455,7 @@ export default function App() {
   const welcomeProject =
     spacesForProjects.find((sp) => sp.id === activeSpaceId) ?? null;
   const startChatFromWelcome = useCallback(
-    (prompt: string) => {
+    (prompt: string, agent: ChatAgentId) => {
       setWelcomeOpen(false);
       const cwd = welcomeProject?.root ?? inheritedCwdForNewTab() ?? home;
       if (!cwd) return;
@@ -1463,12 +1463,12 @@ export default function App() {
       void native
         .workspaceAuthorize(cwd)
         .then(() => {
-          newAgentChatTab("claude", cwd, chatId);
+          newAgentChatTab(agent, cwd, chatId);
           if (!prompt) return;
           return import("@/modules/agent-chat/store").then(
             ({ useAgentChatStore }) => {
               const store = useAgentChatStore.getState();
-              store.open(chatId, { agent: "claude", cwd });
+              store.open(chatId, { agent, cwd });
               void store.send(chatId, prompt);
             },
           );
@@ -1483,9 +1483,8 @@ export default function App() {
   );
   // Estate Orchestrator: plans a goal in its own chat, then runs the tasks.
   const planWithOrchestrator = useCallback(
-    (goal: string, agent: ChatAgentId, remember: boolean) => {
+    (goal: string, agent: ChatAgentId) => {
       setWelcomeOpen(false);
-      if (remember) void setOrchestratorAgent(agent);
       const cwd = welcomeProject?.root ?? inheritedCwdForNewTab() ?? home;
       if (!cwd) return;
       const chatId = newChatId();
