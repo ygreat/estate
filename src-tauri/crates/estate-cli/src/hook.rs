@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::ffi::OsString;
 use std::io::{BufReader, IsTerminal, Read, Write};
 use std::net::TcpStream;
@@ -8,12 +9,12 @@ use std::thread;
 use std::time::Duration;
 
 use serde_json::Value;
-use terax_control_protocol::hook::{
+use estate_control_protocol::hook::{
     decision_output, is_decision_event, trim_payload, AgentName, HookParams, HookResult,
     DEFAULT_DECISION_SECS, MAX_DECISION_SECS, MAX_PAYLOAD_BYTES, MAX_STDIN_BYTES,
     NO_DECISION_OUTPUT,
 };
-use terax_control_protocol::{
+use estate_control_protocol::{
     CallerContext, ControlDescriptor, ControlRequest, ControlResponse, METHOD_HOOK,
     PROTOCOL_VERSION,
 };
@@ -37,7 +38,7 @@ const FIRST_RESPONSE: Duration = Duration::from_secs(2);
 const DECISION_SLACK: Duration = Duration::from_secs(10);
 const MAX_EVENT_NAME: usize = 64;
 
-/// Terax context a hook inherits from the shell that started the agent.
+/// Estate context a hook inherits from the shell that started the agent.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HookEnvironment {
     pub pane_id: u32,
@@ -49,13 +50,13 @@ pub struct HookEnvironment {
 }
 
 impl HookEnvironment {
-    /// `None` when this process is not inside a Terax pane, which makes the
+    /// `None` when this process is not inside a Estate pane, which makes the
     /// hook inert in every other terminal.
     pub fn from_lookup(get: impl Fn(&str) -> Option<String>) -> Option<Self> {
-        let pane_id = get("TERAX_PANE_ID")?.trim().parse::<u32>().ok()?;
-        let address = get("TERAX_CONTROL_ADDR").filter(|value| !value.is_empty())?;
-        let token = get("TERAX_CONTROL_TOKEN").filter(|value| !value.is_empty())?;
-        let decision_secs = get("TERAX_HOOK_TIMEOUT")
+        let pane_id = get("ESTATE_PANE_ID")?.trim().parse::<u32>().ok()?;
+        let address = get("ESTATE_CONTROL_ADDR").filter(|value| !value.is_empty())?;
+        let token = get("ESTATE_CONTROL_TOKEN").filter(|value| !value.is_empty())?;
+        let decision_secs = get("ESTATE_HOOK_TIMEOUT")
             .and_then(|value| value.trim().parse::<u32>().ok())
             .map_or(DEFAULT_DECISION_SECS, |secs| {
                 secs.clamp(1, MAX_DECISION_SECS)
@@ -65,8 +66,8 @@ impl HookEnvironment {
             address,
             token,
             decision_secs,
-            wait_enabled: get("TERAX_HOOK_WAIT").as_deref() != Some("0"),
-            debug: get("TERAX_HOOK_DEBUG").is_some_and(|value| !value.is_empty() && value != "0"),
+            wait_enabled: get("ESTATE_HOOK_WAIT").as_deref() != Some("0"),
+            debug: get("ESTATE_HOOK_DEBUG").is_some_and(|value| !value.is_empty() && value != "0"),
         })
     }
 }
@@ -83,7 +84,7 @@ pub fn main(args: &[OsString]) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// Delivers one agent hook to Terax and prints what the agent expects on
+/// Delivers one agent hook to Estate and prints what the agent expects on
 /// stdout. Never fails the agent: every problem degrades to `{}`.
 pub fn run(
     args: &[OsString],
@@ -93,7 +94,7 @@ pub fn run(
 ) {
     let output = deliver(args, environment, stdin).unwrap_or_else(|reason| {
         if environment.is_some_and(|environment| environment.debug) {
-            eprintln!("terax hook: {reason}");
+            eprintln!("estate hook: {reason}");
         }
         NO_DECISION_OUTPUT.to_string()
     });
@@ -106,7 +107,7 @@ fn deliver(
     environment: Option<&HookEnvironment>,
     stdin: Box<dyn Read + Send>,
 ) -> Result<String, String> {
-    let environment = environment.ok_or("not inside a Terax pane")?;
+    let environment = environment.ok_or("not inside a Estate pane")?;
     let (agent, event) = parse_args(args)?;
 
     let original = read_payload(stdin);
@@ -148,7 +149,7 @@ fn deliver(
         let reason = response
             .error
             .map_or_else(|| "rejected".to_string(), |error| error.code);
-        return Err(format!("Terax rejected the hook: {reason}"));
+        return Err(format!("Estate rejected the hook: {reason}"));
     }
     let result: HookResult = serde_json::from_value(response.result.unwrap_or(Value::Null))
         .map_err(|error| format!("unreadable hook result: {error}"))?;
@@ -219,7 +220,7 @@ fn read_payload(mut stdin: Box<dyn Read + Send>) -> Value {
     let (done, finished) = mpsc::channel::<()>();
     let shared = Arc::clone(&buffer);
     let spawned = thread::Builder::new()
-        .name("terax-hook-stdin".into())
+        .name("estate-hook-stdin".into())
         .spawn(move || {
             let mut chunk = [0u8; 16 * 1024];
             loop {
@@ -275,11 +276,11 @@ mod tests {
     }
 
     #[test]
-    fn the_environment_requires_every_terax_variable() {
+    fn the_environment_requires_every_estate_variable() {
         let full: &[(&str, &str)] = &[
-            ("TERAX_PANE_ID", "7"),
-            ("TERAX_CONTROL_ADDR", "127.0.0.1:4000"),
-            ("TERAX_CONTROL_TOKEN", "tok"),
+            ("ESTATE_PANE_ID", "7"),
+            ("ESTATE_CONTROL_ADDR", "127.0.0.1:4000"),
+            ("ESTATE_CONTROL_TOKEN", "tok"),
         ];
         let environment = HookEnvironment::from_lookup(lookup(full)).unwrap();
         assert_eq!(environment.pane_id, 7);
@@ -299,9 +300,9 @@ mod tests {
         }
         assert_eq!(
             HookEnvironment::from_lookup(lookup(&[
-                ("TERAX_PANE_ID", "x"),
-                ("TERAX_CONTROL_ADDR", "a"),
-                ("TERAX_CONTROL_TOKEN", "t"),
+                ("ESTATE_PANE_ID", "x"),
+                ("ESTATE_CONTROL_ADDR", "a"),
+                ("ESTATE_CONTROL_TOKEN", "t"),
             ])),
             None
         );
@@ -312,12 +313,12 @@ mod tests {
         let with = |timeout: &'static str, wait: &'static str| {
             let pairs: &'static [(&'static str, &'static str)] = Box::leak(
                 vec![
-                    ("TERAX_PANE_ID", "1"),
-                    ("TERAX_CONTROL_ADDR", "a"),
-                    ("TERAX_CONTROL_TOKEN", "t"),
-                    ("TERAX_HOOK_TIMEOUT", timeout),
-                    ("TERAX_HOOK_WAIT", wait),
-                    ("TERAX_HOOK_DEBUG", "1"),
+                    ("ESTATE_PANE_ID", "1"),
+                    ("ESTATE_CONTROL_ADDR", "a"),
+                    ("ESTATE_CONTROL_TOKEN", "t"),
+                    ("ESTATE_HOOK_TIMEOUT", timeout),
+                    ("ESTATE_HOOK_WAIT", wait),
+                    ("ESTATE_HOOK_DEBUG", "1"),
                 ]
                 .into(),
             );
@@ -345,7 +346,7 @@ mod tests {
     }
 
     #[test]
-    fn outside_terax_the_hook_prints_an_empty_object_and_does_nothing() {
+    fn outside_estate_the_hook_prints_an_empty_object_and_does_nothing() {
         let mut out = Vec::new();
         run(
             &args(&["claude", "Stop"]),

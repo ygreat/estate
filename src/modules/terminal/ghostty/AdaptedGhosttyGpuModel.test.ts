@@ -1,9 +1,10 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { readFile } from "node:fs/promises";
 import {
   GPU_CELL_BYTES,
-  TeraxGhostty,
+  EstateGhostty,
   decodeGpuCell,
-} from "@terax/ghostty-core/adapted";
+} from "@estate/ghostty-core/adapted";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { AdaptedGhosttyTerminalModel } from "./AdaptedGhosttyTerminalModel";
 import { linkUriAt } from "./core/ViewportLinkResolver";
@@ -14,7 +15,7 @@ const encoder = new TextEncoder();
 describe.each(["ghostty-vt", "ghostty-vt-scalar"])(
   "GPU frames from the adapted Ghostty model (%s)",
   (artifact) => {
-    let core: TeraxGhostty;
+    let core: EstateGhostty;
 
     beforeAll(async () => {
       const file = await readFile(
@@ -23,7 +24,7 @@ describe.each(["ghostty-vt", "ghostty-vt-scalar"])(
           import.meta.url,
         ),
       );
-      core = await TeraxGhostty.loadBytes(Uint8Array.from(file).buffer);
+      core = await EstateGhostty.loadBytes(Uint8Array.from(file).buffer);
     });
 
     function create(cols = 40, rows = 8) {

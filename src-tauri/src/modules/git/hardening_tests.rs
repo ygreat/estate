@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! Regression tests for the review findings on the first version of the review
 //! backend: data safety, ownership of checkpoints, worktree removal, caps and
 //! environment hygiene, all against real temporary repositories.
@@ -111,7 +112,7 @@ fn a_forced_restore_leaves_a_safety_ref_that_restores_the_overwritten_work() {
         .expect("a forced restore returns its safety ref");
     assert!(safety
         .ref_name
-        .starts_with("refs/terax/checkpoints/t/prerestore-"));
+        .starts_with("refs/estate/checkpoints/t/prerestore-"));
     assert_eq!(
         repo.git(&["rev-parse", &safety.ref_name]).trim(),
         safety.commit
@@ -193,7 +194,7 @@ fn a_refused_restore_writes_nothing() {
     repo.commit_all("base");
     let cp = checkpoint::create(&repo.registry, &repo.path(), "t", 1, &repo.ws).unwrap();
     repo.write("a.txt", "edited\n");
-    let refs_before = repo.git(&["for-each-ref", "refs/terax"]);
+    let refs_before = repo.git(&["for-each-ref", "refs/estate"]);
     let refused = checkpoint::restore(
         &repo.registry,
         &repo.path(),
@@ -203,7 +204,7 @@ fn a_refused_restore_writes_nothing() {
     )
     .unwrap();
     assert!(!refused.restored && refused.safety.is_none());
-    assert_eq!(repo.git(&["for-each-ref", "refs/terax"]), refs_before);
+    assert_eq!(repo.git(&["for-each-ref", "refs/estate"]), refs_before);
 }
 
 #[test]
@@ -222,11 +223,11 @@ fn prune_removes_safety_refs_too() {
     )
     .unwrap();
     assert!(repo
-        .git(&["for-each-ref", "refs/terax"])
+        .git(&["for-each-ref", "refs/estate"])
         .contains("prerestore-"));
     let pruned = checkpoint::prune(&repo.registry, &repo.path(), "t", &repo.ws).unwrap();
     assert_eq!(pruned, 2);
-    assert_eq!(repo.git(&["for-each-ref", "refs/terax"]).trim(), "");
+    assert_eq!(repo.git(&["for-each-ref", "refs/estate"]).trim(), "");
 }
 
 // ------------------------------------ 5: a checkpoint belongs to its worktree
@@ -579,14 +580,14 @@ fn checkpoints_survive_a_strict_safecrlf_config_and_mixed_line_endings() {
 
 #[test]
 fn plumbing_config_disables_the_fsmonitor_hooks_and_strict_crlf() {
-    let config: Vec<String> = checkpoint::plumbing_config(Path::new("/a repo/.git/terax-no-hooks"))
+    let config: Vec<String> = checkpoint::plumbing_config(Path::new("/a repo/.git/estate-no-hooks"))
         .into_iter()
         .map(|a| a.to_string_lossy().into_owned())
         .collect();
     assert!(config.contains(&"core.fsmonitor=false".to_string()));
     assert!(config.contains(&"core.safecrlf=false".to_string()));
     assert!(
-        config.contains(&"core.hooksPath=/a repo/.git/terax-no-hooks".to_string()),
+        config.contains(&"core.hooksPath=/a repo/.git/estate-no-hooks".to_string()),
         "the hooks directory is one argument, spaces and all: {config:?}"
     );
     assert!(
@@ -698,14 +699,14 @@ fn a_pinned_tree_must_be_an_existing_tree_id() {
 #[test]
 fn the_worktree_endpoint_still_deserializes_from_the_old_wire_shape() {
     let scope: GitDiffScope = serde_json::from_str(
-        r#"{"kind":"checkpoint","from":{"kind":"ref","name":"refs/terax/checkpoints/t/1"},"to":{"kind":"worktree"}}"#,
+        r#"{"kind":"checkpoint","from":{"kind":"ref","name":"refs/estate/checkpoints/t/1"},"to":{"kind":"worktree"}}"#,
     )
     .unwrap();
     assert_eq!(
         scope,
         GitDiffScope::Checkpoint {
             from: CheckpointEndpoint::Ref {
-                name: "refs/terax/checkpoints/t/1".into()
+                name: "refs/estate/checkpoints/t/1".into()
             },
             to: CheckpointEndpoint::Worktree { tree: None },
         }

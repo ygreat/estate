@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   detectPlatform,
@@ -8,7 +9,7 @@ import {
   terminalRendererReport,
 } from "./selection";
 
-const STORAGE_KEY = "terax.experimental.terminal-backend";
+const STORAGE_KEY = "estate.experimental.terminal-backend";
 
 describe("terminal backend selection", () => {
   afterEach(() => vi.unstubAllGlobals());

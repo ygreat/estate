@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! Linked worktrees for tasks: listing, creating (with a collision-safe
 //! default location under the app's data directory and optional copying of
 //! ignored files such as `.env`), removing with an explicit dirty / unmerged
@@ -443,7 +444,7 @@ fn add_inner(
     };
 
     let mut git_args = if claimed.is_some() {
-        let hooks = super::plumbing::git_dir(&repo)?.join("terax-task-hooks");
+        let hooks = super::plumbing::git_dir(&repo)?.join("estate-task-hooks");
         std::fs::create_dir_all(&hooks)?;
         super::checkpoint::plumbing_config(&hooks)
     } else {

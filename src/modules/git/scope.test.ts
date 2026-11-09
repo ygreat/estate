@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { describe, expect, it } from "vitest";
 import {
   checkpointRef,
@@ -192,6 +193,6 @@ describe("supportsHunkActions", () => {
 
 describe("checkpointRef", () => {
   it("builds the ref the backend uses", () => {
-    expect(checkpointRef("task-1", 12)).toBe("refs/terax/checkpoints/task-1/12");
+    expect(checkpointRef("task-1", 12)).toBe("refs/estate/checkpoints/task-1/12");
   });
 });

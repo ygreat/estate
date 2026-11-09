@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -57,7 +58,7 @@ export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
     persistedRef.current = next;
     void setAgentLaunchCommands(next).catch((error) => {
       persistedRef.current = previous;
-      console.error("[terax] failed to save agent launch commands:", error);
+      console.error("[estate] failed to save agent launch commands:", error);
     });
   };
 

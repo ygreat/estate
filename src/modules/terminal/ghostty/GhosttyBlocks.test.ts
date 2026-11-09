@@ -1,6 +1,7 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { readFile } from "node:fs/promises";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { TeraxGhostty } from "@terax/ghostty-core/adapted";
+import { EstateGhostty } from "@estate/ghostty-core/adapted";
 import { AdaptedGhosttyTerminalModel } from "@/modules/terminal/ghostty/AdaptedGhosttyTerminalModel";
 import {
   GhosttyBlocks,
@@ -10,7 +11,7 @@ import {
 describe.each(["ghostty-vt", "ghostty-vt-scalar"])(
   "Ghostty command blocks (%s)",
   (artifact) => {
-    let core: TeraxGhostty;
+    let core: EstateGhostty;
     beforeAll(async () => {
       const bytes = await readFile(
         new URL(
@@ -18,7 +19,7 @@ describe.each(["ghostty-vt", "ghostty-vt-scalar"])(
           import.meta.url,
         ),
       );
-      core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+      core = await EstateGhostty.loadBytes(Uint8Array.from(bytes).buffer);
     });
 
     function create() {

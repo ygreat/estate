@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 // Measures whether closing terminals returns memory to the operating system in
 // a real WKWebView (macOS only). Opens OPEN heavy terminals through the shipped
 // loader, closes CLOSE of them, then closes the rest, sampling the WebContent
@@ -5,10 +6,10 @@
 // idle. RSS is not used: macOS keeps freed pages in it until memory pressure.
 //
 //   node scripts/ghostty-webkit-memory.mjs
-//   TERAX_WEBKIT_RECLAIM=0 node scripts/ghostty-webkit-memory.mjs   # no collection hint
+//   ESTATE_WEBKIT_RECLAIM=0 node scripts/ghostty-webkit-memory.mjs   # no collection hint
 //
-// Environment: TERAX_WEBKIT_ARTIFACT (ghostty-vt.wasm), TERAX_WEBKIT_OPEN (20),
-// TERAX_WEBKIT_CLOSE (15), TERAX_WEBKIT_RECLAIM (1), TERAX_WEBKIT_REPORT (json path).
+// Environment: ESTATE_WEBKIT_ARTIFACT (ghostty-vt.wasm), ESTATE_WEBKIT_OPEN (20),
+// ESTATE_WEBKIT_CLOSE (15), ESTATE_WEBKIT_RECLAIM (1), ESTATE_WEBKIT_REPORT (json path).
 import { spawn, spawnSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -20,11 +21,11 @@ if (process.platform !== "darwin") {
   process.exit(2);
 }
 
-const artifact = process.env.TERAX_WEBKIT_ARTIFACT ?? "ghostty-vt.wasm";
-const open = Number(process.env.TERAX_WEBKIT_OPEN ?? 20);
-const close = Number(process.env.TERAX_WEBKIT_CLOSE ?? 15);
-const reclaim = process.env.TERAX_WEBKIT_RECLAIM !== "0";
-const temporary = await mkdtemp(join(tmpdir(), "terax-webkit-memory-"));
+const artifact = process.env.ESTATE_WEBKIT_ARTIFACT ?? "ghostty-vt.wasm";
+const open = Number(process.env.ESTATE_WEBKIT_OPEN ?? 20);
+const close = Number(process.env.ESTATE_WEBKIT_CLOSE ?? 15);
+const reclaim = process.env.ESTATE_WEBKIT_RECLAIM !== "0";
+const temporary = await mkdtemp(join(tmpdir(), "estate-webkit-memory-"));
 
 function footprintMegabytes(pid) {
   const output = spawnSync("footprint", [String(pid)], { encoding: "utf8" }).stdout;
@@ -97,7 +98,7 @@ try {
   if (!done) throw new Error("WKWebView host did not finish");
   await Promise.race([exited, new Promise((tick) => setTimeout(tick, 5000))]);
   const report = { artifact, open, close, reclaim, recordedAt: new Date().toISOString(), phases };
-  if (process.env.TERAX_WEBKIT_REPORT) await writeFile(process.env.TERAX_WEBKIT_REPORT, `${JSON.stringify(report, null, 2)}\n`);
+  if (process.env.ESTATE_WEBKIT_REPORT) await writeFile(process.env.ESTATE_WEBKIT_REPORT, `${JSON.stringify(report, null, 2)}\n`);
 } finally {
   child?.kill();
   await rm(temporary, { recursive: true, force: true });

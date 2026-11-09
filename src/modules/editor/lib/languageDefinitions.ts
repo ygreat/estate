@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { StreamParser } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
 
@@ -472,8 +473,8 @@ export const LANGUAGES: LanguageDefinition[] = [
       ),
   },
   {
-    name: "Terax Theme",
-    extensions: ["terax-theme"],
+    name: "Estate Theme",
+    extensions: ["estate-theme"],
     loader: async () => {
       const [{ json }, { colorSwatches }] = await Promise.all([
         import("@codemirror/lang-json"),

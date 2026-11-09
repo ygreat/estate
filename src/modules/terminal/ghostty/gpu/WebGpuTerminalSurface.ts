@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { terminalWindowFocused } from "@/modules/terminal/ghostty/renderScheduling";
 import { bindTerminalInteraction } from "@/modules/terminal/ghostty/input/terminalInteraction";
 import { isClampedScrollEcho, TerminalScrollbarSync } from "@/modules/terminal/ghostty/gpu/terminalScrollbar";
@@ -235,8 +236,8 @@ export class WebGpuTerminalSurface
     this.root.className = "absolute inset-0 overflow-hidden";
     this.root.style.userSelect = "none";
     this.updateRootBackground();
-    this.root.setAttribute("data-terax-ghostty-surface", "webgpu");
-    this.root.setAttribute("data-terax-terminal-surface", "");
+    this.root.setAttribute("data-estate-ghostty-surface", "webgpu");
+    this.root.setAttribute("data-estate-terminal-surface", "");
     this.input.setAttribute("aria-label", "Terminal input");
     this.input.setAttribute("autocapitalize", "off");
     this.input.setAttribute("autocomplete", "off");
@@ -292,7 +293,7 @@ export class WebGpuTerminalSurface
       if (!entry) return;
       noteTerminalHostResize(this);
       const bounds = this.boundsFromEntry(entry);
-      if (__TERAX_BENCH__) this.benchWant(bounds);
+      if (__ESTATE_BENCH__) this.benchWant(bounds);
       this.queueFit(bounds);
     });
     this.unsubscribeDamage = options.model.subscribeDamage(() => {
@@ -653,7 +654,7 @@ export class WebGpuTerminalSurface
       return false;
     }
 
-    if (__TERAX_BENCH__) {
+    if (__ESTATE_BENCH__) {
       const now = performance.now();
       if (model.promptErased?.()) smoothHooks()?.blank(this.benchId, now);
       smoothHooks()?.shown(this.benchId, now, frame.cols, frame.rows);
@@ -867,7 +868,7 @@ export class WebGpuTerminalSurface
       this.forceFullRedraw = true;
       this.screen.invalidate();
       this.uniformBuffer = resources.device.createBuffer({
-        label: "Terax terminal surface uniform",
+        label: "Estate terminal surface uniform",
         size: SCREEN_UNIFORM_BYTES,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
@@ -967,7 +968,7 @@ export class WebGpuTerminalSurface
 
   /** App lab only: the grid this host size asks for, for the smoothness probe. */
   private benchWant(bounds: TerminalFitBounds): void {
-    if (!__TERAX_BENCH__) return;
+    if (!__ESTATE_BENCH__) return;
     const fit = fitTerminalViewport(
       bounds.width,
       bounds.height,
@@ -1084,9 +1085,9 @@ export class WebGpuTerminalSurface
       this.deferredGridResizeCount += 1;
       return;
     }
-    const benchStart = __TERAX_BENCH__ ? performance.now() : 0;
+    const benchStart = __ESTATE_BENCH__ ? performance.now() : 0;
     const outcome = this.resizeSync.request(cols, rows);
-    if (__TERAX_BENCH__) {
+    if (__ESTATE_BENCH__) {
       const now = performance.now();
       smoothHooks()?.have(
         this.benchId,
@@ -1145,7 +1146,7 @@ export class WebGpuTerminalSurface
     this.cellsBuffer?.destroy();
     this.cellCapacity = capacity;
     this.cellsBuffer = device.createBuffer({
-      label: "Terax terminal cell records",
+      label: "Estate terminal cell records",
       size: capacity * CELL_RECORD_BYTES,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
@@ -1154,7 +1155,7 @@ export class WebGpuTerminalSurface
 
   private createGlyphMapBuffer(device: GPUDevice, entries: number): GPUBuffer {
     return device.createBuffer({
-      label: "Terax terminal glyph map",
+      label: "Estate terminal glyph map",
       size: entries * 4,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
@@ -1266,7 +1267,7 @@ export class WebGpuTerminalSurface
     if (!this.searchBuffer || this.searchBuffer.size !== packed.byteLength) {
       this.searchBuffer?.destroy();
       this.searchBuffer = device.createBuffer({
-        label: "Terax terminal search mask",
+        label: "Estate terminal search mask",
         size: packed.byteLength,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       });
@@ -1295,7 +1296,7 @@ export class WebGpuTerminalSurface
     )
       return false;
     this.bindGroup = resources.device.createBindGroup({
-      label: "Terax terminal surface bindings",
+      label: "Estate terminal surface bindings",
       layout: resources.bindGroupLayout,
       entries: [
         { binding: 0, resource: { buffer: this.uniformBuffer } },
@@ -1373,7 +1374,7 @@ export class WebGpuTerminalSurface
       contrast: this.contrast,
     };
     const shiftY = this.gridShift(state, cursor);
-    if (__TERAX_BENCH__ && this.nativeCursorVisible) {
+    if (__ESTATE_BENCH__ && this.nativeCursorVisible) {
       // The cursor the application asked for, whatever phase its blink is in.
       const rect = cursorRect(cursor, cursor.style, this.metrics);
       const bottom = rect.y + rect.height - shiftY;

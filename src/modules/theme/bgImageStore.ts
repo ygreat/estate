@@ -1,4 +1,5 @@
-const DB_NAME = "terax-bg-images";
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+const DB_NAME = "estate-bg-images";
 const STORE = "images";
 const VERSION = 1;
 

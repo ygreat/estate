@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { detectMonoFontFamily } from "@/lib/fonts";
 import { indentUnit } from "@codemirror/language";
 import { lintGutter } from "@codemirror/lint";
@@ -22,7 +23,7 @@ export function indentExtension(unit: string): Extension {
 
 export const DEFAULT_INDENT: Extension = indentExtension("  ");
 
-const WORD_WRAP_COLUMN_VAR = "--terax-editor-wrap-column";
+const WORD_WRAP_COLUMN_VAR = "--estate-editor-wrap-column";
 const WORD_WRAP_COLUMN_THEME = EditorView.theme({
   ".cm-content.cm-lineWrapping": {
     maxWidth: `var(${WORD_WRAP_COLUMN_VAR})`,

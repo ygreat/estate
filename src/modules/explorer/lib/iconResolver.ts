@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 // Startup-safe face of the file-icon system. The ~360 kB icon set lives in
 // `iconEngine.ts` and is fetched on first demand, so a window that never draws
 // a file icon (terminal-only, explorer closed) pays nothing for it. Until the
@@ -21,7 +22,7 @@ export function preloadFileIcons(): Promise<void> {
     (error: unknown) => {
       // Allow a retry on the next demand instead of caching the failure.
       loading = null;
-      console.warn("[terax] file icons failed to load:", error);
+      console.warn("[estate] file icons failed to load:", error);
     },
   );
   return loading;

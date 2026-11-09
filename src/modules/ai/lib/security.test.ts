@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { describe, expect, it } from "vitest";
 import {
   checkReadable,
@@ -373,9 +374,9 @@ describe("checkShellCommand — home directory rm guard", () => {
 
 describe("application credentials", () => {
   it.each([
-    "/Users/me/Library/Caches/terax/control.json",
-    "/home/me/.cache/terax/control.json",
-    "C:/Users/me/AppData/Local/terax/control.json",
+    "/Users/me/Library/Caches/estate/control.json",
+    "/home/me/.cache/estate/control.json",
+    "C:/Users/me/AppData/Local/estate/control.json",
   ])("refuses %s even inside a home grant", (path) => {
     expect(checkReadable(path).ok).toBe(false);
   });

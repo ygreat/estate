@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { cn } from "@/lib/utils";
 import { type ImgHTMLAttributes, useState, useSyncExternalStore } from "react";
 import {
@@ -40,7 +41,7 @@ function IconSlot({
       alt=""
       width={width}
       height={height}
-      className={cn(className, arrivedLate && "terax-icon-in")}
+      className={cn(className, arrivedLate && "estate-icon-in")}
       onError={onError}
     />
   );

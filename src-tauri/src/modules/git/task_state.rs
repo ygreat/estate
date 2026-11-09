@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -45,7 +46,7 @@ pub struct TaskSnapshot {
 }
 
 pub(crate) fn lock_operation(repo: &super::utils::ResolvedGitDirectory) -> Result<File> {
-    let path = super::plumbing::common_dir(repo)?.join("terax-tasks.lock");
+    let path = super::plumbing::common_dir(repo)?.join("estate-tasks.lock");
     let file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -70,7 +71,7 @@ pub(crate) struct Store {
 
 impl Store {
     pub fn open(home: &Path) -> Result<Self> {
-        let dir = home.join(".terax");
+        let dir = home.join(".estate");
         std::fs::create_dir_all(&dir)?;
         let lock = OpenOptions::new()
             .read(true)

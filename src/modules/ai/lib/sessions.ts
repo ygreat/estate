@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { UIMessage } from "@ai-sdk/react";
 import { invoke } from "@tauri-apps/api/core";
 import { LazyStore } from "@tauri-apps/plugin-store";
@@ -10,7 +11,7 @@ export type SessionMeta = {
   updatedAt: number;
 };
 
-const STORE_PATH = "terax-ai-sessions.json";
+const STORE_PATH = "estate-ai-sessions.json";
 const KEY_SESSIONS = "sessions";
 const KEY_ACTIVE = "activeId";
 const LEGACY_PREFIX = "messages:";
@@ -65,7 +66,7 @@ async function saveNative(
 ): Promise<void> {
   await invoke("ai_session_save", encoder.encode(JSON.stringify(messages)), {
     headers: {
-      "x-terax-session": escapeHeader({
+      "x-estate-session": escapeHeader({
         id,
         migrate: options.migrate === true,
         durable: options.durable === true,

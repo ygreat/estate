@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useEffect, useRef, useState } from "react";
@@ -101,7 +102,7 @@ export function useExplorerFileDrop({
         else unlisten = fn;
       })
       .catch((err) =>
-        console.error("[terax] explorer drop listen failed:", err),
+        console.error("[estate] explorer drop listen failed:", err),
       );
 
     return () => {

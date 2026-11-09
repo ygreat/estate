@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>A program running within Terax would like to use the camera.</string>
+	<string>A program running within Estate would like to use the camera.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>A program running within Terax would like to use your microphone.</string>
+	<string>A program running within Estate would like to use your microphone.</string>
 </dict>
 </plist>

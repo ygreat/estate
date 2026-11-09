@@ -1,10 +1,11 @@
 #!/bin/bash
+# Modified by ygreat for Estate, 2026. Originally part of Terax.
 # Exports a pristine copy of a revision plus the app-lab overlay, so a benchmark measures that
 # revision (not whatever else is being edited in the working tree):
 #
 #   export-tree.sh DEST [REV]        REV defaults to HEAD
 #
-# The overlay is only the app-lab files: the bench feature in src-tauri, the TERAX_BENCH define,
+# The overlay is only the app-lab files: the bench feature in src-tauri, the ESTATE_BENCH define,
 # the three bench hooks in App.tsx / main.tsx and src/bench + scripts/app-lab. Everything is
 # read-only on the repository (git archive / git diff); DEST must not exist yet.
 set -eu
@@ -23,7 +24,7 @@ tracked=(
 git -C "$repo" diff HEAD -- "${tracked[@]}" | (cd "$dest" && patch -p1 --quiet)
 # The CLI sidecar is git-ignored but release builds require it.
 mkdir -p "$dest/src-tauri/binaries"
-cp "$repo"/src-tauri/binaries/terax-cli-* "$dest/src-tauri/binaries/"
+cp "$repo"/src-tauri/binaries/estate-cli-* "$dest/src-tauri/binaries/"
 # Untracked app-lab files.
 mkdir -p "$dest/src/bench" "$dest/scripts/app-lab"
 cp "$repo"/src/bench/* "$dest/src/bench/"

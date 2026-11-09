@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { DEFAULT_THEME_ID, type Theme } from "../types";
 import { caffeine } from "./caffeine";
 import { catppuccin } from "./catppuccin";
@@ -11,13 +12,13 @@ import { nord } from "./nord";
 import { rosePine } from "./rose-pine";
 import { sage } from "./sage";
 import { solarized } from "./solarized";
-import { teraxDefault } from "./terax-default";
+import { estateDefault } from "./estate-default";
 import { tide } from "./tide";
 import { tokyoNight } from "./tokyo-night";
 import { xcode } from "./xcode";
 
 const BUILTIN: Theme[] = [
-  teraxDefault,
+  estateDefault,
   xcode,
   claude,
   kanagawa,

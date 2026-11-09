@@ -1,4 +1,5 @@
-import type { TeraxGhosttyTerminal } from "@terax/ghostty-core/adapted";
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+import type { EstateGhosttyTerminal } from "@estate/ghostty-core/adapted";
 
 /**
  * Test support for the WebAssembly shadow stack. The module places its stack
@@ -296,7 +297,7 @@ type StackWorkloadReport = {
  * in the requested render format. Any WebAssembly trap propagates.
  */
 export function runStackWorkloads(
-  terminal: TeraxGhosttyTerminal,
+  terminal: EstateGhosttyTerminal,
   format: "soa" | "gpu",
 ): StackWorkloadReport {
   if (format === "gpu") terminal.setRenderFormat("gpu");

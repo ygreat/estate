@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! Live directory change notifications for the explorer and editor tabs.
 //!
 //! The frontend registers the directories it shows (and the files open in
@@ -119,7 +120,7 @@ fn start(app: &AppHandle, taps: Taps) -> Result<Running, String> {
     let drain_shared = shared.clone();
     let app = app.clone();
     std::thread::Builder::new()
-        .name("terax-fs-watch".into())
+        .name("estate-fs-watch".into())
         .stack_size(256 * 1024)
         .spawn(move || drain_loop(rx, drain_shared, app, index, taps))
         .map_err(|e| e.to_string())?;

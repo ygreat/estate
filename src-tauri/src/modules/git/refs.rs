@@ -1,9 +1,10 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! Pure validation and naming for refs, revisions, task ids and slugs. These
 //! are the cheap, conservative pre-filters that run before anything reaches a
 //! git argument list; `git check-ref-format` stays the authority for branch
 //! names (see `plumbing::check_branch_name`).
 
-pub const CHECKPOINT_PREFIX: &str = "refs/terax/checkpoints/";
+pub const CHECKPOINT_PREFIX: &str = "refs/estate/checkpoints/";
 const MAX_REF_BYTES: usize = 255;
 
 /// Characters git forbids anywhere in a ref name, plus whitespace and control
@@ -230,11 +231,11 @@ mod tests {
     #[test]
     fn checkpoint_refs_round_trip() {
         let name = checkpoint_ref("task-1", 7);
-        assert_eq!(name, "refs/terax/checkpoints/task-1/7");
+        assert_eq!(name, "refs/estate/checkpoints/task-1/7");
         assert_eq!(parse_checkpoint_ref(&name), Some(("task-1", 7)));
         assert_eq!(
             checkpoint_task_prefix("task-1"),
-            "refs/terax/checkpoints/task-1/"
+            "refs/estate/checkpoints/task-1/"
         );
     }
 
@@ -242,14 +243,14 @@ mod tests {
     fn foreign_or_malformed_checkpoint_refs_do_not_parse() {
         for bad in [
             "refs/heads/main",
-            "refs/terax/checkpoints/",
-            "refs/terax/checkpoints/task",
-            "refs/terax/checkpoints/task/",
-            "refs/terax/checkpoints/task/x",
-            "refs/terax/checkpoints/task/-1",
-            "refs/terax/checkpoints/../7",
-            "refs/terax/checkpoints/a/b/7",
-            "refs/terax/checkpoints/task/99999999999",
+            "refs/estate/checkpoints/",
+            "refs/estate/checkpoints/task",
+            "refs/estate/checkpoints/task/",
+            "refs/estate/checkpoints/task/x",
+            "refs/estate/checkpoints/task/-1",
+            "refs/estate/checkpoints/../7",
+            "refs/estate/checkpoints/a/b/7",
+            "refs/estate/checkpoints/task/99999999999",
         ] {
             assert_eq!(parse_checkpoint_ref(bad), None, "{bad}");
         }

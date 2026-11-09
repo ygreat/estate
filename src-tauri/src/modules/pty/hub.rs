@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! The PTY transport hub: one thread for the whole process, serving every
 //! webview's multiplexed output stream.
 //!
@@ -625,7 +626,7 @@ impl Hub {
         self.shared.started.call_once(|| {
             let shared = self.shared.clone();
             std::thread::Builder::new()
-                .name("terax-pty-hub".into())
+                .name("estate-pty-hub".into())
                 .stack_size(256 * 1024)
                 .spawn(move || run(shared))
                 .expect("spawn pty hub thread");

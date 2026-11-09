@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { highlightingFor, indentUnit, language } from "@codemirror/language";
 import {
   type Extension,
@@ -239,7 +240,7 @@ const linkHover: Extension = [
 ];
 
 export function lspInteractions(opts: {
-  client: TeraxLspClient;
+  client: EstateLspClient;
   documentUri: string;
   rootPath: string;
   onExternal: (uri: string, line: number) => void;
@@ -398,7 +399,7 @@ type RawRpc = {
 
 // The lib's notify/request maps omit didClose, didSave and the
 // shutdown/exit handshake; servers need all three for correct lifecycle.
-export class TeraxLspClient extends LanguageServerClient {
+export class EstateLspClient extends LanguageServerClient {
   static hostPid: number | null = null;
 
   // The lib omits the publishDiagnostics capability and servers like
@@ -406,7 +407,7 @@ export class TeraxLspClient extends LanguageServerClient {
   // enables the server-side parent watchdog.
   protected override getInitializeParams() {
     const params = super.getInitializeParams();
-    params.processId = TeraxLspClient.hostPid;
+    params.processId = EstateLspClient.hostPid;
     params.capabilities.textDocument = {
       ...params.capabilities.textDocument,
       publishDiagnostics: { relatedInformation: true },

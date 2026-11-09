@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 const ELLIPSIS: &str = "\u{2026}";
 
 /// Cuts `value` to at most `max` bytes on a character boundary, marking the cut.

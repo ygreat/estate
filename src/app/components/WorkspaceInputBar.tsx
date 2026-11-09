@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { homeRelativePath } from "@/lib/homeRelativePath";
 import { cn } from "@/lib/utils";
 import { AiInputBarConnect } from "@/modules/ai";
@@ -26,7 +27,7 @@ const AiComposerInput = lazy(() =>
   })),
 );
 
-export const TOGGLE_BLOCK_INPUT_EVENT = "terax:toggle-block-input";
+export const TOGGLE_BLOCK_INPUT_EVENT = "estate:toggle-block-input";
 
 type Props = {
   isBlockTab: boolean;
@@ -194,7 +195,7 @@ export function WorkspaceInputBar({
     <div
       data-ai-input-bar
       data-state={open ? "open" : "closed"}
-      className="terax-reveal"
+      className="estate-reveal"
       aria-hidden={!open}
     >
       <div>{content}</div>

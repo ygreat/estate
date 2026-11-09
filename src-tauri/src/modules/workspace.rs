@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -524,7 +525,7 @@ pub fn wsl_path_to_unc(distro: &str, path: &str) -> PathBuf {
     // and is normally trustworthy, but a locally-registered malicious distro
     // can name itself with traversal characters; this filter blocks that.
     if !is_safe_distro_name(distro) {
-        return PathBuf::from(r"\\wsl.localhost\__terax_invalid_distro__");
+        return PathBuf::from(r"\\wsl.localhost\__estate_invalid_distro__");
     }
     let normalized = path.replace('\\', "/");
     let trimmed = normalized.trim_start_matches('/');
@@ -812,7 +813,7 @@ mod tests {
         // never escape the WSL share root.
         let p = wsl_path_to_unc("..\\..\\..\\Windows", "/etc/passwd");
         let s = p.to_string_lossy();
-        assert!(s.contains("__terax_invalid_distro__"), "got: {s}");
+        assert!(s.contains("__estate_invalid_distro__"), "got: {s}");
         assert!(!s.contains("\\..\\"), "got: {s}");
     }
 
@@ -820,7 +821,7 @@ mod tests {
     fn wsl_path_to_unc_accepts_valid_distro() {
         let p = wsl_path_to_unc("Ubuntu", "/etc/hosts");
         let s = p.to_string_lossy();
-        assert!(!s.contains("__terax_invalid_distro__"), "got: {s}");
+        assert!(!s.contains("__estate_invalid_distro__"), "got: {s}");
     }
 
     #[test]
@@ -888,7 +889,7 @@ mod auth_tests {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .unwrap_or(0);
-        p.push(format!("terax-auth-{label}-{nanos}-{}", std::process::id()));
+        p.push(format!("estate-auth-{label}-{nanos}-{}", std::process::id()));
         fs::create_dir_all(&p).expect("create tempdir");
         fs::canonicalize(&p).expect("canonicalize tempdir")
     }
@@ -952,7 +953,7 @@ mod auth_tests {
         reg.authorize(&parent).unwrap();
         // Deliberately not canonical (on macOS /var/folders is /private/var/...).
         let spelled = env::temp_dir().join(format!(
-            "terax-revoke-{}-{}",
+            "estate-revoke-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -1153,7 +1154,7 @@ mod auth_tests {
     fn authorize_spawn_cwd_rejects_missing_path() {
         let mut missing = env::temp_dir();
         missing.push(format!(
-            "terax-missing-{}-{}",
+            "estate-missing-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -1183,7 +1184,7 @@ mod auth_tests {
     #[test]
     fn authorize_user_spawn_cwd_rejects_missing_path() {
         let mut missing = env::temp_dir();
-        missing.push(format!("terax-user-missing-{}", std::process::id()));
+        missing.push(format!("estate-user-missing-{}", std::process::id()));
         let reg = WorkspaceRegistry::default();
         let s = missing.to_string_lossy().into_owned();
         let err = authorize_user_spawn_cwd(&reg, Some(&s), &WorkspaceEnv::Local)
@@ -1206,7 +1207,7 @@ mod auth_tests {
     #[test]
     fn user_spawn_cwd_or_home_falls_back_when_inaccessible() {
         let mut missing = env::temp_dir();
-        missing.push(format!("terax-orhome-missing-{}", std::process::id()));
+        missing.push(format!("estate-orhome-missing-{}", std::process::id()));
         let reg = WorkspaceRegistry::default();
         let s = missing.to_string_lossy().into_owned();
         assert_eq!(
@@ -1263,7 +1264,7 @@ mod auth_tests {
     #[test]
     fn resolve_launch_cwd_ignores_nonexistent_cli_dir() {
         let env = tempdir("envfb");
-        let resolved = resolve_launch_cwd(Some("/no/such/terax/dir"), Some(env.clone()));
+        let resolved = resolve_launch_cwd(Some("/no/such/estate/dir"), Some(env.clone()));
         assert_eq!(resolved, Some(env));
     }
 }
@@ -1290,12 +1291,12 @@ mod appimage_tests {
 
     #[test]
     fn strips_appdir_from_path_lists_and_unsets_when_empty() {
-        let appdir = Path::new("/tmp/.mount_Terax_X");
+        let appdir = Path::new("/tmp/.mount_Estate_X");
         let env = reader(&[
-            ("LD_LIBRARY_PATH", "/tmp/.mount_Terax_X/usr/lib:/usr/lib"),
-            ("PATH", "/tmp/.mount_Terax_X/usr/bin:/usr/bin:/bin"),
-            ("GST_PLUGIN_SYSTEM_PATH", "/tmp/.mount_Terax_X/usr/lib/gstreamer-1.0"),
-            ("APPDIR", "/tmp/.mount_Terax_X"),
+            ("LD_LIBRARY_PATH", "/tmp/.mount_Estate_X/usr/lib:/usr/lib"),
+            ("PATH", "/tmp/.mount_Estate_X/usr/bin:/usr/bin:/bin"),
+            ("GST_PLUGIN_SYSTEM_PATH", "/tmp/.mount_Estate_X/usr/lib/gstreamer-1.0"),
+            ("APPDIR", "/tmp/.mount_Estate_X"),
         ]);
         let out = compute_appimage_env_overrides(appdir, env);
 
@@ -1308,7 +1309,7 @@ mod appimage_tests {
 
     #[test]
     fn leaves_untouched_vars_alone() {
-        let appdir = Path::new("/tmp/.mount_Terax_X");
+        let appdir = Path::new("/tmp/.mount_Estate_X");
         let env = reader(&[
             ("LD_LIBRARY_PATH", "/usr/lib:/usr/local/lib"),
             ("LD_PRELOAD", "/home/u/my.so"),
@@ -1322,8 +1323,8 @@ mod appimage_tests {
 
     #[test]
     fn unsets_value_vars_only_when_pointing_into_appdir() {
-        let appdir = Path::new("/tmp/.mount_Terax_X");
-        let into = reader(&[("LD_PRELOAD", "/tmp/.mount_Terax_X/usr/lib/x.so")]);
+        let appdir = Path::new("/tmp/.mount_Estate_X");
+        let into = reader(&[("LD_PRELOAD", "/tmp/.mount_Estate_X/usr/lib/x.so")]);
         assert_eq!(find(&compute_appimage_env_overrides(appdir, into), "LD_PRELOAD"), Some(&None));
 
         let outside = reader(&[("FONTCONFIG_FILE", "/etc/fonts/fonts.conf")]);

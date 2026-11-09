@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { emit, listen } from "@tauri-apps/api/event";
 import { create } from "zustand";
 import {
@@ -7,7 +8,7 @@ import {
   type Snippet,
 } from "../lib/snippets";
 
-const CHANGED_EVENT = "terax://ai-snippets-changed";
+const CHANGED_EVENT = "estate://ai-snippets-changed";
 
 type State = {
   hydrated: boolean;

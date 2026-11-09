@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -14,5 +15,5 @@ fn main() {
         }
     }
 
-    terax_lib::run()
+    estate_lib::run()
 }

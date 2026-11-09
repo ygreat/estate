@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -440,9 +441,9 @@ mod tests {
             "/repo/.env",
             "/repo/file.pem",
             "/repo/.git/config",
-            "/Users/me/Library/Caches/terax/control.json",
-            "/home/me/.cache/terax/control.json",
-            "C:/Users/me/AppData/Local/terax/control.json",
+            "/Users/me/Library/Caches/estate/control.json",
+            "/home/me/.cache/estate/control.json",
+            "C:/Users/me/AppData/Local/estate/control.json",
             "//wsl.localhost/Ubuntu/home/me/.ssh/id_rsa",
         ] {
             assert!(readable(Path::new(path)).is_err(), "{path}");

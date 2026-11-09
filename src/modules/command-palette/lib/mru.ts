@@ -1,7 +1,8 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 // Non-critical, single-window usage ranking. localStorage keeps it off the
 // preferences store and its IPC change-broadcast path.
 
-const KEY = "terax-palette-mru";
+const KEY = "estate-palette-mru";
 const MAX_ENTRIES = 120;
 
 type MruMap = Record<string, number>;

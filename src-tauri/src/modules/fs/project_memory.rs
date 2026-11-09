@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -35,7 +36,7 @@ fn read_memory(root: &Path, checked_path: &Path) -> Result<Option<String>, Strin
         options.custom_flags(libc::O_NONBLOCK);
     }
     let file = options
-        .open(root.join("TERAX.md"))
+        .open(root.join("ESTATE.md"))
         .map_err(|e| e.to_string())?;
     if !file.metadata().map_err(|e| e.to_string())?.is_file() {
         return Err("project memory must be a regular file".into());
@@ -134,7 +135,7 @@ mod tests {
         std::fs::create_dir(&outside).unwrap();
         let target = outside.join("instructions.md");
         std::fs::write(&target, "OUTSIDE_FIXTURE").unwrap();
-        std::os::unix::fs::symlink(&target, root.join("TERAX.md")).unwrap();
+        std::os::unix::fs::symlink(&target, root.join("ESTATE.md")).unwrap();
         let frontend_path = PathBuf::from(target.to_string_lossy().as_ref());
         assert!(read_memory(&root, &frontend_path).is_err());
     }
@@ -152,7 +153,7 @@ mod tests {
     fn ordinary_memory_is_bounded_utf8() {
         let dir = tempfile::tempdir().unwrap();
         let root = std::fs::canonicalize(dir.path()).unwrap();
-        let path = root.join("TERAX.md");
+        let path = root.join("ESTATE.md");
         std::fs::write(&path, "project instructions").unwrap();
         assert_eq!(
             read_memory(&root, &path).unwrap().as_deref(),
@@ -167,11 +168,11 @@ mod tests {
     fn native_memory_reads_refuse_protected_targets_even_when_the_checked_path_matches() {
         let dir = tempfile::tempdir().unwrap();
         let root = std::fs::canonicalize(dir.path()).unwrap();
-        for name in [".env", ".cache/terax/control.json"] {
+        for name in [".env", ".cache/estate/control.json"] {
             let target = root.join(name);
             std::fs::create_dir_all(target.parent().unwrap()).unwrap();
             std::fs::write(&target, "SYNTHETIC_CREDENTIAL").unwrap();
-            let memory = root.join("TERAX.md");
+            let memory = root.join("ESTATE.md");
             std::os::unix::fs::symlink(&target, &memory).unwrap();
             assert!(read_memory(&root, &target).is_err(), "{name}");
             std::fs::remove_file(&memory).unwrap();
@@ -184,7 +185,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = std::fs::canonicalize(dir.path()).unwrap();
         let outside = tempfile::NamedTempFile::new().unwrap();
-        let memory = root.join("TERAX.md");
+        let memory = root.join("ESTATE.md");
         std::os::unix::fs::symlink(outside.path(), &memory).unwrap();
         assert!(read_memory(&root, outside.path()).is_err());
         std::fs::remove_file(&memory).unwrap();

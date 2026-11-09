@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Toaster } from "@/components/ui/sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WindowControls } from "@/components/WindowControls";
@@ -110,7 +111,7 @@ export function SettingsApp() {
       }
     };
     const unlistenPromise = getCurrentWebviewWindow().listen<string>(
-      "terax:settings-tab",
+      "estate:settings-tab",
       (e) => apply(e.payload),
     );
     return () => {

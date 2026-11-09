@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import {
   readBgFastPath,
   usePreferencesStore,
@@ -101,7 +102,7 @@ function BackgroundImage({ fastImageId }: { fastImageId: string | null }) {
   return createPortal(
     <div
       aria-hidden
-      className="terax-bg-surface"
+      className="estate-bg-surface"
       style={{
         position: "fixed",
         inset: 0,

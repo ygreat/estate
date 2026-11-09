@@ -1,13 +1,14 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { readFile } from "node:fs/promises";
 import {
-  TeraxGhostty,
-  type TeraxGhosttyRenderState,
-  type TeraxGhosttyTerminal,
-} from "@terax/ghostty-core/adapted";
+  EstateGhostty,
+  type EstateGhosttyRenderState,
+  type EstateGhosttyTerminal,
+} from "@estate/ghostty-core/adapted";
 import { afterAll, beforeAll, bench, describe } from "vitest";
 
 const artifacts = ["ghostty-vt.wasm", "ghostty-vt-scalar.wasm"];
-const terminals: TeraxGhosttyTerminal[] = [];
+const terminals: EstateGhosttyTerminal[] = [];
 const streamingUpdate = new TextEncoder().encode(
   Array.from(
     { length: 1_024 },
@@ -46,11 +47,11 @@ const inkTicks = INK_SPINNER.map((spinner) => {
 });
 
 type InkTerminals = {
-  readonly parseOnly: TeraxGhosttyTerminal;
-  readonly soa: TeraxGhosttyTerminal;
-  readonly gpu: TeraxGhosttyTerminal;
-  readonly scrollSoa: TeraxGhosttyTerminal;
-  readonly scrollGpu: TeraxGhosttyTerminal;
+  readonly parseOnly: EstateGhosttyTerminal;
+  readonly soa: EstateGhosttyTerminal;
+  readonly gpu: EstateGhosttyTerminal;
+  readonly scrollSoa: EstateGhosttyTerminal;
+  readonly scrollGpu: EstateGhosttyTerminal;
 };
 // A streaming log: one new line per tick scrolls the whole viewport.
 const scrollLines = Array.from({ length: 64 }, (_, line) =>
@@ -67,7 +68,7 @@ let inkTick = 0;
  * and a 64-byte instance written for every cell, blank or not.
  */
 const packScratch = new Uint32Array(16);
-function packLikeBuildRows(state: TeraxGhosttyRenderState): number {
+function packLikeBuildRows(state: EstateGhosttyRenderState): number {
   let checksum = 0;
   const { cols } = state;
   for (let row = 0; row < state.rows; row += 1) {
@@ -113,7 +114,7 @@ beforeAll(async () => {
         import.meta.url,
       ),
     );
-    const ghostty = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+    const ghostty = await EstateGhostty.loadBytes(Uint8Array.from(bytes).buffer);
     terminals.push(
       ghostty.createTerminal(120, 40, {
         maxScrollbackBytes: 8 * 1024 * 1024,

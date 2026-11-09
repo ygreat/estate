@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 export type ThemeMode = "light" | "dark";
 
 export type ThemeColors = Partial<{
@@ -65,4 +66,4 @@ export type Theme = {
   };
 };
 
-export const DEFAULT_THEME_ID = "terax-default";
+export const DEFAULT_THEME_ID = "estate-default";

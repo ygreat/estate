@@ -1,3 +1,4 @@
+# Modified by ygreat for Estate, 2026. Originally part of Terax.
 """Exercise the real Tauri IPC transport with a local fixture and isolated profile."""
 import argparse
 import http.server
@@ -19,7 +20,7 @@ if platform.system() != "Darwin":
     raise SystemExit("This smoke runner currently supports macOS only.")
 root = Path(__file__).resolve().parent
 repo = root.parent.parent
-output = (args.output or Path(tempfile.mkdtemp(prefix="terax-ipc-profile-"))).resolve()
+output = (args.output or Path(tempfile.mkdtemp(prefix="estate-ipc-profile-"))).resolve()
 output.mkdir(parents=True, exist_ok=True)
 finished = threading.Event()
 state = {"slowDisconnected": False}
@@ -69,12 +70,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
 threading.Thread(target=server.serve_forever, daemon=True).start()
-identifier = f"app.crynta.terax.ipc-lab-{uuid.uuid4().hex[:12]}"
+identifier = f"io.github.ygreat.estate.ipc-lab-{uuid.uuid4().hex[:12]}"
 config = output / "tauri.conf.json"
 config.write_text(json.dumps({
-    "productName": "Terax IPC Lab", "identifier": identifier,
+    "productName": "Estate IPC Lab", "identifier": identifier,
     "build": {"beforeBuildCommand": "", "frontendDist": str(output / "dist")},
-    "app": {"windows": [{"label": "main", "title": "Terax IPC Lab", "width": 800, "height": 500, "visible": True}]},
+    "app": {"windows": [{"label": "main", "title": "Estate IPC Lab", "width": 800, "height": 500, "visible": True}]},
     "bundle": {"active": False},
 }))
 tree = output / "tree"
@@ -83,7 +84,7 @@ for d in range(80):
     folder.mkdir(parents=True, exist_ok=True)
     for f in range(100):
         (folder / f"f{f:03}.txt").write_text("".join(f"line {i} of file {f}\n" for i in range(40)))
-env = {**os.environ, "TERAX_IPC_BASE_URL": f"http://127.0.0.1:{server.server_port}", "TERAX_IPC_DIST": str(output / "dist"), "TERAX_IPC_TREE": str(tree.resolve())}
+env = {**os.environ, "ESTATE_IPC_BASE_URL": f"http://127.0.0.1:{server.server_port}", "ESTATE_IPC_DIST": str(output / "dist"), "ESTATE_IPC_TREE": str(tree.resolve())}
 process = None
 try:
     with (output / "build.log").open("w") as log:
@@ -92,7 +93,7 @@ try:
         subprocess.run(["pnpm", "exec", "tauri", "build", "--debug", "--no-bundle", "--config", str(config)], cwd=repo, env=env, stdout=log, stderr=log, check=True)
     metadata = json.loads(subprocess.check_output(["cargo", "metadata", "--locked", "--no-deps", "--format-version=1", "--manifest-path", "src-tauri/Cargo.toml"], cwd=repo))
     with (output / "app.log").open("w") as log:
-        process = subprocess.Popen([str(Path(metadata["target_directory"]) / "debug/terax")], cwd=repo, stdout=log, stderr=log)
+        process = subprocess.Popen([str(Path(metadata["target_directory"]) / "debug/estate")], cwd=repo, stdout=log, stderr=log)
         if not finished.wait(45):
             raise RuntimeError("Native IPC test timed out")
         process.wait(timeout=10)

@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::net::{IpAddr, ToSocketAddrs};
@@ -244,7 +245,7 @@ pub async fn ai_http_stream(
 ) -> Result<(), String> {
     let metadata = request
         .headers()
-        .get("x-terax-ai-request")
+        .get("x-estate-ai-request")
         .and_then(|value| value.to_str().ok())
         .filter(|value| value.len() <= 64 * 1024)
         .ok_or("missing or oversized AI request metadata")?;

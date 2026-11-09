@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { invoke } from "@tauri-apps/api/core";
 
 /**
@@ -137,7 +138,7 @@ export class PtyPresentationReporter {
         // re-sends, but never surface an error for it.
         for (const id of ids)
           if (this.reported.get(id) === presentation) this.reported.delete(id);
-        console.debug("[terax] pty_set_presentation failed:", error);
+        console.debug("[estate] pty_set_presentation failed:", error);
       });
     }
   }

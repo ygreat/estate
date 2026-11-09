@@ -1,4 +1,5 @@
-// Binary framing for the multiplexed `terax-pty` stream. Mirrors
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+// Binary framing for the multiplexed `estate-pty` stream. Mirrors
 // src-tauri/src/modules/pty/wire.rs; all integers are little-endian.
 //
 // Request body (`POST poll` and `POST ack`):

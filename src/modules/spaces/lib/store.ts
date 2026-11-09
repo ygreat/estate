@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { LazyStore } from "@tauri-apps/plugin-store";
 import type { WorkspaceEnv } from "@/modules/workspace";
 import type { SerializedTab } from "./serialize";
@@ -18,7 +19,7 @@ export type SpaceState = {
   activeTabIndex: number;
 };
 
-const STORE_PATH = "terax-spaces.json";
+const STORE_PATH = "estate-spaces.json";
 const KEY_SPACES = "spaces";
 const KEY_ACTIVE = "activeId";
 const STATE_PREFIX = "state:";

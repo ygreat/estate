@@ -1,8 +1,9 @@
-"""App lab: ground-truth resource benchmark of the REAL Terax application (macOS).
+# Modified by ygreat for Estate, 2026. Originally part of Terax.
+"""App lab: ground-truth resource benchmark of the REAL Estate application (macOS).
 
 Unlike scripts/renderer-profile (a synthetic renderer in a bare WKWebView) this builds the real
 app, with the full React shell, real PTYs, real tabs/splits and the real window, from a source
-tree compiled with the `bench` cargo feature and `TERAX_BENCH=1`. A scenario driver compiled into
+tree compiled with the `bench` cargo feature and `ESTATE_BENCH=1`. A scenario driver compiled into
 that build (src/bench) runs inside the UI using the app's own tab actions and reports phase events
 to this orchestrator over a local HTTP server (the scripts/pty-smoke pattern). For every event the
 orchestrator samples exactly the app's own processes (host, WebContent, GPU, Networking: the pids
@@ -19,7 +20,7 @@ Scenarios (`--scenario`):
   idle           one idle shell for `--duration` s
   input          native key events / input-method calls into a PTY reader (pass/fail in page.log)
 
-The app runs from an isolated bundle (identifier app.crynta.terax.app-lab, its own HOME), never
+The app runs from an isolated bundle (identifier io.github.ygreat.estate.app-lab, its own HOME), never
 the user's profile; the bench build refuses to start under the product identifier. Build once
 (`--build-only`, release with the feature, a separate cargo target dir) and reuse with
 `--reuse-build`. To measure a pristine revision rather than the working tree use
@@ -55,17 +56,17 @@ sys.path.insert(0, str(REPO / "scripts/renderer-profile"))
 import app_report  # noqa: E402
 import procstats  # noqa: E402
 
-IDENTIFIER = "app.crynta.terax.app-lab"
-PRODUCT_NAME = "Terax App Lab"
+IDENTIFIER = "io.github.ygreat.estate.app-lab"
+PRODUCT_NAME = "Estate App Lab"
 MAX_ATTEMPTS = 3
-LOCK_PATH = Path(tempfile.gettempdir()) / "terax-app-lab.lock"
+LOCK_PATH = Path(tempfile.gettempdir()) / "estate-app-lab.lock"
 SCOPE = (
-    "The real Terax application (bench build: full React shell, real PTYs and tabs, real window) "
+    "The real Estate application (bench build: full React shell, real PTYs and tabs, real window) "
     "in an isolated profile, driven by an in-app scenario driver; process pids come from the "
     "webview itself. A synthetic coding-agent program runs in the PTYs. Single machine, "
     "single display; not packaged-app signing, other users' fonts/shell config or cross-platform."
 )
-procstats.ROLE_BY_NAME["terax"] = "host"
+procstats.ROLE_BY_NAME["estate"] = "host"
 procstats.ROLE_ORDER[:] = ["host", "web_content", "web_content_prewarmed", "gpu", "networking", "workload"]
 procstats.ROLE_LABEL["workload"] = "PTY-procs"
 
@@ -84,8 +85,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--output", type=Path, help="scratch directory (default: a temp directory)")
     p.add_argument("--report", type=Path, help="JSON report path (default: <output>/report.json)")
     p.add_argument("--label", help="free-form label stored in the report")
-    p.add_argument("--toggle", action="append", default=[], metavar="NAME=VALUE", help="experiment toggle: localStorage terax:bench:NAME (repeatable)")
-    p.add_argument("--local-storage", action="append", default=[], metavar="KEY=VALUE", help="raw localStorage entry (VALUE 'null' removes), e.g. terax:terminal-canvas-park-ms=off")
+    p.add_argument("--toggle", action="append", default=[], metavar="NAME=VALUE", help="experiment toggle: localStorage estate:bench:NAME (repeatable)")
+    p.add_argument("--local-storage", action="append", default=[], metavar="KEY=VALUE", help="raw localStorage entry (VALUE 'null' removes), e.g. estate:terminal-canvas-park-ms=off")
     p.add_argument("--window", default="1280x820", help="window size in points, WxH")
     p.add_argument("--instrument", action="store_true", help="patch WebGPU/DOM prototypes with lifecycle counters (calls, wrappers created/finalized, canvas re-parenting); compare with an uninstrumented run")
     p.add_argument("--gc", nargs="?", const="private", choices=["private", "alloc"], help="after the idle tail, request a full garbage collection and sample +2 s/+10 s: 'private' (default) is WebKit's testing SPI, 'alloc' is allocation pressure from the page (what an in-app valve could do)")
@@ -163,7 +164,7 @@ def other_benchmarks() -> list[str]:
     found = []
     for pid, (_, command) in procstats.process_table().items():
         name = os.path.basename(command)
-        if name == "renderer-lab" or (name == "terax" and "Terax App Lab" in command and pid != os.getpid()):
+        if name == "renderer-lab" or (name == "estate" and "Estate App Lab" in command and pid != os.getpid()):
             found.append(f"{name}[{pid}]")
     return found
 
@@ -174,7 +175,7 @@ def other_benchmarks() -> list[str]:
 
 
 def build(args, source: Path, output: Path, target_dir: Path) -> Path:
-    """Frontend with TERAX_BENCH=1, then the Tauri bundle with the `bench` feature. Returns the .app."""
+    """Frontend with ESTATE_BENCH=1, then the Tauri bundle with the `bench` feature. Returns the .app."""
     dist = output / "dist"
     bundle_dir = target_dir / args.profile / "bundle/macos"
     app = bundle_dir / f"{PRODUCT_NAME}.app"
@@ -188,10 +189,10 @@ def build(args, source: Path, output: Path, target_dir: Path) -> Path:
         "build": {"beforeBuildCommand": "", "frontendDist": str(dist)},
         "bundle": {"createUpdaterArtifacts": False},
     }))
-    env = {**os.environ, "TERAX_BENCH": "1", "TERAX_BENCH_IDENTIFIER": IDENTIFIER, "CARGO_TARGET_DIR": str(target_dir)}
+    env = {**os.environ, "ESTATE_BENCH": "1", "ESTATE_BENCH_IDENTIFIER": IDENTIFIER, "CARGO_TARGET_DIR": str(target_dir)}
     started = time.monotonic()
     with (output / "build.log").open("w") as log:
-        print("Building the frontend (TERAX_BENCH=1)...", flush=True)
+        print("Building the frontend (ESTATE_BENCH=1)...", flush=True)
         subprocess.run([str(source / "node_modules/.bin/vite"), "build", "--outDir", str(dist), "--emptyOutDir"], cwd=source, env=env, stdout=log, stderr=log, check=True)
         frontend_s = time.monotonic() - started
         print("Building the app (cargo %s, feature bench)..." % args.profile, flush=True)
@@ -213,7 +214,7 @@ def build(args, source: Path, output: Path, target_dir: Path) -> Path:
 
 def clean_profile(home: Path) -> None:
     """Removes everything a previous run left for the bench identifier (never the product's)."""
-    assert IDENTIFIER != "app.crynta.terax"
+    assert IDENTIFIER != "io.github.ygreat.estate"
     shutil.rmtree(home, ignore_errors=True)
     # WebKit, Tauri and cfprefsd may resolve the user's real library even with HOME overridden.
     import pwd
@@ -322,7 +323,7 @@ def main() -> int:
     if not args.scenario and not args.build_only:
         raise SystemExit("--scenario is required")
     source = (args.source or REPO).resolve()
-    output = (args.output or Path(tempfile.mkdtemp(prefix="terax-app-lab-"))).resolve()
+    output = (args.output or Path(tempfile.mkdtemp(prefix="estate-app-lab-"))).resolve()
     output.mkdir(parents=True, exist_ok=True)
     target_dir = (args.target_dir or output.parent / f"app-lab-target-{args.profile}").resolve()
     app = args.app.resolve() if args.app else build(args, source, output, target_dir)
@@ -364,7 +365,7 @@ def scenario_json(args) -> dict:
         local[key] = None if value == "null" else value
     for entry in args.toggle:
         key, _, value = entry.partition("=")
-        local[f"terax:bench:{key}"] = value or "1"
+        local[f"estate:bench:{key}"] = value or "1"
     scenario = {
         "name": args.scenario, "variant": args.variant, "agentCommand": agent,
         "window": {"width": width, "height": height},
@@ -426,7 +427,7 @@ def run(args, app: Path, source: Path, output: Path) -> int:
     if (output / "build-seconds.json").exists():
         build_seconds = json.loads((output / "build-seconds.json").read_text())
     manifest = {
-        "schema": "terax-app-lab/1",
+        "schema": "estate-app-lab/1",
         "scope": SCOPE,
         "config": {
             "scenario": args.scenario, "label": args.label, "profile": args.profile, "vmmap": vmmap_enabled,
@@ -458,8 +459,8 @@ def run(args, app: Path, source: Path, output: Path) -> int:
     warnings: set[str] = set()
     env = {
         **{k: v for k, v in os.environ.items() if not k.startswith(("TAURI_", "VITE_", "CARGO_"))},
-        "HOME": str(home), "TERAX_BENCH_ISOLATED": "1",
-        "TERAX_BENCH_SCENARIO": json.dumps(scenario), "TERAX_BENCH_REPORT_URL": server.url,
+        "HOME": str(home), "ESTATE_BENCH_ISOLATED": "1",
+        "ESTATE_BENCH_SCENARIO": json.dumps(scenario), "ESTATE_BENCH_REPORT_URL": server.url,
         "SHELL": os.environ.get("SHELL", "/bin/zsh"),
     }
     env.pop("ZDOTDIR", None)
@@ -470,7 +471,7 @@ def run(args, app: Path, source: Path, output: Path) -> int:
             args.cwd_shell = output / "workspace"
             subprocess.run([shutil.which("node"), str(HERE / "fs-churn.mjs"), "prepare", str(args.cwd_shell), str(REPO)], check=True)
         scenario["cwds"] = {"shell": str(args.cwd_shell.resolve())}
-        env["TERAX_BENCH_SCENARIO"] = json.dumps(scenario)
+        env["ESTATE_BENCH_SCENARIO"] = json.dumps(scenario)
     launch_args = [str(args.cwd_shell.resolve())] if args.cwd_shell else []
     process = subprocess.Popen([str(executable), *launch_args], cwd=home, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
     manifest["hostPid"] = process.pid

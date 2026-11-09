@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -28,7 +29,7 @@ const ShimmerComponent = ({
     Component,
     {
       className: cn(
-        "terax-shimmer relative inline-block bg-clip-text text-transparent",
+        "estate-shimmer relative inline-block bg-clip-text text-transparent",
         className
       ),
       style: {

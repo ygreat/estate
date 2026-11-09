@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! The async runtime behind Tauri commands.
 //!
 //! Tauri's default is a multi-threaded tokio runtime with a worker per core and
@@ -23,7 +24,7 @@ fn build(workers: usize, max_blocking: usize) -> io::Result<Runtime> {
     Builder::new_multi_thread()
         .worker_threads(workers)
         .max_blocking_threads(max_blocking)
-        .thread_name("terax-async")
+        .thread_name("estate-async")
         .thread_stack_size(THREAD_STACK)
         .enable_all()
         .build()
@@ -67,7 +68,7 @@ mod tests {
             }
             names
         });
-        assert!(names.iter().all(|n| n == "terax-async" || n.is_empty()));
+        assert!(names.iter().all(|n| n == "estate-async" || n.is_empty()));
         assert!(names.len() <= WORKER_THREADS + 1);
     }
 

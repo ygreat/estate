@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { routeAgentNotification } from "@/modules/agents/lib/route";
 import { useWindowFocus } from "@/modules/agents/lib/useWindowFocus";
 import { useAgentStore } from "@/modules/agents/store/agentStore";
@@ -5,7 +6,7 @@ import type { AgentStatus } from "@/modules/agents/lib/types";
 import { useEffect, useRef } from "react";
 import { useChatStore } from "../store/chatStore";
 
-const AGENT = "Terax";
+const AGENT = "Estate";
 
 type RunStatus =
   | "idle"
@@ -63,11 +64,11 @@ export function LocalAgentNotificationsBridge() {
       });
 
     if (status === "awaiting-approval") {
-      fire("attention", "Terax needs your approval", "Approve a tool to continue");
+      fire("attention", "Estate needs your approval", "Approve a tool to continue");
     } else if (status === "error") {
-      fire("error", "Terax run failed", error ?? undefined);
+      fire("error", "Estate run failed", error ?? undefined);
     } else if (status === "idle" && isBusy(was)) {
-      fire("finished", "Terax finished", "Your task is ready");
+      fire("finished", "Estate finished", "Your task is ready");
     }
   }, [status, error]);
 

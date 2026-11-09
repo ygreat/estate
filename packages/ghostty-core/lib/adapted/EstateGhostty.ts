@@ -1,18 +1,19 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type {
-  TeraxGhosttyGpuRenderState,
-  TeraxGhosttyLine,
-  TeraxGhosttyLoadOptions,
-  TeraxGhosttyKeyEvent,
-  TeraxGhosttyMemoryStats,
-  TeraxGhosttyRenderBase,
-  TeraxGhosttyRenderFormat,
-  TeraxGhosttyRenderState,
-  TeraxGhosttySearchStatus,
-  TeraxGhosttySearchViewportSpan,
-  TeraxGhosttySelection,
-  TeraxGhosttyTerminalOptions,
-  TeraxGhosttyTerminalResourceStats,
-  TeraxGhosttyWasmExports,
+  EstateGhosttyGpuRenderState,
+  EstateGhosttyLine,
+  EstateGhosttyLoadOptions,
+  EstateGhosttyKeyEvent,
+  EstateGhosttyMemoryStats,
+  EstateGhosttyRenderBase,
+  EstateGhosttyRenderFormat,
+  EstateGhosttyRenderState,
+  EstateGhosttySearchStatus,
+  EstateGhosttySearchViewportSpan,
+  EstateGhosttySelection,
+  EstateGhosttyTerminalOptions,
+  EstateGhosttyTerminalResourceStats,
+  EstateGhosttyWasmExports,
   TypedArray,
   TypedArrayConstructor,
   ViewCacheEntry,
@@ -216,21 +217,21 @@ type RenderViewCache = {
  * returns its scrollback to the operating system. Instantiating the compiled
  * module is synchronous and takes about a millisecond or less.
  */
-export class TeraxGhostty {
-  private readonly live = new Set<TeraxGhosttyInstance>();
+export class EstateGhostty {
+  private readonly live = new Set<EstateGhosttyInstance>();
   private created = 0;
   private reclaimBytes = 0;
   private reclaimTimer: ReturnType<typeof setTimeout> | null = null;
 
   private constructor(
     private readonly module: WebAssembly.Module,
-    private readonly options: TeraxGhosttyLoadOptions,
+    private readonly options: EstateGhosttyLoadOptions,
   ) {}
 
   static async load(
     wasmPath?: string,
-    options: TeraxGhosttyLoadOptions = {},
-  ): Promise<TeraxGhostty> {
+    options: EstateGhosttyLoadOptions = {},
+  ): Promise<EstateGhostty> {
     const path =
       wasmPath ?? (supportsWasmSimd()
         ? new URL("../../adapted/ghostty-vt.wasm", import.meta.url).href
@@ -249,20 +250,20 @@ export class TeraxGhostty {
     } catch {
       module = await compileBytes(await fallback.arrayBuffer());
     }
-    return TeraxGhostty.fromModule(module, options);
+    return EstateGhostty.fromModule(module, options);
   }
 
   static async loadBytes(
     bytes: ArrayBuffer,
-    options: TeraxGhosttyLoadOptions = {},
-  ): Promise<TeraxGhostty> {
-    return TeraxGhostty.fromModule(await compileBytes(bytes), options);
+    options: EstateGhosttyLoadOptions = {},
+  ): Promise<EstateGhostty> {
+    return EstateGhostty.fromModule(await compileBytes(bytes), options);
   }
 
   static fromModule(
     module: WebAssembly.Module,
-    options: TeraxGhosttyLoadOptions = {},
-  ): TeraxGhostty {
+    options: EstateGhosttyLoadOptions = {},
+  ): EstateGhostty {
     const available = new Set(
       WebAssembly.Module.exports(module).map((entry) => entry.name),
     );
@@ -271,7 +272,7 @@ export class TeraxGhostty {
         throw new Error(`Missing adapted Ghostty WASM export: ${name}`);
       }
     }
-    return new TeraxGhostty(module, options);
+    return new EstateGhostty(module, options);
   }
 
   /** The shared compiled module that every instance is created from. */
@@ -283,16 +284,16 @@ export class TeraxGhostty {
    * A fresh instance with its own linear memory and no terminal. Dispose it to
    * drop the memory; terminals created on it share that memory.
    */
-  instantiate(): TeraxGhosttyInstance {
+  instantiate(): EstateGhosttyInstance {
     const holder: MemoryHolder = { current: null };
     const instantiate = this.options.instantiate ?? defaultInstantiate;
     const raw = instantiate(this.module, createImports(holder, this.options));
-    const exports = raw.exports as TeraxGhosttyWasmExports;
+    const exports = raw.exports as EstateGhosttyWasmExports;
     if (!(exports.memory instanceof WebAssembly.Memory)) {
       throw new Error("Adapted Ghostty WASM does not export its memory");
     }
     holder.current = exports.memory;
-    const instance = new TeraxGhosttyInstance(this, exports, holder);
+    const instance = new EstateGhosttyInstance(this, exports, holder);
     this.live.add(instance);
     this.created += 1;
     return instance;
@@ -305,12 +306,12 @@ export class TeraxGhostty {
   createTerminal(
     cols: number,
     rows: number,
-    options: TeraxGhosttyTerminalOptions = {},
-  ): TeraxGhosttyTerminal {
+    options: EstateGhosttyTerminalOptions = {},
+  ): EstateGhosttyTerminal {
     validateDimensions(cols, rows);
     const instance = this.instantiate();
     try {
-      return new TeraxGhosttyTerminal(instance, cols, rows, options, true);
+      return new EstateGhosttyTerminal(instance, cols, rows, options, true);
     } catch (error) {
       instance.dispose();
       throw error;
@@ -324,7 +325,7 @@ export class TeraxGhostty {
     return total;
   }
 
-  memoryStats(): TeraxGhosttyMemoryStats {
+  memoryStats(): EstateGhosttyMemoryStats {
     const instanceBytes: number[] = [];
     let totalBytes = 0;
     for (const instance of this.live) {
@@ -340,8 +341,8 @@ export class TeraxGhostty {
     };
   }
 
-  /** @internal Called by `TeraxGhosttyInstance.dispose`. */
-  releaseInstance(instance: TeraxGhosttyInstance, bytes: number): void {
+  /** @internal Called by `EstateGhosttyInstance.dispose`. */
+  releaseInstance(instance: EstateGhosttyInstance, bytes: number): void {
     this.live.delete(instance);
     this.scheduleReclaim(bytes);
   }
@@ -370,15 +371,15 @@ type MemoryHolder = { current: WebAssembly.Memory | null };
  * One WebAssembly instance and its linear memory. Dropping every reference to
  * a disposed instance lets the engine free the memory.
  */
-export class TeraxGhosttyInstance {
-  private liveExports: TeraxGhosttyWasmExports | null;
-  private owner: TeraxGhostty | null;
+export class EstateGhosttyInstance {
+  private liveExports: EstateGhosttyWasmExports | null;
+  private owner: EstateGhostty | null;
   private holder: MemoryHolder | null;
-  private readonly terminals = new Set<TeraxGhosttyTerminal>();
+  private readonly terminals = new Set<EstateGhosttyTerminal>();
 
   constructor(
-    owner: TeraxGhostty,
-    exports: TeraxGhosttyWasmExports,
+    owner: EstateGhostty,
+    exports: EstateGhosttyWasmExports,
     holder: MemoryHolder,
   ) {
     this.owner = owner;
@@ -390,7 +391,7 @@ export class TeraxGhosttyInstance {
     return this.liveExports === null;
   }
 
-  get exports(): TeraxGhosttyWasmExports {
+  get exports(): EstateGhosttyWasmExports {
     if (!this.liveExports) {
       throw new Error("Adapted Ghostty instance has been disposed");
     }
@@ -406,18 +407,18 @@ export class TeraxGhosttyInstance {
   createTerminal(
     cols: number,
     rows: number,
-    options: TeraxGhosttyTerminalOptions = {},
-  ): TeraxGhosttyTerminal {
-    return new TeraxGhosttyTerminal(this, cols, rows, options, false);
+    options: EstateGhosttyTerminalOptions = {},
+  ): EstateGhosttyTerminal {
+    return new EstateGhosttyTerminal(this, cols, rows, options, false);
   }
 
   /** @internal */
-  register(terminal: TeraxGhosttyTerminal): void {
+  register(terminal: EstateGhosttyTerminal): void {
     this.terminals.add(terminal);
   }
 
   /** @internal */
-  forget(terminal: TeraxGhosttyTerminal): void {
+  forget(terminal: EstateGhosttyTerminal): void {
     this.terminals.delete(terminal);
   }
 
@@ -442,24 +443,24 @@ export class TeraxGhosttyInstance {
   }
 }
 
-export class TeraxGhosttyTerminal {
+export class EstateGhosttyTerminal {
   private readonly cache: RenderViewCache = createRenderViewCache();
   private readonly handle: number;
-  private exports: TeraxGhosttyWasmExports;
+  private exports: EstateGhosttyWasmExports;
   private memory: WebAssembly.Memory;
-  private instance: TeraxGhosttyInstance;
+  private instance: EstateGhosttyInstance;
   private readonly ownsInstance: boolean;
   private inputPointer = 0;
   private inputCapacity = 0;
   private readonly textEncoder = new TextEncoder();
-  private format: TeraxGhosttyRenderFormat = "soa";
+  private format: EstateGhosttyRenderFormat = "soa";
   private disposed = false;
 
   constructor(
-    instance: TeraxGhosttyInstance,
+    instance: EstateGhosttyInstance,
     cols: number,
     rows: number,
-    options: TeraxGhosttyTerminalOptions,
+    options: EstateGhosttyTerminalOptions,
     ownsInstance: boolean,
   ) {
     validateDimensions(cols, rows);
@@ -594,7 +595,7 @@ export class TeraxGhosttyTerminal {
   }
 
   /** The cell format written by the next update. New terminals use `"soa"`. */
-  get renderFormat(): TeraxGhosttyRenderFormat {
+  get renderFormat(): EstateGhosttyRenderFormat {
     return this.format;
   }
 
@@ -603,7 +604,7 @@ export class TeraxGhosttyTerminal {
    * buffers, invalidates every borrowed view and forces full damage on the
    * next update (and a new glyph epoch when leaving the GPU format).
    */
-  setRenderFormat(format: TeraxGhosttyRenderFormat): void {
+  setRenderFormat(format: EstateGhosttyRenderFormat): void {
     this.assertLive();
     if (format === this.format) return;
     checkResult(
@@ -616,7 +617,7 @@ export class TeraxGhosttyTerminal {
     this.format = format;
   }
 
-  updateRenderState(): TeraxGhosttyRenderState {
+  updateRenderState(): EstateGhosttyRenderState {
     this.assertLive();
     this.assertFormat("soa", "updateRenderState");
     checkResult(
@@ -631,7 +632,7 @@ export class TeraxGhosttyTerminal {
    * (see `gpuCells.ts`), exact per-row dirtiness and interned glyph ids. The
    * terminal must be in the `"gpu"` format (`setRenderFormat`).
    */
-  updateGpuRenderState(): TeraxGhosttyGpuRenderState {
+  updateGpuRenderState(): EstateGhosttyGpuRenderState {
     this.assertLive();
     this.assertFormat("gpu", "updateGpuRenderState");
     checkResult(
@@ -689,7 +690,7 @@ export class TeraxGhosttyTerminal {
    * straight from the screen: the viewport and the render state are left
    * untouched, in either render format. Lines past the end are omitted.
    */
-  readLines(firstLine: number, lastLine: number): TeraxGhosttyLine[] {
+  readLines(firstLine: number, lastLine: number): EstateGhosttyLine[] {
     this.assertLive();
     if (
       !Number.isSafeInteger(firstLine) ||
@@ -700,7 +701,7 @@ export class TeraxGhosttyTerminal {
       return [];
     }
     const cols = this.cols;
-    const lines: TeraxGhosttyLine[] = [];
+    const lines: EstateGhosttyLine[] = [];
     const total = this.scrollbar().total;
     const last = Math.min(lastLine, total - 1);
     for (let first = firstLine; first <= last; first += LINE_CHUNK_LINES) {
@@ -739,7 +740,7 @@ export class TeraxGhosttyTerminal {
     );
   }
 
-  resourceStats(): TeraxGhosttyTerminalResourceStats {
+  resourceStats(): EstateGhosttyTerminalResourceStats {
     this.assertLive();
     return {
       cellCapacity: this.exports.restty_cell_capacity(this.handle),
@@ -930,7 +931,7 @@ export class TeraxGhosttyTerminal {
     );
   }
 
-  encodeKey(event: TeraxGhosttyKeyEvent): Uint8Array {
+  encodeKey(event: EstateGhosttyKeyEvent): Uint8Array {
     this.assertLive();
     const utf8 = event.utf8 ? this.textEncoder.encode(event.utf8) : emptyBytes;
     if (utf8.byteLength > 0) {
@@ -962,7 +963,7 @@ export class TeraxGhosttyTerminal {
     return new Uint8Array(this.memory.buffer, pointer, length).slice();
   }
 
-  setSearchQuery(query: string): TeraxGhosttySearchStatus {
+  setSearchQuery(query: string): EstateGhosttySearchStatus {
     this.assertLive();
     const bytes = this.textEncoder.encode(query);
     if (bytes.byteLength === 0) {
@@ -994,7 +995,7 @@ export class TeraxGhosttyTerminal {
     checkResult(this.exports.restty_search_clear(this.handle), "clear search");
   }
 
-  stepSearch(budget = 256): TeraxGhosttySearchStatus {
+  stepSearch(budget = 256): EstateGhosttySearchStatus {
     this.assertLive();
     checkResult(
       this.exports.restty_search_step(
@@ -1006,7 +1007,7 @@ export class TeraxGhosttyTerminal {
     return this.searchStatus();
   }
 
-  selectSearchMatch(direction: "next" | "previous"): TeraxGhosttySearchStatus {
+  selectSearchMatch(direction: "next" | "previous"): EstateGhosttySearchStatus {
     this.assertLive();
     const result =
       direction === "next"
@@ -1016,7 +1017,7 @@ export class TeraxGhosttyTerminal {
     return this.searchStatus();
   }
 
-  searchStatus(): TeraxGhosttySearchStatus {
+  searchStatus(): EstateGhosttySearchStatus {
     this.assertLive();
     const pointer = this.exports.restty_search_status_ptr(this.handle);
     validateRange(this.memory.buffer, pointer, SEARCH_STATUS_BYTES);
@@ -1035,7 +1036,7 @@ export class TeraxGhosttyTerminal {
     };
   }
 
-  searchViewportMatches(): TeraxGhosttySearchViewportSpan[] {
+  searchViewportMatches(): EstateGhosttySearchViewportSpan[] {
     this.assertLive();
     const count = this.exports.restty_search_viewport_match_count(this.handle);
     if (count === 0) return [];
@@ -1050,7 +1051,7 @@ export class TeraxGhosttyTerminal {
       pointer,
       count * SEARCH_VIEWPORT_SPAN_BYTES,
     );
-    const matches = new Array<TeraxGhosttySearchViewportSpan>(count);
+    const matches = new Array<EstateGhosttySearchViewportSpan>(count);
     for (let index = 0; index < count; index += 1) {
       const offset = index * SEARCH_VIEWPORT_SPAN_BYTES;
       matches[index] = {
@@ -1076,7 +1077,7 @@ export class TeraxGhosttyTerminal {
     };
   }
 
-  setSelection(selection: TeraxGhosttySelection | null): void {
+  setSelection(selection: EstateGhosttySelection | null): void {
     this.assertLive();
     if (!selection) {
       checkResult(
@@ -1098,7 +1099,7 @@ export class TeraxGhosttyTerminal {
     );
   }
 
-  selection(): TeraxGhosttySelection | null {
+  selection(): EstateGhosttySelection | null {
     this.assertLive();
     if (this.exports.restty_selection_active(this.handle) === 0) return null;
     return {
@@ -1178,7 +1179,7 @@ export class TeraxGhosttyTerminal {
   }
 
   graphemeAt(
-    state: TeraxGhosttyRenderState,
+    state: EstateGhosttyRenderState,
     cellIndex: number,
   ): string {
     const index = validateCellIndex(state, cellIndex);
@@ -1198,7 +1199,7 @@ export class TeraxGhosttyTerminal {
   }
 
   hyperlinkAt(
-    state: TeraxGhosttyRenderBase,
+    state: EstateGhosttyRenderBase,
     cellIndex: number,
   ): string | null {
     const linkId = state.linkIds[validateCellIndex(state, cellIndex)];
@@ -1249,7 +1250,7 @@ export class TeraxGhosttyTerminal {
     this.instance = null as never;
   }
 
-  private readRenderState(): TeraxGhosttyRenderState {
+  private readRenderState(): EstateGhosttyRenderState {
     const rows = this.exports.restty_rows(this.handle);
     const cols = this.exports.restty_cols(this.handle);
     validateDimensions(cols, rows);
@@ -1408,7 +1409,7 @@ export class TeraxGhosttyTerminal {
    * to refresh borrowed views after another terminal grew the shared WASM
    * memory (which detaches every earlier `ArrayBuffer`).
    */
-  readGpuRenderState(): TeraxGhosttyGpuRenderState {
+  readGpuRenderState(): EstateGhosttyGpuRenderState {
     this.assertLive();
     this.assertFormat("gpu", "readGpuRenderState");
     const rows = this.exports.restty_rows(this.handle);
@@ -1499,7 +1500,7 @@ export class TeraxGhosttyTerminal {
   }
 
   private assertFormat(
-    expected: TeraxGhosttyRenderFormat,
+    expected: EstateGhosttyRenderFormat,
     operation: string,
   ): void {
     if (this.format !== expected) {
@@ -1616,7 +1617,7 @@ function detachMemoryViews(memory: WebAssembly.Memory): void {
 
 function createImports(
   holder: MemoryHolder,
-  options: TeraxGhosttyLoadOptions,
+  options: EstateGhosttyLoadOptions,
 ): WebAssembly.Imports {
   return {
     env: {
@@ -1741,7 +1742,7 @@ function decodeCursorStyle(value: number): "block" | "underline" | "bar" {
 }
 
 function validateCellIndex(
-  state: TeraxGhosttyRenderBase,
+  state: EstateGhosttyRenderBase,
   cellIndex: number,
 ): number {
   if (
@@ -1757,7 +1758,7 @@ function validateCellIndex(
 function decodeLines(
   words: Uint32Array,
   cols: number,
-  into: TeraxGhosttyLine[],
+  into: EstateGhosttyLine[],
 ): void {
   let index = 0;
   while (index < words.length) {

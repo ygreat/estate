@@ -1,4 +1,5 @@
-import { TeraxGhostty } from "@terax/ghostty-core/adapted";
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+import { EstateGhostty } from "@estate/ghostty-core/adapted";
 
 declare const WASM_BASE64: string;
 declare const OPEN: number;
@@ -16,7 +17,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // later, after the script has gone idle, which is what a user's open window does.
 (async () => {
   const bytes = Uint8Array.from(atob(WASM_BASE64), (c) => c.charCodeAt(0));
-  const core = await TeraxGhostty.loadBytes(
+  const core = await EstateGhostty.loadBytes(
     bytes.buffer,
     RECLAIM ? {} : { reclaim: null },
   );

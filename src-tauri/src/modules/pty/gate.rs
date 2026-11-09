@@ -1,4 +1,5 @@
-//! Admission control for the `terax-pty` scheme: everything that can be
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+//! Admission control for the `estate-pty` scheme: everything that can be
 //! decided without waking the hub thread.
 //!
 //! The scheme is reachable from every frame of a webview, including preview
@@ -163,7 +164,7 @@ pub(super) fn admit(
         "/poll" => Endpoint::Poll,
         "/ack" => Endpoint::Ack,
         _ if preflight => return Admission::Preflight { origin },
-        _ => return refuse(StatusCode::NOT_FOUND, "unknown terax-pty endpoint"),
+        _ => return refuse(StatusCode::NOT_FOUND, "unknown estate-pty endpoint"),
     };
     if preflight {
         return Admission::Preflight { origin };

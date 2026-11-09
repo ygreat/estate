@@ -1,22 +1,23 @@
+# Modified by ygreat for Estate, 2026. Originally part of Terax.
 [package]
-name = "terax-cli"
+name = "estate-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
 
 [lib]
-name = "terax_cli"
+name = "estate_cli"
 path = "src/lib.rs"
 
 [[bin]]
-name = "terax-cli"
+name = "estate-cli"
 path = "src/main.rs"
 
 [dependencies]
 dirs = "7"
 serde_json = "1"
-terax-control-protocol = { path = "../terax-control-protocol" }
+estate-control-protocol = { path = "../estate-control-protocol" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

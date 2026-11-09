@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Channel, invoke } from "@tauri-apps/api/core";
 
 const MAX_REQUEST_BYTES = 64 * 1024 * 1024;
@@ -229,7 +230,7 @@ async function proxyFetchImpl(
       return;
     }
     void invoke("ai_http_stream", body, {
-      headers: { "x-terax-ai-request": metadata },
+      headers: { "x-estate-ai-request": metadata },
     }).then(
       () => {
         if (cancelled) void cancelNative();

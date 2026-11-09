@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { UIMessage } from "@ai-sdk/react";
 
@@ -16,7 +17,7 @@ const storage = vi.hoisted(() => {
   ): Promise<unknown> => {
     if (command === "ai_session_save") {
       const meta = JSON.parse(
-        options?.headers["x-terax-session"] ?? "{}",
+        options?.headers["x-estate-session"] ?? "{}",
       ) as Meta;
       const messages = JSON.parse(decoder.decode(arg as Uint8Array));
       saves.push({ ...meta, messages });
@@ -249,7 +250,7 @@ describe("session persistence", () => {
         release = resolve;
       });
       const meta = JSON.parse(
-        options?.headers["x-terax-session"] ?? "{}",
+        options?.headers["x-estate-session"] ?? "{}",
       ) as Meta;
       storage.saves.push({
         ...meta,

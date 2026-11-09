@@ -1,4 +1,5 @@
-//! Binary framing for the multiplexed `terax-pty` stream. Pure and
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+//! Binary framing for the multiplexed `estate-pty` stream. Pure and
 //! allocation-light so every boundary rule is unit-testable without a webview.
 //!
 //! All integers are little-endian.

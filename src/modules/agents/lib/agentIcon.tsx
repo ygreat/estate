@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import {
   AiBrowserIcon,
   ChatGptIcon,
@@ -51,7 +52,7 @@ export function AgentIcon({
   if (agent.toLowerCase() === "pi") {
     return <PiIcon size={size} className={className} />;
   }
-  if (agent.toLowerCase().includes("terax")) {
+  if (agent.toLowerCase().includes("estate")) {
     return (
       <img
         src="/logo.png"

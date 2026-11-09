@@ -1,6 +1,7 @@
-//! Server side of `terax hook`: validates a hook delivered over the control
-//! socket, turns it into a `terax:agent-event`, keeps the legacy
-//! `terax:agent-signal` stream in step, and brokers permission decisions.
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+//! Server side of `estate hook`: validates a hook delivered over the control
+//! socket, turns it into a `estate:agent-event`, keeps the legacy
+//! `estate:agent-signal` stream in step, and brokers permission decisions.
 
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
@@ -11,17 +12,17 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde_json::json;
 use tauri::{Emitter, Manager};
-use terax_control_protocol::hook::{
+use estate_control_protocol::hook::{
     normalize, AgentEvent, AgentName, HookDecision, HookFacts, HookKind, HookParams, HookResult,
     NormalizeError, MAX_DECISION_SECS,
 };
-use terax_control_protocol::{ControlRequest, ControlResponse};
+use estate_control_protocol::{ControlRequest, ControlResponse};
 
 use crate::modules::pty::agent_detect::{AgentSignal, HookIntent};
 use crate::modules::pty::PaneTarget;
 
-pub const AGENT_EVENT: &str = "terax:agent-event";
-const SIGNAL_EVENT: &str = "terax:agent-signal";
+pub const AGENT_EVENT: &str = "estate:agent-event";
+const SIGNAL_EVENT: &str = "estate:agent-signal";
 
 const MAX_PENDING_DECISIONS: usize = 16;
 const MAX_PENDING_PER_PANE: usize = 4;
@@ -92,7 +93,7 @@ struct Pending {
     sender: SyncSender<HookDecision>,
 }
 
-/// Pending permission requests awaiting an answer from the Terax UI.
+/// Pending permission requests awaiting an answer from the Estate UI.
 #[derive(Default)]
 pub struct DecisionBroker {
     ready_windows: Mutex<HashSet<String>>,
@@ -423,7 +424,7 @@ fn handle_impl(
         return reject(request, "invalid_params", "unknown agent");
     };
     let Some(pane_id) = request.caller.pane_id else {
-        return reject(request, "unknown_pane", "hook requires a Terax pane");
+        return reject(request, "unknown_pane", "hook requires a Estate pane");
     };
     let Some(target) = host.pane(pane_id) else {
         return reject(request, "unknown_pane", "pane has no live terminal");
@@ -625,7 +626,7 @@ mod tests {
     use std::net::TcpListener;
     use std::sync::Arc;
     use std::thread;
-    use terax_control_protocol::{CallerContext, PROTOCOL_VERSION};
+    use estate_control_protocol::{CallerContext, PROTOCOL_VERSION};
 
     use super::test_host::FakeHost;
 

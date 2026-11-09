@@ -1,4 +1,5 @@
-# terax-shell-integration (zlogin)
+# estate-shell-integration (zlogin)
+# Modified by ygreat for Estate, 2026. Originally part of Terax.
 #
 # zshrc.zsh normally hands ZDOTDIR back to the user, so zsh reads their own
 # .zlogin directly and this file is not used. It stays for shells that reach it
@@ -10,11 +11,11 @@
 # first render — themes that condition prompt color on `%?` (robbyrussell etc.)
 # show a red error indicator on a clean shell start.
 {
-  _terax_zdotdir="$ZDOTDIR"
-  _terax_user_zdotdir="${TERAX_USER_ZDOTDIR:-$HOME}"
-  ZDOTDIR="$_terax_user_zdotdir"
-  [ -f "$_terax_user_zdotdir/.zlogin" ] && source "$_terax_user_zdotdir/.zlogin"
-  ZDOTDIR="$_terax_zdotdir"
-  unset _terax_zdotdir _terax_user_zdotdir
+  _estate_zdotdir="$ZDOTDIR"
+  _estate_user_zdotdir="${ESTATE_USER_ZDOTDIR:-$HOME}"
+  ZDOTDIR="$_estate_user_zdotdir"
+  [ -f "$_estate_user_zdotdir/.zlogin" ] && source "$_estate_user_zdotdir/.zlogin"
+  ZDOTDIR="$_estate_zdotdir"
+  unset _estate_zdotdir _estate_user_zdotdir
 }
 :

@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import {
   Language,
   LanguageDescription,
@@ -22,7 +23,7 @@ let mdCodeLanguages: LanguageDescription[] | null = null;
 export function markdownCodeLanguages(): LanguageDescription[] {
   if (mdCodeLanguages) return mdCodeLanguages;
   mdCodeLanguages = LANGUAGES.filter(
-    (l) => l.name !== "Markdown" && l.name !== "Terax Theme",
+    (l) => l.name !== "Markdown" && l.name !== "Estate Theme",
   ).map((l) =>
     LanguageDescription.of({
       name: l.name,

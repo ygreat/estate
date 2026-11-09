@@ -1,11 +1,12 @@
 #![allow(dead_code)]
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use tempfile::TempDir;
-use terax_lib::modules::fs::to_canon;
-use terax_lib::modules::workspace::{WorkspaceEnv, WorkspaceRegistry};
+use estate_lib::modules::fs::to_canon;
+use estate_lib::modules::workspace::{WorkspaceEnv, WorkspaceRegistry};
 
 pub struct GitRepoFixture {
     pub registry: WorkspaceRegistry,
@@ -23,8 +24,8 @@ impl GitRepoFixture {
 
         run_git_in(&canonical, &["init", "-q"]);
         run_git_in(&canonical, &["symbolic-ref", "HEAD", "refs/heads/main"]);
-        run_git_in(&canonical, &["config", "user.email", "test@terax.local"]);
-        run_git_in(&canonical, &["config", "user.name", "Terax Test"]);
+        run_git_in(&canonical, &["config", "user.email", "test@estate.local"]);
+        run_git_in(&canonical, &["config", "user.name", "Estate Test"]);
         run_git_in(&canonical, &["config", "commit.gpgsign", "false"]);
         run_git_in(&canonical, &["config", "core.autocrlf", "false"]);
 

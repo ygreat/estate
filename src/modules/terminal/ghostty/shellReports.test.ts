@@ -1,5 +1,6 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { readFile } from "node:fs/promises";
-import { TeraxGhostty } from "@terax/ghostty-core/adapted";
+import { EstateGhostty } from "@estate/ghostty-core/adapted";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { GhosttySemanticEventRouter } from "./core/GhosttySemanticEventRouter";
 import {
@@ -10,7 +11,7 @@ import {
 
 vi.mock("@/lib/platform", () => ({ IS_WINDOWS: true }));
 
-let ghostty: TeraxGhostty;
+let ghostty: EstateGhostty;
 
 beforeAll(async () => {
   const file = await readFile(
@@ -19,7 +20,7 @@ beforeAll(async () => {
       import.meta.url,
     ),
   );
-  ghostty = await TeraxGhostty.loadBytes(Uint8Array.from(file).buffer);
+  ghostty = await EstateGhostty.loadBytes(Uint8Array.from(file).buffer);
 });
 
 afterEach(() => vi.useRealTimers());

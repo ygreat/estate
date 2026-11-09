@@ -13,14 +13,14 @@ import {
   GPU_GLYPH_BOLD,
   GPU_GLYPH_ID_MASK,
   GPU_GLYPH_ITALIC,
-  TeraxGhostty,
+  EstateGhostty,
   decodeGpuCell,
-  type TeraxGhosttyGpuCell,
-  type TeraxGhosttyGpuGlyph,
-  type TeraxGhosttyGpuRenderState,
-  type TeraxGhosttyRenderState,
-  type TeraxGhosttyTerminal,
-} from "@terax/ghostty-core/adapted";
+  type EstateGhosttyGpuCell,
+  type EstateGhosttyGpuGlyph,
+  type EstateGhosttyGpuRenderState,
+  type EstateGhosttyRenderState,
+  type EstateGhosttyTerminal,
+} from "@estate/ghostty-core/adapted";
 import { beforeAll, describe, expect, it } from "vitest";
 
 const MAX_GLYPHS = 16 * 1024;
@@ -38,9 +38,9 @@ const COUPLE = `\u{1F468}${ZWJ}\u{1F469}`;
 class GlyphMap {
   epoch = 0;
   epochChanges = 0;
-  readonly glyphs = new Map<number, TeraxGhosttyGpuGlyph>();
+  readonly glyphs = new Map<number, EstateGhosttyGpuGlyph>();
 
-  apply(terminal: TeraxGhosttyTerminal, state: TeraxGhosttyGpuRenderState) {
+  apply(terminal: EstateGhosttyTerminal, state: EstateGhosttyGpuRenderState) {
     if (state.epoch !== this.epoch) {
       this.glyphs.clear();
       this.epoch = state.epoch;
@@ -51,7 +51,7 @@ class GlyphMap {
   }
 
   /** Rebuild from the full table (a consumer that missed deltas). */
-  resync(terminal: TeraxGhosttyTerminal, state: TeraxGhosttyGpuRenderState) {
+  resync(terminal: EstateGhosttyTerminal, state: EstateGhosttyGpuRenderState) {
     this.glyphs.clear();
     this.epoch = state.epoch;
     for (const glyph of terminal.gpuGlyphTable())
@@ -71,7 +71,7 @@ class GlyphMap {
 }
 
 type Snapshot = {
-  readonly state: TeraxGhosttyGpuRenderState;
+  readonly state: EstateGhosttyGpuRenderState;
   readonly dirty: number[];
   readonly fullDamage: boolean;
   readonly anyDirty: boolean;
@@ -81,7 +81,7 @@ type Snapshot = {
 class GpuHarness {
   readonly map = new GlyphMap();
 
-  constructor(readonly terminal: TeraxGhosttyTerminal) {
+  constructor(readonly terminal: EstateGhosttyTerminal) {
     terminal.setRenderFormat("gpu");
   }
 
@@ -101,7 +101,7 @@ class GpuHarness {
     };
   }
 
-  cell(snapshot: Snapshot, row: number, column: number): TeraxGhosttyGpuCell {
+  cell(snapshot: Snapshot, row: number, column: number): EstateGhosttyGpuCell {
     return decodeGpuCell(snapshot.words, row * snapshot.state.cols + column);
   }
 
@@ -148,8 +148,8 @@ type ExpectedCell = {
 };
 
 function expectedFromSoa(
-  terminal: TeraxGhosttyTerminal,
-  state: TeraxGhosttyRenderState,
+  terminal: EstateGhosttyTerminal,
+  state: EstateGhosttyRenderState,
   index: number,
 ): ExpectedCell {
   const style = state.styleFlags[index];
@@ -202,8 +202,8 @@ function expectedFromSoa(
 function expectRecordsMatchSoa(
   harness: GpuHarness,
   snapshot: Snapshot,
-  soa: TeraxGhosttyTerminal,
-  soaState: TeraxGhosttyRenderState,
+  soa: EstateGhosttyTerminal,
+  soaState: EstateGhosttyRenderState,
   defaults = { fg: rgba(255, 255, 255), bg: rgba(0, 0, 0) },
 ) {
   const { rows, cols } = snapshot.state;
@@ -224,7 +224,7 @@ function expectRecordsMatchSoa(
   };
   let blinking = 0;
   for (let row = 0; row < rows; row += 1) {
-    let lead: TeraxGhosttyGpuCell | null = null;
+    let lead: EstateGhosttyGpuCell | null = null;
     for (let column = 0; column < cols; column += 1) {
       const index = row * cols + column;
       const expected = expectedFromSoa(soa, soaState, index);
@@ -295,7 +295,7 @@ describe.each([
   ["scalar", "ghostty-vt-scalar.wasm", ADAPTED_GHOSTTY_SCALAR_WASM_SHA256],
 ])("%s Ghostty GPU cell records", (_kind, artifact, _checksum) => {
   let wasmBytes: ArrayBuffer;
-  let ghostty: TeraxGhostty;
+  let ghostty: EstateGhostty;
 
   beforeAll(async () => {
     const file = await readFile(
@@ -305,7 +305,7 @@ describe.each([
       ),
     );
     wasmBytes = Uint8Array.from(file).buffer;
-    ghostty = await TeraxGhostty.loadBytes(wasmBytes.slice(0));
+    ghostty = await EstateGhostty.loadBytes(wasmBytes.slice(0));
   });
 
   function gpu(cols: number, rows: number) {
@@ -1165,7 +1165,7 @@ describe.each([
 
     it("allocates lazily, uses less memory than the SoA format and returns it on release", async () => {
       const measure = async (format: "soa" | "gpu") => {
-        const instance = await TeraxGhostty.loadBytes(wasmBytes.slice(0));
+        const instance = await EstateGhostty.loadBytes(wasmBytes.slice(0));
         const terminals = Array.from({ length: 8 }, () => {
           const terminal = instance.createTerminal(120, 40, {
             maxScrollbackLines: 100,

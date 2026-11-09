@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use serde_json::{json, Value};
 
 use super::text::truncate_str;
@@ -9,7 +10,7 @@ pub const NO_DECISION_OUTPUT: &str = "{}";
 
 const MAX_DENY_MESSAGE: usize = 1000;
 
-/// Whether Terax can answer this agent event with a permission decision.
+/// Whether Estate can answer this agent event with a permission decision.
 pub fn is_decision_event(agent: AgentName, event: &str) -> bool {
     matches!(
         (agent, event),
@@ -43,7 +44,7 @@ pub fn decision_output(
             let text = message
                 .as_deref()
                 .map(|message| truncate_str(message, MAX_DENY_MESSAGE))
-                .unwrap_or_else(|| "Denied in Terax".to_string());
+                .unwrap_or_else(|| "Denied in Estate".to_string());
             let mut body = json!({ "behavior": "deny", "message": text });
             if agent == AgentName::Claude && *interrupt {
                 body["interrupt"] = json!(true);
@@ -164,7 +165,7 @@ mod tests {
         );
         let decision = &out["hookSpecificOutput"]["decision"];
         assert_eq!(decision["behavior"], "deny");
-        assert_eq!(decision["message"], "Denied in Terax");
+        assert_eq!(decision["message"], "Denied in Estate");
         assert!(decision.get("interrupt").is_none());
     }
 

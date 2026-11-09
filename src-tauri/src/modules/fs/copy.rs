@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use super::{
     index::FileIndexState,
     mutate::{note_dir_changed, rename_no_replace},
@@ -129,7 +130,7 @@ fn copy_item(src: &Path, dest: &Path, rename_on_conflict: bool) -> io::Result<Os
 
     // Publish only complete items; the same-filesystem rename is no-replace.
     let staging = tempfile::Builder::new()
-        .prefix(".terax-copy-")
+        .prefix(".estate-copy-")
         .tempdir_in(dest)?;
     let staged = staging.path().join("item");
     copy_recursive(src, &staged, 0)?;

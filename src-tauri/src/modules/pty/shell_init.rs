@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::path::PathBuf;
 
 use portable_pty::CommandBuilder;
@@ -18,7 +19,7 @@ const ZSHRC_SCRIPT: &str = include_str!("scripts/zshrc.zsh");
 #[cfg(windows)]
 const FISH_INIT_SCRIPT: &str = include_str!("scripts/init.fish");
 const FISH_REINSTALL_PROMPT: &str =
-    "functions -q __terax_install_prompt; and __terax_install_prompt";
+    "functions -q __estate_install_prompt; and __estate_install_prompt";
 
 #[cfg(windows)]
 fn bashrc_script() -> &'static str {
@@ -78,10 +79,10 @@ pub fn launched_shell(cmd: &mut CommandBuilder) -> String {
         .unwrap_or_default();
     if program.eq_ignore_ascii_case("wsl.exe") {
         let shell = cmd
-            .get_env("TERAX_WSL_LOGIN_SHELL")
+            .get_env("ESTATE_WSL_LOGIN_SHELL")
             .map(|s| s.to_string_lossy().into_owned())
             .unwrap_or_default();
-        cmd.env_remove("TERAX_WSL_LOGIN_SHELL");
+        cmd.env_remove("ESTATE_WSL_LOGIN_SHELL");
         shell
     } else {
         program
@@ -101,9 +102,9 @@ mod launched_shell_tests {
             "/usr/bin/unknown",
         ] {
             let mut cmd = CommandBuilder::new("wsl.exe");
-            cmd.env("TERAX_WSL_LOGIN_SHELL", shell);
+            cmd.env("ESTATE_WSL_LOGIN_SHELL", shell);
             assert_eq!(launched_shell(&mut cmd), shell);
-            assert!(cmd.get_env("TERAX_WSL_LOGIN_SHELL").is_none());
+            assert!(cmd.get_env("ESTATE_WSL_LOGIN_SHELL").is_none());
         }
         let mut direct = CommandBuilder::new("powershell.exe");
         assert_eq!(launched_shell(&mut direct), "powershell.exe");
@@ -148,7 +149,7 @@ pub fn detect_shell_name() -> String {
 pub struct ShellInfo {
     pub name: String,
     pub path: String,
-    /// True when Terax injects OSC 7/133 integration for this shell (cwd
+    /// True when Estate injects OSC 7/133 integration for this shell (cwd
     /// tracking, command blocks, agent detection). Others spawn bare.
     pub integrated: bool,
 }
@@ -192,9 +193,9 @@ fn apply_common(
 ) {
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
-    cmd.env("TERAX_TERMINAL", "1");
+    cmd.env("ESTATE_TERMINAL", "1");
     if blocks {
-        cmd.env("TERAX_BLOCKS", "1");
+        cmd.env("ESTATE_BLOCKS", "1");
     }
     let appimage_overrides = workspace::appimage_env_overrides();
     let clean_path = match appimage_overrides.iter().find(|(key, _)| *key == "PATH") {
@@ -212,11 +213,11 @@ fn apply_common(
         }
     }
     if let Some(control) = control {
-        cmd.env("TERAX_CONTROL_ADDR", &control.address);
-        cmd.env("TERAX_CONTROL_TOKEN", &control.token);
-        cmd.env("TERAX_PANE_ID", control.pane_id.to_string());
+        cmd.env("ESTATE_CONTROL_ADDR", &control.address);
+        cmd.env("ESTATE_CONTROL_TOKEN", &control.token);
+        cmd.env("ESTATE_PANE_ID", control.pane_id.to_string());
         if let Some(path) = &control.cli_path {
-            cmd.env("TERAX_CLI", path);
+            cmd.env("ESTATE_CLI", path);
         }
         if let Some(bin_dir) = &control.cli_bin_dir {
             let paths = std::iter::once(bin_dir.clone()).chain(
@@ -362,12 +363,12 @@ mod unix {
         Ok(cmd)
     }
 
-    /// What the child zsh gets as `TERAX_USER_ZDOTDIR`.
+    /// What the child zsh gets as `ESTATE_USER_ZDOTDIR`.
     #[derive(Debug, PartialEq, Eq)]
     enum UserZdotdir {
         /// The inherited `ZDOTDIR` is the user's own.
         Set(String),
-        /// This app was started from a zsh that Terax integrated: `ZDOTDIR` is
+        /// This app was started from a zsh that Estate integrated: `ZDOTDIR` is
         /// the integration directory and the inherited variable still names
         /// the user's.
         Keep,
@@ -388,14 +389,14 @@ mod unix {
             Shell::Zsh => {
                 match prepare_zdotdir() {
                     Ok(zdotdir) => {
-                        // Guard against Terax-in-Terax :)
+                        // Guard against Estate-in-Estate :)
                         match user_zdotdir_for(std::env::var("ZDOTDIR").ok().as_deref(), &zdotdir) {
                             UserZdotdir::Set(user) => {
-                                cmd.env("TERAX_USER_ZDOTDIR", user);
+                                cmd.env("ESTATE_USER_ZDOTDIR", user);
                             }
                             UserZdotdir::Keep => {}
                             UserZdotdir::Clear => {
-                                cmd.env_remove("TERAX_USER_ZDOTDIR");
+                                cmd.env_remove("ESTATE_USER_ZDOTDIR");
                             }
                         }
                         cmd.env("ZDOTDIR", &zdotdir);
@@ -446,7 +447,7 @@ mod unix {
 
     fn integration_root() -> Result<PathBuf, String> {
         let home = dirs::home_dir().ok_or_else(|| "could not resolve home dir".to_string())?;
-        let root = home.join(".cache").join("terax").join("shell-integration");
+        let root = home.join(".cache").join("estate").join("shell-integration");
         fs::create_dir_all(&root).map_err(|e| format!("create {}: {e}", root.display()))?;
         Ok(root)
     }
@@ -473,7 +474,7 @@ mod unix {
         let home = dirs::home_dir().ok_or_else(|| "could not resolve home dir".to_string())?;
         let dir = home.join(".config").join("fish").join("conf.d");
         fs::create_dir_all(&dir).map_err(|e| format!("create {}: {e}", dir.display()))?;
-        write_if_changed(&dir.join("terax.fish"), FISH_INIT)?;
+        write_if_changed(&dir.join("estate.fish"), FISH_INIT)?;
         Ok(())
     }
 
@@ -485,7 +486,7 @@ mod unix {
         }
         // Atomic replace: a parallel shell startup must never source a half-written file.
         let mut tmp: OsString = path.as_os_str().to_owned();
-        tmp.push(".__terax_tmp__");
+        tmp.push(".__estate_tmp__");
         let tmp = PathBuf::from(tmp);
         fs::write(&tmp, content).map_err(|e| format!("write {}: {e}", tmp.display()))?;
         fs::rename(&tmp, path).map_err(|e| {
@@ -533,16 +534,16 @@ mod unix {
         }
 
         #[test]
-        fn the_users_zdotdir_survives_a_terax_started_from_an_integrated_zsh() {
-            let integration = Path::new("/cache/terax/shell-integration/zsh");
+        fn the_users_zdotdir_survives_a_estate_started_from_an_integrated_zsh() {
+            let integration = Path::new("/cache/estate/shell-integration/zsh");
             assert_eq!(
                 user_zdotdir_for(Some("/home/me/.config/zsh"), integration),
                 UserZdotdir::Set("/home/me/.config/zsh".into())
             );
-            // Launched by a command in another Terax terminal: keep the
-            // TERAX_USER_ZDOTDIR it inherited.
+            // Launched by a command in another Estate terminal: keep the
+            // ESTATE_USER_ZDOTDIR it inherited.
             assert_eq!(
-                user_zdotdir_for(Some("/cache/terax/shell-integration/zsh"), integration),
+                user_zdotdir_for(Some("/cache/estate/shell-integration/zsh"), integration),
                 UserZdotdir::Keep
             );
             assert_eq!(user_zdotdir_for(None, integration), UserZdotdir::Clear);
@@ -552,7 +553,7 @@ mod unix {
         #[test]
         fn zsh_starts_from_the_integration_dir_and_forgets_a_stale_user_zdotdir() {
             let mut cmd = CommandBuilder::new("/bin/zsh");
-            cmd.env("TERAX_USER_ZDOTDIR", "/left/over/from/a/parent/terminal");
+            cmd.env("ESTATE_USER_ZDOTDIR", "/left/over/from/a/parent/terminal");
             apply_shell_init(&mut cmd, &Shell::Zsh, "/bin/zsh");
             let zdotdir = cmd.get_env("ZDOTDIR").expect("ZDOTDIR is set");
             assert!(Path::new(zdotdir).ends_with("shell-integration/zsh"));
@@ -560,11 +561,11 @@ mod unix {
             match std::env::var("ZDOTDIR") {
                 Ok(user) if !user.is_empty() && Path::new(&user) != Path::new(zdotdir) => {
                     assert_eq!(
-                        cmd.get_env("TERAX_USER_ZDOTDIR"),
+                        cmd.get_env("ESTATE_USER_ZDOTDIR"),
                         Some(std::ffi::OsStr::new(&user))
                     );
                 }
-                _ => assert_eq!(cmd.get_env("TERAX_USER_ZDOTDIR"), None),
+                _ => assert_eq!(cmd.get_env("ESTATE_USER_ZDOTDIR"), None),
             }
             for file in [".zshenv", ".zprofile", ".zshrc", ".zlogin"] {
                 assert!(Path::new(zdotdir).join(file).is_file(), "{file}");
@@ -769,13 +770,13 @@ mod windows {
             integration,
         );
         let mut cmd = CommandBuilder::new("wsl.exe");
-        cmd.env("TERAX_WSL_LOGIN_SHELL", &shell_path);
+        cmd.env("ESTATE_WSL_LOGIN_SHELL", &shell_path);
         for arg in &spec.args {
             cmd.arg(arg);
         }
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
-        cmd.env("TERAX_TERMINAL", "1");
+        cmd.env("ESTATE_TERMINAL", "1");
         super::ensure_utf8_locale(&mut cmd);
         log::info!("spawning WSL shell: {distro} ({shell_path})");
         Ok(cmd)
@@ -805,7 +806,7 @@ mod windows {
             ) => {
                 args.push("env".to_string());
                 if let Some(user_zdotdir) = user_zdotdir {
-                    args.push(format!("TERAX_USER_ZDOTDIR={user_zdotdir}"));
+                    args.push(format!("ESTATE_USER_ZDOTDIR={user_zdotdir}"));
                 }
                 args.push(format!("ZDOTDIR={zdotdir}"));
                 args.push(shell_path.to_string());
@@ -854,7 +855,7 @@ mod windows {
     fn prepare_wsl_integration_dir(distro: &str, shell: &str) -> Result<(String, PathBuf), String> {
         let home = crate::modules::workspace::wsl_home(distro.to_string())?;
         let linux_dir = format!(
-            "{}/.cache/terax/shell-integration/{shell}",
+            "{}/.cache/estate/shell-integration/{shell}",
             home.trim_end_matches('/')
         );
         let unc_dir = crate::modules::workspace::wsl_path_to_unc(distro, &linux_dir);
@@ -901,7 +902,7 @@ mod windows {
         let linux_dir = format!("{}/.config/fish/conf.d", home.trim_end_matches('/'));
         let unc_dir = crate::modules::workspace::wsl_path_to_unc(distro, &linux_dir);
         fs::create_dir_all(&unc_dir).map_err(|e| format!("create {}: {e}", unc_dir.display()))?;
-        let unc_file = unc_dir.join("terax.fish");
+        let unc_file = unc_dir.join("estate.fish");
         let content = normalize_script(super::fish_init_script());
         write_if_changed(&unc_file, &content)?;
         Ok(())
@@ -909,7 +910,7 @@ mod windows {
 
     fn integration_root() -> Result<PathBuf, String> {
         let home = dirs::home_dir().ok_or_else(|| "could not resolve home dir".to_string())?;
-        let root = home.join(".cache").join("terax").join("shell-integration");
+        let root = home.join(".cache").join("estate").join("shell-integration");
         fs::create_dir_all(&root).map_err(|e| format!("create {}: {e}", root.display()))?;
         Ok(root)
     }
@@ -999,7 +1000,7 @@ mod windows {
             }
         }
         let mut tmp: OsString = path.as_os_str().to_owned();
-        tmp.push(".__terax_tmp__");
+        tmp.push(".__estate_tmp__");
         let tmp = PathBuf::from(tmp);
         fs::write(&tmp, content).map_err(|e| format!("write {}: {e}", tmp.display()))?;
         fs::rename(&tmp, path).map_err(|e| {
@@ -1020,7 +1021,7 @@ mod windows {
                 "/usr/bin/zsh",
                 ShellKind::Zsh,
                 WslShellIntegration::Zsh {
-                    zdotdir: "/home/vinicios/.cache/terax/shell-integration/zsh".into(),
+                    zdotdir: "/home/vinicios/.cache/estate/shell-integration/zsh".into(),
                     user_zdotdir: None,
                 },
             );
@@ -1033,7 +1034,7 @@ mod windows {
                     "/home/vinicios/repo".to_string(),
                     "--exec".to_string(),
                     "env".to_string(),
-                    "ZDOTDIR=/home/vinicios/.cache/terax/shell-integration/zsh".to_string(),
+                    "ZDOTDIR=/home/vinicios/.cache/estate/shell-integration/zsh".to_string(),
                     "/usr/bin/zsh".to_string(),
                     "-l".to_string(),
                 ]
@@ -1048,7 +1049,7 @@ mod windows {
                 "/usr/bin/zsh",
                 ShellKind::Zsh,
                 WslShellIntegration::Zsh {
-                    zdotdir: "/home/vinicios/.cache/terax/shell-integration/zsh".into(),
+                    zdotdir: "/home/vinicios/.cache/estate/shell-integration/zsh".into(),
                     user_zdotdir: Some("/home/vinicios/.config/zsh".into()),
                 },
             );
@@ -1061,8 +1062,8 @@ mod windows {
                     "/home/vinicios/repo".to_string(),
                     "--exec".to_string(),
                     "env".to_string(),
-                    "TERAX_USER_ZDOTDIR=/home/vinicios/.config/zsh".to_string(),
-                    "ZDOTDIR=/home/vinicios/.cache/terax/shell-integration/zsh".to_string(),
+                    "ESTATE_USER_ZDOTDIR=/home/vinicios/.config/zsh".to_string(),
+                    "ZDOTDIR=/home/vinicios/.cache/estate/shell-integration/zsh".to_string(),
                     "/usr/bin/zsh".to_string(),
                     "-l".to_string(),
                 ]
@@ -1100,7 +1101,7 @@ mod windows {
                 "/bin/bash",
                 ShellKind::Bash,
                 WslShellIntegration::Bash {
-                    rcfile: "/home/vinicios/.cache/terax/shell-integration/bash/bashrc".into(),
+                    rcfile: "/home/vinicios/.cache/estate/shell-integration/bash/bashrc".into(),
                 },
             );
             assert_eq!(
@@ -1113,7 +1114,7 @@ mod windows {
                     "--exec".to_string(),
                     "/bin/bash".to_string(),
                     "--rcfile".to_string(),
-                    "/home/vinicios/.cache/terax/shell-integration/bash/bashrc".to_string(),
+                    "/home/vinicios/.cache/estate/shell-integration/bash/bashrc".to_string(),
                     "-i".to_string(),
                 ]
             );
@@ -1283,23 +1284,23 @@ mod tests {
             address: "127.0.0.1:1234".into(),
             token: "secret".into(),
             pane_id: 42,
-            cli_path: Some("/app/terax-cli".into()),
+            cli_path: Some("/app/estate-cli".into()),
             cli_bin_dir: Some(std::path::PathBuf::from("/app/bin")),
         };
         apply_common(&mut command, None, false, Some(&control));
 
         assert_eq!(
-            command.get_env("TERAX_CONTROL_ADDR"),
+            command.get_env("ESTATE_CONTROL_ADDR"),
             Some(OsStr::new("127.0.0.1:1234"))
         );
         assert_eq!(
-            command.get_env("TERAX_CONTROL_TOKEN"),
+            command.get_env("ESTATE_CONTROL_TOKEN"),
             Some(OsStr::new("secret"))
         );
-        assert_eq!(command.get_env("TERAX_PANE_ID"), Some(OsStr::new("42")));
+        assert_eq!(command.get_env("ESTATE_PANE_ID"), Some(OsStr::new("42")));
         assert_eq!(
-            command.get_env("TERAX_CLI"),
-            Some(OsStr::new("/app/terax-cli"))
+            command.get_env("ESTATE_CLI"),
+            Some(OsStr::new("/app/estate-cli"))
         );
         assert_eq!(
             command

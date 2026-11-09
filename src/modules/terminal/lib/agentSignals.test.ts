@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type Handler = (event: { payload: unknown }) => void;
@@ -34,7 +35,7 @@ describe("agent signal fan-out", () => {
 
     expect(native.listen).toHaveBeenCalledTimes(1);
     expect(native.listen).toHaveBeenCalledWith(
-      "terax:agent-signal",
+      "estate:agent-signal",
       expect.any(Function),
     );
 

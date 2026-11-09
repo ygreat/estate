@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::io::Read;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
@@ -169,11 +170,11 @@ pub fn spawn(
     };
     for (name, pipe) in [
         (
-            "terax-bg-out",
+            "estate-bg-out",
             Box::new(stdout_pipe) as Box<dyn Read + Send>,
         ),
         (
-            "terax-bg-err",
+            "estate-bg-err",
             Box::new(stderr_pipe) as Box<dyn Read + Send>,
         ),
     ] {
@@ -183,7 +184,7 @@ pub fn spawn(
     {
         let proc_ref = proc.clone();
         let child_for_wait = proc.child.clone();
-        spawn_thread("terax-bg-wait", move || {
+        spawn_thread("estate-bg-wait", move || {
             match child_for_wait.wait() {
                 Ok(status) => match status.code() {
                     Some(code) => proc_ref.exit_code.store(code, Ordering::Release),

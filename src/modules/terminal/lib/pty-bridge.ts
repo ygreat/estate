@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import {
   clearAgentActivity,
   ensureAgentActivityListener,
@@ -26,7 +27,7 @@ const textEncoder = new TextEncoder();
 const receivers = new Map<number, PtyOutputReceiver>();
 
 /**
- * The webview side of the `terax-pty` scheme. Requests are plain `fetch`es to
+ * The webview side of the `estate-pty` scheme. Requests are plain `fetch`es to
  * a custom protocol (the same mechanism Tauri's own IPC uses), so no per-chunk
  * channel eval or per-acknowledgement invoke is needed.
  */
@@ -36,7 +37,7 @@ function tauriTransport(): PtyStreamTransport {
     body: Uint8Array<ArrayBuffer>,
     signal?: AbortSignal,
   ) =>
-    fetch(convertFileSrc(path, "terax-pty"), {
+    fetch(convertFileSrc(path, "estate-pty"), {
       method: "POST",
       body,
       signal,

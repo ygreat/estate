@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PtyFrame } from "@/modules/terminal/lib/ptyWire";
 import { decodeRequest, encodeFrames } from "./ptyWireFixtures";
@@ -195,7 +196,7 @@ describe("PTY bridge over the multiplexed stream", () => {
     const session = await openPty(80, 24, { onData });
     await flush();
     expect(polls()).toHaveLength(1);
-    expect(heldPoll().url).toBe("terax-pty://localhost/poll");
+    expect(heldPoll().url).toBe("estate-pty://localhost/poll");
     expect(heldPoll().acks).toEqual([{ id: session.id, bytes: 0 }]);
     heldPoll().reply([
       {

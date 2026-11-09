@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { CheckpointEndpoint, DiffSide, GitDiffScope } from "./types";
 
 const SHORT_SHA = 7;
@@ -7,7 +8,7 @@ function shortRev(rev: string): string {
 }
 
 function checkpointRefLabel(name: string): string {
-  const match = /^refs\/terax\/checkpoints\/[^/]+\/(\d+)$/.exec(name);
+  const match = /^refs\/estate\/checkpoints\/[^/]+\/(\d+)$/.exec(name);
   return match ? `turn ${match[1]}` : shortRev(name);
 }
 
@@ -120,7 +121,7 @@ export function supportsHunkActions(scope: GitDiffScope): {
 
 /** The ref a checkpoint lives at, matching the backend's naming. */
 export function checkpointRef(taskId: string, turn: number): string {
-  return `refs/terax/checkpoints/${taskId}/${turn}`;
+  return `refs/estate/checkpoints/${taskId}/${turn}`;
 }
 
 /** "Last agent turn": the previous checkpoint against the working tree. */

@@ -1,15 +1,15 @@
 <!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 # Estate contributor documentation
 
-This directory holds long-form contributor and maintainer guides. `TERAX.md` at the repo root is the living architecture doc and the source of truth; these guides elaborate on specific areas without duplicating it.
+This directory holds long-form contributor and maintainer guides. `ESTATE.md` at the repo root is the living architecture doc and the source of truth; these guides elaborate on specific areas without duplicating it.
 
-Estate started from Terax 0.9.0 (commit `a2c0877`, 6 November 2026) and is developed independently from there, for older macOS. Later Terax releases are not merged or ported. The architecture guides were written for Terax and describe that starting code; Windows, Linux and WSL details in them still describe the code but are not Estate support targets. The file keeps the name `TERAX.md` because the app loads it as agent memory.
+Estate started from Terax 0.9.0 (commit `a2c0877`, 6 November 2026) and is developed independently from there, for older macOS. Later Terax releases are not merged or ported. The architecture guides were written for Terax, with its names since changed to Estate, and describe that starting code; Windows, Linux and WSL details in them still describe the code but are not Estate support targets. The app also loads `ESTATE.md` as agent memory.
 
-If a guide conflicts with `TERAX.md`, `TERAX.md` wins.
+If a guide conflicts with `ESTATE.md`, `ESTATE.md` wins.
 
 ## Getting started
 
-- [TERAX.md](../TERAX.md) - the architecture source of truth; read this first
+- [ESTATE.md](../ESTATE.md) - the architecture source of truth; read this first
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - how to contribute, compatibility rules, quality bar
 - [ROADMAP.md](../ROADMAP.md) - phases and scope
 - [PRD Estate.md](../PRD%20Estate.md) - product requirements

@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 /**
  * Optional DirectWrite-style contrast for grayscale antialiasing, in both renderers. The fragment shader
  * runs `DWrite_EnhanceContrast` (scaled by foreground lightness, as in Windows
@@ -29,7 +30,7 @@ const FRACTIONAL_DISPLAY_CONTRAST: TextContrast = {
 };
 
 /**
- * The contrast for the current display: none unless `localStorage["terax:terminal-text-contrast"]`
+ * The contrast for the current display: none unless `localStorage["estate:terminal-text-contrast"]`
  * (`override`: "off", "on" or a strength) asks for it, and then both renderers apply the same
  * curve. Without it they draw identical glyph pixels at every ratio (verified at 1, 1.25, 1.5 and
  * 2). Enabled by default the curve made WebGPU text heavier and softer than WebGL on Windows and on
@@ -41,7 +42,7 @@ export function textContrastFor(
   return parseOverride(override) ?? NO_TEXT_CONTRAST;
 }
 
-const TEXT_CONTRAST_STORAGE_KEY = "terax:terminal-text-contrast";
+const TEXT_CONTRAST_STORAGE_KEY = "estate:terminal-text-contrast";
 
 /** The contrast the user asked for through `localStorage`; both renderers apply it alike. */
 export function currentTextContrast(): TextContrast {

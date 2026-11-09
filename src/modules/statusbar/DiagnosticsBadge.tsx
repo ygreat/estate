@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { useDiagnosticsStore } from "@/modules/editor";
 import { Alert02Icon, CancelCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -13,7 +14,7 @@ export function DiagnosticsBadge({ filePath }: Props) {
   if (!counts || (counts.errors === 0 && counts.warnings === 0)) return null;
 
   return (
-    <span className="terax-pill-in flex shrink-0 cursor-default items-center gap-2 text-[10.5px] font-medium tabular-nums">
+    <span className="estate-pill-in flex shrink-0 cursor-default items-center gap-2 text-[10.5px] font-medium tabular-nums">
       {counts.errors > 0 ? (
         <span className="flex items-center gap-0.5 text-destructive">
           <HugeiconsIcon icon={CancelCircleIcon} size={11} strokeWidth={2} />

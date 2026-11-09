@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! FSEvents backend.
 //!
 //! notify's macOS watcher asks for per-file events with zero latency and
@@ -199,7 +200,7 @@ unsafe impl Send for FsEvents {}
 
 impl FsEvents {
     pub fn new(sink: Sink) -> Result<Self, String> {
-        let label = CString::new("app.crynta.terax.fsevents").expect("static label");
+        let label = CString::new("io.github.ygreat.estate.fsevents").expect("static label");
         let queue = unsafe { dispatch_queue_create(label.as_ptr(), std::ptr::null()) };
         if queue.is_null() {
             return Err("could not create the file-event queue".into());

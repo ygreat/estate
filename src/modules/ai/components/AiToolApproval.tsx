@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -39,7 +40,7 @@ function AiToolApprovalImpl({ part, toolName, onRespond }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm">
       <div className="flex items-center gap-2 border-b border-border/60 px-3 py-2">
-        <span className="size-1.5 shrink-0 rounded-full bg-amber-500 terax-attention-pulse" />
+        <span className="size-1.5 shrink-0 rounded-full bg-amber-500 estate-attention-pulse" />
         <HugeiconsIcon
           icon={Icon}
           size={13}

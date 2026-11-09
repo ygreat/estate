@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { schedulePtyParse } from "@/modules/terminal/lib/ptyParseScheduler";
 import {
   PTY_WINDOW_BYTES,
@@ -94,7 +95,7 @@ export class PtyOutputReceiver {
     this.cancelYield = null;
     this.queue.length = 0;
     this.setStatus("failed");
-    console.error("[terax] PTY output delivery paused:", error);
+    console.error("[estate] PTY output delivery paused:", error);
   }
 
   diagnostics() {
@@ -203,7 +204,7 @@ export class PtyOutputReceiver {
     try {
       this.onProgress(this.processed);
     } catch (error) {
-      console.error("[terax] PTY progress report failed:", error);
+      console.error("[estate] PTY progress report failed:", error);
     }
   }
 
@@ -225,7 +226,7 @@ export class PtyOutputReceiver {
     try {
       this.onStatus(status);
     } catch (error) {
-      console.error("[terax] PTY status notification failed:", error);
+      console.error("[estate] PTY status notification failed:", error);
     }
   }
 }

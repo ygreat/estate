@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type {
   Agent,
   AgentHookEvent,
@@ -15,7 +16,7 @@ import type {
 
 export const emptyRegistry: AgentRegistry = {};
 
-// Hooks come from a process Terax does not control, so every collection that
+// Hooks come from a process Estate does not control, so every collection that
 // grows with them is bounded.
 const MAX_RUNNING_TOOLS = 64;
 const MAX_PENDING_PERMISSIONS = 8;

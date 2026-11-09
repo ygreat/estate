@@ -1,3 +1,4 @@
+<!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 # Terminal visual harness
 
 Draws a fixed test pattern (ASCII, box drawing, bold and italic, every underline
@@ -20,7 +21,7 @@ native `devicePixelContentBoxSize` at scale 1 and introduces screenshot scaling
 artifacts; the gate checks that the native device box equals the backing store.
 `CHROME_PATH` can select an existing executable, or `CHROME_CHANNEL=chrome` an
 installed Chrome. The macOS terminal CI job caches the full Chromium build pinned
-by Playwright and sets `TERAX_VISUAL_SOFTWARE=1` to use SwiftShader for both
+by Playwright and sets `ESTATE_VISUAL_SOFTWARE=1` to use SwiftShader for both
 renderers without requiring a hardware GPU.
 
 The same fixed glyph/stem pattern goes through WebGL and WebGPU. Each screenshot
@@ -29,8 +30,8 @@ compared against each other. The gate allows at most 1/255 per RGB channel and
 zero pixels above that tolerance. It tests an odd CSS origin (11, 21) and a
 fractional origin (10.25, 20.25), including movement without a backing resize.
 Raw readbacks alone cannot detect a compositor blur. Captures and `scaling.json`
-are written to `TERAX_VISUAL_OUT` or a temporary directory printed by the runner.
-`TERAX_VISUAL_SOURCE_ROOT` runs this gate against an older source tree too.
+are written to `ESTATE_VISUAL_OUT` or a temporary directory printed by the runner.
+`ESTATE_VISUAL_SOURCE_ROOT` runs this gate against an older source tree too.
 
 The #1357 reproduction at origin (11, 21), 1001 × 641 CSS px, on macOS Chromium:
 
@@ -51,8 +52,8 @@ remain unchanged.
 
 On Windows, select WebGPU and open a terminal at 125% and 150% display scaling.
 In a packaged build, first run
-`localStorage.setItem("terax:terminal-diagnostics", "1")` in DevTools and reload
-the window to install the diagnostics. Then call `window.__teraxTerm().renderer`
+`localStorage.setItem("estate:terminal-diagnostics", "1")` in DevTools and reload
+the window to install the diagnostics. Then call `window.__estateTerm().renderer`
 twice, allowing a frame between calls. The
 first call schedules a one-shot native box measurement; after a resize or display
 change, call twice again. Check:
@@ -70,17 +71,17 @@ match must still be `true`. Diagnostics live in the lazy diagnostics graph and
 do no work until requested.
 
 ```sh
-TERAX_VISUAL_OUT=/tmp/visual TERAX_VISUAL_PORT=5199 \
+ESTATE_VISUAL_OUT=/tmp/visual ESTATE_VISUAL_PORT=5199 \
   node_modules/.bin/vite --config scripts/terminal-visual/vite.config.ts
 ```
 
 Open `http://localhost:5199/?w=1000&h=640&fs=15&select=19,5,21,14&capture=name`.
 With `capture`, the page writes `name.rgba` (raw RGBA) and `name.json` (size,
-ratio, surface diagnostics) to `TERAX_VISUAL_OUT` and sets its title to
+ratio, surface diagnostics) to `ESTATE_VISUAL_OUT` and sets its title to
 `captured name`. To compare another revision, extract it
 (`git archive <rev> src packages package.json tsconfig.json | tar -x -C dir`,
 link `node_modules`), start a second server with
-`TERAX_VISUAL_SOURCE_ROOT=dir` and another port, and load the same URL.
+`ESTATE_VISUAL_SOURCE_ROOT=dir` and another port, and load the same URL.
 
 ```sh
 node scripts/terminal-visual/compare.mjs diff /tmp/visual a b diff.png
@@ -133,7 +134,7 @@ open "http://localhost:5199/?pattern=sprites&w=1000&h=780&fs=15&dpr=1.25&capture
 
 Use `h=780` or more so the pattern is not scrolled. Compare against a revision
 that draws these characters from the font by serving it with
-`TERAX_VISUAL_SOURCE_ROOT` as described above.
+`ESTATE_VISUAL_SOURCE_ROOT` as described above.
 
 ## Colours, icons and the block cursor
 
@@ -161,7 +162,7 @@ node scripts/terminal-visual/compare.mjs parity /tmp/visual icons-gl-125 icons-g
 
 `parity` requires a `renderer=webgl` and a WebGPU capture of one pattern at one ratio to match pixel for
 pixel. Run both over `dpr=1`, `1.25`, `1.5` and `2`, and again with
-`localStorage["terax:terminal-text-contrast"] = "on"`: both renderers apply the same curve.
+`localStorage["estate:terminal-text-contrast"] = "on"`: both renderers apply the same curve.
 
 ## Window canvas and split panes
 

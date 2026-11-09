@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ invoke: vi.fn() }));
@@ -34,7 +35,7 @@ describe("git api argument shapes", () => {
   });
 
   it("sends the scope as a tagged object", async () => {
-    const scope = sinceCheckpointScope("refs/terax/checkpoints/t/1");
+    const scope = sinceCheckpointScope("refs/estate/checkpoints/t/1");
     await git.diffSummary("/r", scope);
     expect(mocks.invoke).toHaveBeenLastCalledWith("git_diff_summary", {
       repoRoot: "/r",
@@ -167,10 +168,10 @@ describe("git api argument shapes", () => {
       turn: 3,
       workspace,
     });
-    await git.checkpointRestore("/wt", "refs/terax/checkpoints/task-1/2");
+    await git.checkpointRestore("/wt", "refs/estate/checkpoints/task-1/2");
     expect(mocks.invoke).toHaveBeenLastCalledWith("git_checkpoint_restore", {
       worktree: "/wt",
-      reference: "refs/terax/checkpoints/task-1/2",
+      reference: "refs/estate/checkpoints/task-1/2",
       force: false,
       workspace,
     });

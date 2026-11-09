@@ -1,7 +1,8 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { readFile } from "node:fs/promises";
 import type { GhosttyTerminalModelApi } from "@/modules/terminal/ghostty/GhosttyTerminalModel";
-import { Key, Mods } from "@terax/ghostty-core";
-import { TeraxGhostty } from "@terax/ghostty-core/adapted";
+import { Key, Mods } from "@estate/ghostty-core";
+import { EstateGhostty } from "@estate/ghostty-core/adapted";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FakeElement, FakeTextArea } from "./fakeTextArea";
 import { GhosttyInputController } from "./GhosttyInputController";
@@ -312,7 +313,7 @@ describe("GhosttyInputController", () => {
           import.meta.url,
         ),
       );
-      const core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+      const core = await EstateGhostty.loadBytes(Uint8Array.from(bytes).buffer);
       const terminal = core.createTerminal(80, 24);
       const input = new FakeTextArea();
       const onData = vi.fn();
@@ -485,7 +486,7 @@ describe("GhosttyInputController", () => {
           import.meta.url,
         ),
       );
-      const core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+      const core = await EstateGhostty.loadBytes(Uint8Array.from(bytes).buffer);
       const terminal = core.createTerminal(80, 24);
       const input = new FakeTextArea();
       const onData = vi.fn();
@@ -590,7 +591,7 @@ describe("GhosttyInputController", () => {
           import.meta.url,
         ),
       );
-      const core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+      const core = await EstateGhostty.loadBytes(Uint8Array.from(bytes).buffer);
       const terminal = core.createTerminal(80, 24);
       const input = new FakeTextArea();
       const onData = vi.fn();
@@ -655,7 +656,7 @@ describe("GhosttyInputController", () => {
           import.meta.url,
         ),
       );
-      const core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+      const core = await EstateGhostty.loadBytes(Uint8Array.from(bytes).buffer);
       const terminal = core.createTerminal(80, 24);
       const input = new FakeTextArea();
       const onData = vi.fn();

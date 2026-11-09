@@ -37,7 +37,7 @@ pnpm install --frozen-lockfile
 pnpm tauri build --target x86_64-apple-darwin
 ```
 
-For the architecture, read [TERAX.md](TERAX.md) (the living architecture doc; the file keeps its upstream name because the app loads it as agent memory) and the [docs index](docs/README.md).
+For the architecture, read [ESTATE.md](ESTATE.md) (the living architecture doc, which the app also loads as agent memory) and the [docs index](docs/README.md).
 
 ## Where to discuss
 

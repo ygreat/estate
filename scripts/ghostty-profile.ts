@@ -1,9 +1,10 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import v8 from "node:v8";
 import vm from "node:vm";
-import { TeraxGhostty } from "@terax/ghostty-core/adapted";
+import { EstateGhostty } from "@estate/ghostty-core/adapted";
 import { it } from "vitest";
 import { readWasmLayout } from "../src/modules/terminal/ghostty/wasmStackProbe";
 
@@ -45,7 +46,7 @@ function percentiles(samples: readonly number[]) {
   return { samples: sorted.length, medianMs: at(0.5), p95Ms: at(0.95), maxMs: at(1) };
 }
 
-function fillHeavy(terminal: ReturnType<TeraxGhostty["createTerminal"]>) {
+function fillHeavy(terminal: ReturnType<EstateGhostty["createTerminal"]>) {
   const slice = new TextEncoder().encode(`${"scrollback line ".repeat(6)}0123\r\n`.repeat(300));
   for (let lines = 0; lines < 12_000; lines += 300) terminal.write(slice);
   terminal.updateRenderState();
@@ -54,13 +55,13 @@ function fillHeavy(terminal: ReturnType<TeraxGhostty["createTerminal"]>) {
 // "private" is the shipped design (one instance per terminal); "shared"
 // emulates the previous design (every terminal in one instance) with the same
 // code so the two can be compared in one process.
-async function lifecycle(core: TeraxGhostty, mode: "private" | "shared") {
+async function lifecycle(core: EstateGhostty, mode: "private" | "shared") {
   const opened = 20;
   const closed = 15;
   await settle();
   const before = { ...memory(), wasmBytes: core.getMemoryBytes() };
   const shared = mode === "shared" ? core.instantiate() : null;
-  const terminals: ReturnType<TeraxGhostty["createTerminal"]>[] = [];
+  const terminals: ReturnType<EstateGhostty["createTerminal"]>[] = [];
   for (let index = 0; index < opened; index++) {
     const terminal = shared
       ? shared.createTerminal(120, 40, terminalOptions)
@@ -92,7 +93,7 @@ async function lifecycle(core: TeraxGhostty, mode: "private" | "shared") {
 }
 
 async function instantiationLatency(
-  core: TeraxGhostty,
+  core: EstateGhostty,
   bytes: Uint8Array,
 ) {
   const compileStart = performance.now();
@@ -124,13 +125,13 @@ async function instantiationLatency(
 it("profiles identical isolated core workloads against optional baseline artifacts", async () => {
   const directories = [
     resolve(
-      process.env.TERAX_PROFILE_CORE_DIR ?? "packages/ghostty-core/adapted",
+      process.env.ESTATE_PROFILE_CORE_DIR ?? "packages/ghostty-core/adapted",
     ),
   ];
   const results = [];
   const encode = (value: string) => new TextEncoder().encode(value);
-  // TERAX_PROFILE_FORMAT=gpu times the GPU cell-record format instead of SoA.
-  const gpuFormat = process.env.TERAX_PROFILE_FORMAT === "gpu";
+  // ESTATE_PROFILE_FORMAT=gpu times the GPU cell-record format instead of SoA.
+  const gpuFormat = process.env.ESTATE_PROFILE_FORMAT === "gpu";
   const workloads = {
     row: [encode("\x1b[10;1Hagent frame A"), encode("\x1b[10;1Hagent frame B")],
     scrolling: [encode("agent output: analyzing repository\r\n")],
@@ -138,11 +139,11 @@ it("profiles identical isolated core workloads against optional baseline artifac
   };
   for (const directory of directories) {
     for (const artifact of [
-      process.env.TERAX_PROFILE_ARTIFACT ?? "ghostty-vt.wasm",
+      process.env.ESTATE_PROFILE_ARTIFACT ?? "ghostty-vt.wasm",
     ]) {
       const bytes = await readFile(resolve(directory, artifact));
       const layout = readWasmLayout(bytes);
-      const core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer, {
+      const core = await EstateGhostty.loadBytes(Uint8Array.from(bytes).buffer, {
         reclaim: null,
       });
       const blank = core.instantiate();
@@ -227,7 +228,7 @@ it("profiles identical isolated core workloads against optional baseline artifac
     warmupSamples: 1,
     results,
   };
-  const output = process.env.TERAX_PROFILE_REPORT;
+  const output = process.env.ESTATE_PROFILE_REPORT;
   if (output) await writeFile(output, `${JSON.stringify(report, null, 2)}\n`);
   else console.info(JSON.stringify(report));
 });

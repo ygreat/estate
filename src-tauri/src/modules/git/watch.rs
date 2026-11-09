@@ -1,4 +1,5 @@
-//! `terax:git-changed` notifications. A subscription registers the repository's
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+//! `estate:git-changed` notifications. A subscription registers the repository's
 //! non-ignored directories (plus HEAD, the index and the refs) with the shared
 //! file watcher and turns the directories it reports into
 //! `{ repo, kinds: [head | index | refs | worktree] }` events. With no
@@ -23,7 +24,7 @@ use crate::modules::git::errors::{GitError, Result};
 use crate::modules::git::plumbing::{common_dir, git_dir, open_worktree};
 use crate::modules::workspace::{WorkspaceEnv, WorkspaceRegistry};
 
-pub const EVENT: &str = "terax:git-changed";
+pub const EVENT: &str = "estate:git-changed";
 const MAX_WORKTREE_DIRS: usize = 2048;
 const MAX_REF_DIRS: usize = 512;
 const SHALLOW_DEPTH: usize = 2;
@@ -767,7 +768,7 @@ impl GitWatchState {
             }));
         let worker_app = app.clone();
         if let Err(e) = std::thread::Builder::new()
-            .name("terax-git-watch".into())
+            .name("estate-git-watch".into())
             .stack_size(512 * 1024)
             .spawn(move || run_worker(worker_app, rx))
         {

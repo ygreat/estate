@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { TerminalSearchController } from "@/modules/terminal/search/TerminalSearchController";
 import type { GhosttyTerminalModelApi } from "../GhosttyTerminalModel";
 import type {
@@ -128,7 +129,7 @@ export class GhosttySearchController implements TerminalSearchController {
       },
       (error) => {
         this.loading = false;
-        console.error("[terax] terminal search failed to load", error);
+        console.error("[estate] terminal search failed to load", error);
       },
     );
   }

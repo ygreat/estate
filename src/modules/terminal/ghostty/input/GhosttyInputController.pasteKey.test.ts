@@ -1,5 +1,6 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { GhosttyTerminalModelApi } from "@/modules/terminal/ghostty/GhosttyTerminalModel";
-import { KeyAction, type KeyEvent } from "@terax/ghostty-core/protocol";
+import { KeyAction, type KeyEvent } from "@estate/ghostty-core/protocol";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FakeElement, FakeTextArea } from "./fakeTextArea";
 import { GhosttyInputController } from "./GhosttyInputController";

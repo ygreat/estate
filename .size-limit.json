@@ -48,7 +48,7 @@
   {
     "name": "terminal private-use symbol faces (the second loads only on use)",
     "path": [
-      "dist/assets/terax-terminal-symbols-*.woff2"
+      "dist/assets/estate-terminal-symbols-*.woff2"
     ],
     "limit": "730 KB",
     "gzip": false,

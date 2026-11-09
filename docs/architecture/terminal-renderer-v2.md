@@ -1,3 +1,4 @@
+<!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 # Terminal renderer v2: native cell stream, pixel-exact grid
 
 Status: shipped in 0.9.0 for WebGPU (macOS verified; Windows/Linux pending real
@@ -97,7 +98,7 @@ frame), and pane rectangles are rounded edge by edge relative to it.
 
 Grayscale antialiasing carries no contrast curve by default, so the WebGL and WebGPU
 renderers draw identical glyph pixels at every ratio (`scripts/terminal-visual`
-`parity` at 1, 1.25, 1.5 and 2). `localStorage["terax:terminal-text-contrast"]`
+`parity` at 1, 1.25, 1.5 and 2). `localStorage["estate:terminal-text-contrast"]`
 (`on` or a strength, `off` to clear) turns on DirectWrite-style contrast
 (`DWrite_EnhanceContrast` scaled by foreground lightness, blended toward
 `DWrite_ApplyAlphaCorrection` with Windows Terminal's 1.8 gamma ratios, 0.5 / 0.5
@@ -132,7 +133,7 @@ above the canvas and is transparent once the pane's first frame is shown.
 **Lifecycle.** WebKit (macOS 26) keeps the swapchain of a presented-then-destroyed
 WebGPU canvas in the WebContent process for good (~30 MiB for 2000×1300), and
 every swapchain a resizing canvas retires until JavaScriptCore collects its
-wrappers. Reproduced with raw WebGPU, no Terax code (`--workload canvas`):
+wrappers. Reproduced with raw WebGPU, no Estate code (`--workload canvas`):
 destroying a canvas per occlusion cycle +30 MiB/cycle; keeping it hidden 0. So:
 
 - A presented canvas is never destroyed, unconfigured or shrunk while the runtime

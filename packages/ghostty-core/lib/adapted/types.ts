@@ -1,4 +1,5 @@
-export type TeraxGhosttyCursor = {
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+export type EstateGhosttyCursor = {
   readonly row: number;
   readonly column: number;
   readonly visible: boolean;
@@ -9,14 +10,14 @@ export type TeraxGhosttyCursor = {
 };
 
 /** Per-cell representation written by `updateRenderState` / `updateGpuRenderState`. */
-export type TeraxGhosttyRenderFormat = "soa" | "gpu";
+export type EstateGhosttyRenderFormat = "soa" | "gpu";
 
 /**
  * State shared by both render formats. All typed arrays are borrowed views
  * into WASM memory: they are valid only until the next call on the terminal
  * that can allocate (update, resize, release, compaction, write).
  */
-export type TeraxGhosttyRenderBase = {
+export type EstateGhosttyRenderBase = {
   readonly rows: number;
   readonly cols: number;
   readonly cellCount: number;
@@ -35,11 +36,11 @@ export type TeraxGhosttyRenderBase = {
    */
   readonly dirtyRows: Uint8Array;
   readonly fullDamage: boolean;
-  readonly cursor: TeraxGhosttyCursor;
+  readonly cursor: EstateGhosttyCursor;
 };
 
 /** Structure-of-arrays format (`"soa"`): the WebGL fallback and legacy readers. */
-export type TeraxGhosttyRenderState = TeraxGhosttyRenderBase & {
+export type EstateGhosttyRenderState = EstateGhosttyRenderBase & {
   readonly codepoints: Uint32Array;
   readonly contentTags: Uint8Array;
   readonly widths: Uint8Array;
@@ -57,7 +58,7 @@ export type TeraxGhosttyRenderState = TeraxGhosttyRenderBase & {
 };
 
 /** One interned glyph: a codepoint or grapheme cluster in a bold/italic face. */
-export type TeraxGhosttyGpuGlyph = {
+export type EstateGhosttyGpuGlyph = {
   /** Dense id starting at 1; 0 never names a glyph. */
   readonly id: number;
   /** Bit 0: bold. Bit 1: italic. These are the only style bits glyphs key on. */
@@ -71,7 +72,7 @@ export type TeraxGhosttyGpuGlyph = {
  * ids interned in WASM. See `GPU_CELL_*` constants for the exact layout. The
  * structure-of-arrays cell arrays do not exist in this format.
  */
-export type TeraxGhosttyGpuRenderState = TeraxGhosttyRenderBase & {
+export type EstateGhosttyGpuRenderState = EstateGhosttyRenderBase & {
   /**
    * Glyph-id epoch. When it differs from the epoch you last saw, every glyph
    * id you hold is invalid: drop your id map and rebuild it from `newGlyphs`
@@ -96,26 +97,26 @@ export type TeraxGhosttyGpuRenderState = TeraxGhosttyRenderBase & {
    * Glyphs interned since the last `acknowledgeGpuGlyphs()`. Borrowed; decode
    * (iterate) before the next call, then acknowledge.
    */
-  readonly newGlyphs: TeraxGhosttyGpuGlyphBatch;
+  readonly newGlyphs: EstateGhosttyGpuGlyphBatch;
 };
 
 /** Borrowed `[id][style][count][codepoints...]` records. */
-export interface TeraxGhosttyGpuGlyphBatch extends Iterable<TeraxGhosttyGpuGlyph> {
+export interface EstateGhosttyGpuGlyphBatch extends Iterable<EstateGhosttyGpuGlyph> {
   /** Raw little-endian words of the records. */
   readonly words: Uint32Array;
   readonly isEmpty: boolean;
-  toArray(): TeraxGhosttyGpuGlyph[];
+  toArray(): EstateGhosttyGpuGlyph[];
 }
 
-/** One decoded buffer line (see `TeraxGhosttyTerminal.readLines`). */
-export type TeraxGhosttyLine = {
+/** One decoded buffer line (see `EstateGhosttyTerminal.readLines`). */
+export type EstateGhosttyLine = {
   /** Column strings: `""` for wide-character spacers, `" "` for blanks. */
   readonly cells: string[];
   /** True when the row continues a soft-wrapped line. */
   readonly wrapped: boolean;
 };
 
-export type TeraxGhosttyKeyEvent = {
+export type EstateGhosttyKeyEvent = {
   readonly action: number;
   readonly key: number;
   readonly mods: number;
@@ -125,22 +126,22 @@ export type TeraxGhosttyKeyEvent = {
   readonly unshiftedCodepoint?: number;
 };
 
-export type TeraxGhosttyTerminalOptions = {
+export type EstateGhosttyTerminalOptions = {
   readonly maxScrollbackBytes?: number;
   readonly maxScrollbackLines?: number;
 };
 
-export type TeraxGhosttyTerminalResourceStats = {
+export type EstateGhosttyTerminalResourceStats = {
   readonly cellCapacity: number;
   readonly rowCapacity: number;
   readonly renderStateResets: number;
-  readonly renderFormat: TeraxGhosttyRenderFormat;
+  readonly renderFormat: EstateGhosttyRenderFormat;
   /** Glyphs interned for the GPU format (0 in other formats or when released). */
   readonly glyphCount: number;
   readonly glyphEpoch: number;
 };
 
-export type TeraxGhosttySearchStatus = {
+export type EstateGhosttySearchStatus = {
   readonly active: boolean;
   readonly pending: boolean;
   readonly complete: boolean;
@@ -149,32 +150,32 @@ export type TeraxGhosttySearchStatus = {
   readonly selectedIndex: number;
 };
 
-export type TeraxGhosttySearchViewportSpan = {
+export type EstateGhosttySearchViewportSpan = {
   readonly row: number;
   readonly startColumn: number;
   readonly endColumn: number;
   readonly selected: boolean;
 };
 
-export type TeraxGhosttySelection = {
+export type EstateGhosttySelection = {
   readonly anchor: { readonly line: number; readonly column: number };
   readonly focus: { readonly line: number; readonly column: number };
   readonly rectangular: boolean;
 };
 
-export type TeraxGhosttyInstantiate = (
+export type EstateGhosttyInstantiate = (
   module: WebAssembly.Module,
   imports: WebAssembly.Imports,
 ) => WebAssembly.Instance;
 
-export type TeraxGhosttyLoadOptions = {
+export type EstateGhosttyLoadOptions = {
   readonly log?: (message: string) => void;
   /**
    * Creates one instance of the compiled module. The default is a synchronous
    * `new WebAssembly.Instance`, which takes about a millisecond or less once
    * the module is compiled. Overridable so tests can observe instantiation.
    */
-  readonly instantiate?: TeraxGhosttyInstantiate;
+  readonly instantiate?: EstateGhosttyInstantiate;
   /**
    * Called once per burst of disposed instances with the linear-memory bytes
    * they released. A dropped memory is only freed when the engine collects it,
@@ -188,7 +189,7 @@ export type TeraxGhosttyLoadOptions = {
 };
 
 /** Linear-memory accounting across every live instance of one compiled module. */
-export type TeraxGhosttyMemoryStats = {
+export type EstateGhosttyMemoryStats = {
   readonly instanceCount: number;
   /** Sum of `memory.buffer.byteLength` over live instances. */
   readonly totalBytes: number;
@@ -197,7 +198,7 @@ export type TeraxGhosttyMemoryStats = {
   readonly instancesCreated: number;
 };
 
-export type TeraxGhosttyWasmExports = WebAssembly.Exports & {
+export type EstateGhosttyWasmExports = WebAssembly.Exports & {
   readonly memory: WebAssembly.Memory;
   readonly restty_create_with_limits: (
     cols: number,

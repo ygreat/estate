@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import {
   openPty,
@@ -11,7 +12,7 @@ const realFetch = window.fetch.bind(window);
 const wire = { polls: 0, acks: 0, responses: 0, ipcInvokes: 0 };
 window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === "string" ? input : String(input);
-  if (url.includes("terax-pty")) {
+  if (url.includes("estate-pty")) {
     if (url.endsWith("/poll")) wire.polls++;
     else wire.acks++;
   } else if (url.startsWith("ipc://") || url.includes("ipc.localhost")) {
@@ -32,7 +33,7 @@ const hubWork = (c: HubCounters) =>
   [c.wakeups, c.polls, c.ackRequests, c.rejectedRequests].join(",");
 
 const post = (path: string, body: Uint8Array<ArrayBuffer>) =>
-  realFetch(convertFileSrc(path, "terax-pty"), {
+  realFetch(convertFileSrc(path, "estate-pty"), {
     method: "POST",
     body,
     cache: "no-store",
@@ -70,7 +71,7 @@ function foreignFrame(body: Uint8Array, attempts: number) {
     window.addEventListener("message", listen);
     const request = encodeURIComponent(
       JSON.stringify({
-        url: convertFileSrc("ack", "terax-pty"),
+        url: convertFileSrc("ack", "estate-pty"),
         body: [...body],
         attempts,
       }),
@@ -101,7 +102,7 @@ async function probeGate() {
   const wrongToken = await Promise.all(Array.from({ length: 20 }, () => post("ack", wrong)));
   const oversized = await post("ack", new Uint8Array(8192));
   const malformed = await post("poll", valid.slice(0, 5));
-  const method = await realFetch(convertFileSrc("poll", "terax-pty")).then((r) => r.status);
+  const method = await realFetch(convertFileSrc("poll", "estate-pty")).then((r) => r.status);
   await sleep(300);
   const afterPage = await hubCounters();
 
@@ -127,7 +128,7 @@ async function probeGate() {
 }
 
 export const driver: Driver = {
-  name: "multiplexed pull stream (terax-pty)",
+  name: "multiplexed pull stream (estate-pty)",
   openPty,
   setPresentation: setLeafPresentation,
   // A poll and its response are one round trip; ack-only requests are extra.

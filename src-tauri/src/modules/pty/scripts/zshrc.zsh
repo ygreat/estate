@@ -1,64 +1,65 @@
-# terax-shell-integration (zshrc)
+# estate-shell-integration (zshrc)
+# Modified by ygreat for Estate, 2026. Originally part of Terax.
 #
 # Emits OSC 7 (cwd) + OSC 133 A/B/C/D (prompt-start / prompt-end / pre-exec /
 # command-done-with-exit-code) so the host can detect command boundaries and
 # track cwd without re-parsing the prompt. `status` is a read-only special in
-# zsh, so we shadow $? into `_terax_ret`.
+# zsh, so we shadow $? into `_estate_ret`.
 #
 # Our own code runs under `emulate -L zsh` so user options (KSH_ARRAYS, NO_UNSET,
 # ...) cannot break it; the user's files are sourced outside of it.
 
 {
-  # Terax's directory is still ZDOTDIR here (see zshenv.zsh). /etc/zshrc on
+  # Estate's directory is still ZDOTDIR here (see zshenv.zsh). /etc/zshrc on
   # macOS derives HISTFILE from it, so move that to the user's directory.
-  _terax_zdotdir="${ZDOTDIR-}"
-  _terax_user_zdotdir="${TERAX_USER_ZDOTDIR:-${HOME-}}"
-  if [[ -n "${HISTFILE-}" && "${HISTFILE-}" == "$_terax_zdotdir"/* ]]; then
-    HISTFILE="$_terax_user_zdotdir/${HISTFILE:t}"
+  _estate_zdotdir="${ZDOTDIR-}"
+  _estate_user_zdotdir="${ESTATE_USER_ZDOTDIR:-${HOME-}}"
+  if [[ -n "${HISTFILE-}" && "${HISTFILE-}" == "$_estate_zdotdir"/* ]]; then
+    HISTFILE="$_estate_user_zdotdir/${HISTFILE:t}"
   fi
-  ZDOTDIR="$_terax_user_zdotdir"
-  [ -f "$_terax_user_zdotdir/.zshrc" ] && source "$_terax_user_zdotdir/.zshrc"
+  ZDOTDIR="$_estate_user_zdotdir"
+  [ -f "$_estate_user_zdotdir/.zshrc" ] && source "$_estate_user_zdotdir/.zshrc"
 }
 
-_terax_zshrc_setup() {
+_estate_zshrc_setup() {
   emulate -L zsh
 
-  if [[ -n "${TERAX_CLI-}" && -x "${TERAX_CLI-}" ]]; then
-    terax() {
-      command "$TERAX_CLI" "$@"
+  if [[ -n "${ESTATE_CLI-}" && -x "${ESTATE_CLI-}" ]]; then
+    estate() {
+      command "$ESTATE_CLI" "$@"
     }
   fi
 
   # Re-source guard within a single shell (e.g. user runs `source $ZDOTDIR/.zshrc`).
   # This is NOT exported, so each nested zsh installs its own hooks — desired,
   # since every interactive shell needs its own prompt integration.
-  if [[ -n "${__TERAX_HOOKS_LOADED-}" ]]; then
+  if [[ -n "${__ESTATE_HOOKS_LOADED-}" ]]; then
     # Sourced again while a command runs: leave ZDOTDIR as it was found.
-    if [[ -n "$_terax_zdotdir" ]]; then export ZDOTDIR="$_terax_zdotdir"; else unset ZDOTDIR; fi
+    if [[ -n "$_estate_zdotdir" ]]; then export ZDOTDIR="$_estate_zdotdir"; else unset ZDOTDIR; fi
     return 0
   fi
-  __TERAX_HOOKS_LOADED=1
+  __ESTATE_HOOKS_LOADED=1
   autoload -Uz add-zsh-hook 2>/dev/null
 
-  # ZDOTDIR has two faces. While a command runs it is exported as Terax's
+  # ZDOTDIR has two faces. While a command runs it is exported as Estate's
   # directory, so a shell that command starts (exec zsh, a nested zsh, zsh -l)
   # reads the integration scripts again; at the prompt, in hooks and in widgets
   # it is the user's own value (or unset), so code that reads $ZDOTDIR lazily
-  # finds their files. TERAX_USER_ZDOTDIR carries the user's value to children.
-  _terax_zd_integration="$_terax_zdotdir"
-  if [[ -n "${TERAX_USER_ZDOTDIR-}" || "${ZDOTDIR-}" != "$_terax_user_zdotdir" ]]; then
-    _terax_zd_has_user=1
-    _terax_zd_user="${ZDOTDIR:-$_terax_user_zdotdir}"
-    export TERAX_USER_ZDOTDIR="$_terax_zd_user"
+  # finds their files. ESTATE_USER_ZDOTDIR carries the user's value to children.
+  _estate_zd_integration="$_estate_zdotdir"
+  if [[ -n "${ESTATE_USER_ZDOTDIR-}" || "${ZDOTDIR-}" != "$_estate_user_zdotdir" ]]; then
+    _estate_zd_has_user=1
+    _estate_zd_user="${ZDOTDIR:-$_estate_user_zdotdir}"
+    export ESTATE_USER_ZDOTDIR="$_estate_zd_user"
   else
-    _terax_zd_has_user=
-    unset TERAX_USER_ZDOTDIR
+    _estate_zd_has_user=
+    unset ESTATE_USER_ZDOTDIR
   fi
 
-  _terax_zdotdir_prompt() {
+  _estate_zdotdir_prompt() {
     emulate -L zsh
-    if [[ -n "$_terax_zd_has_user" ]]; then
-      ZDOTDIR="$_terax_zd_user"
+    if [[ -n "$_estate_zd_has_user" ]]; then
+      ZDOTDIR="$_estate_zd_user"
     else
       unset ZDOTDIR
     fi
@@ -68,7 +69,7 @@ _terax_zshrc_setup() {
   # segment, after the usual wrappers, is zsh, a path to it, or $SHELL when that
   # is zsh. Pure zsh word splitting, no forks; indirect launches (a function, a
   # script, tmux) are not seen and start without the integration.
-  _terax_starts_zsh() {
+  _estate_starts_zsh() {
     emulate -L zsh
     # Runs before every command, so a pasted script must not cost anything: only
     # a bounded prefix is looked at, and only when a word that could start a zsh
@@ -133,19 +134,19 @@ _terax_zshrc_setup() {
 
   # While a command runs ZDOTDIR stays the user's, so a typed `vim $ZDOTDIR/.zshrc`
   # expands to their file. Only a command line that starts a zsh exports
-  # Terax's directory, so that shell reads the integration; the next precmd
+  # Estate's directory, so that shell reads the integration; the next precmd
   # puts the user's value back.
-  _terax_zdotdir_command() {
+  _estate_zdotdir_command() {
     emulate -L zsh
-    _terax_starts_zsh "${3-$1}" || return 0
-    export ZDOTDIR="$_terax_zd_integration"
+    _estate_starts_zsh "${3-$1}" || return 0
+    export ZDOTDIR="$_estate_zd_integration"
   }
 
   # URL-encode $1 byte-wise into REPLY so multi-byte paths stay valid in the
   # `file://` URI emitted via OSC 7. `no_multibyte` forces ${s[i]} to index
   # bytes (not code points), and LC_ALL=C keeps the [a-zA-Z0-9...] class
   # single-byte. No command substitution: a fork per prompt is pure latency.
-  _terax_urlencode() {
+  _estate_urlencode() {
     emulate -L zsh
     setopt localoptions no_multibyte
     local LC_ALL=C s="$1" i byte
@@ -159,11 +160,11 @@ _terax_zshrc_setup() {
     done
   }
 
-  _terax_report_cwd() {
+  _estate_report_cwd() {
     emulate -L zsh
     local REPLY
     if [[ "$PWD" == *[^a-zA-Z0-9/._~-]* ]]; then
-      _terax_urlencode "$PWD"
+      _estate_urlencode "$PWD"
     else
       REPLY="$PWD"
     fi
@@ -173,37 +174,37 @@ _terax_zshrc_setup() {
   # Prompt-end marker. Embedded in PS1 when nothing in the prompt carries one
   # already, so redraws (resize, reset-prompt) repeat it; the line-init hook
   # below covers prompts a framework builds itself.
-  _terax_prompt_has_end() {
+  _estate_prompt_has_end() {
     emulate -L zsh
     [[ "${PS1-}" == *$'\e]133;B'* ]]
   }
 
-  _terax_precmd() {
-    local _terax_ret=$?
+  _estate_precmd() {
+    local _estate_ret=$?
     emulate -L zsh
-    printf '\e]133;D;%s\e\\' "$_terax_ret"
-    _terax_report_cwd
+    printf '\e]133;D;%s\e\\' "$_estate_ret"
+    _estate_report_cwd
     # In block mode the host renders its own input bar, so suppress the shell
     # prompt entirely (keep only the OSC 133 B marker) and add a leading blank
     # line so frozen command blocks get vertical breathing room.
-    if [[ -n "${TERAX_BLOCKS-}" ]]; then
+    if [[ -n "${ESTATE_BLOCKS-}" ]]; then
       # Spacing reserved for the host-drawn block header lives in the prompt
       # (the grid is WebGL, not CSS). Later prompts get two blank rows: the
       # upper one is the previous block's end gap (above its divider), the lower
       # one is this command's header row. The very first prompt has no block
       # above it, so it gets a single row (header only) to avoid a tall top gap.
-      if [[ -n "${_terax_block_seen-}" ]]; then
-        _terax_block_ps1=$'\n\n%{\e]133;B\e\\%}'
+      if [[ -n "${_estate_block_seen-}" ]]; then
+        _estate_block_ps1=$'\n\n%{\e]133;B\e\\%}'
       else
-        _terax_block_ps1=$'\n%{\e]133;B\e\\%}'
+        _estate_block_ps1=$'\n%{\e]133;B\e\\%}'
       fi
-      PS1="$_terax_block_ps1"
+      PS1="$_estate_block_ps1"
       RPROMPT=''
-    elif ! _terax_prompt_has_end; then
+    elif ! _estate_prompt_has_end; then
       PS1="${PS1-}"$'%{\e]133;B\e\\%}'
     fi
-    _terax_end_pending=1
-    _terax_ensure_line_init
+    _estate_end_pending=1
+    _estate_ensure_line_init
     printf '\e]133;A\e\\'
   }
 
@@ -211,22 +212,22 @@ _terax_zshrc_setup() {
   # the prompt framework (powerlevel10k, starship, ...) rebuilt in its own
   # precmd or redrew asynchronously. A second marker at the same spot is
   # harmless, a missing one holds the prompt back until the host's fallback.
-  _terax_line_init() {
+  _estate_line_init() {
     emulate -L zsh
-    [[ -n "${_terax_end_pending-}" ]] || return 0
-    _terax_end_pending=
-    if [[ -n "${TERAX_BLOCKS-}" && -n "${_terax_block_ps1-}" && "${PS1-}" != "$_terax_block_ps1" ]]; then
+    [[ -n "${_estate_end_pending-}" ]] || return 0
+    _estate_end_pending=
+    if [[ -n "${ESTATE_BLOCKS-}" && -n "${_estate_block_ps1-}" && "${PS1-}" != "$_estate_block_ps1" ]]; then
       # A framework rebuilt the prompt after our precmd (powerlevel10k runs
       # last): the host draws the input bar, so take the shell prompt back.
-      PS1="$_terax_block_ps1"
+      PS1="$_estate_block_ps1"
       RPROMPT=''
       zle reset-prompt
     fi
-    _terax_prompt_has_end || printf '\e]133;B\e\\'
+    _estate_prompt_has_end || printf '\e]133;B\e\\'
     return 0
   }
 
-  _terax_ensure_line_init() {
+  _estate_ensure_line_init() {
     emulate -L zsh
     if [[ "$ZSH_VERSION" == (5.<3->*|<6->.*) ]]; then
       # The dispatcher widget is shared with every plugin that hooks line-init,
@@ -234,38 +235,38 @@ _terax_zshrc_setup() {
       local -a hooks
       if [[ "${widgets[zle-line-init]-}" == user:azhw:zle-line-init ]] \
          && zstyle -g hooks zle-line-init widgets \
-         && [[ -n "${(M)hooks[@]:#(<->:|)_terax_line_init}" ]]; then
+         && [[ -n "${(M)hooks[@]:#(<->:|)_estate_line_init}" ]]; then
         return 0
       fi
       autoload -Uz add-zle-hook-widget
-      add-zle-hook-widget line-init _terax_line_init
+      add-zle-hook-widget line-init _estate_line_init
     else
       # zsh < 5.3 has no hook widgets: chain the existing widget by hand.
-      [[ "${widgets[zle-line-init]-}" == user:_terax_line_init_chain ]] && return 0
-      (( $+widgets[zle-line-init] )) && zle -A zle-line-init _terax_line_init_prev
-      _terax_line_init_chain() {
-        (( $+widgets[_terax_line_init_prev] )) && zle _terax_line_init_prev "$@"
-        _terax_line_init
+      [[ "${widgets[zle-line-init]-}" == user:_estate_line_init_chain ]] && return 0
+      (( $+widgets[zle-line-init] )) && zle -A zle-line-init _estate_line_init_prev
+      _estate_line_init_chain() {
+        (( $+widgets[_estate_line_init_prev] )) && zle _estate_line_init_prev "$@"
+        _estate_line_init
       }
-      zle -N zle-line-init _terax_line_init_chain
+      zle -N zle-line-init _estate_line_init_chain
     fi
   }
 
-  _terax_preexec() {
+  _estate_preexec() {
     emulate -L zsh
     # Mark that a real command ran, so the next prompt switches from one blank
     # row (first prompt, no block above) to two (end gap + header row).
-    [[ -n "${TERAX_BLOCKS-}" ]] && _terax_block_seen=1
+    [[ -n "${ESTATE_BLOCKS-}" ]] && _estate_block_seen=1
     local cmd="${1//[[:cntrl:]]/ }"
     printf '\e]133;C;%s\e\\' "${cmd[1,256]}"
   }
 
   if (( $+functions[add-zsh-hook] )); then
-    add-zsh-hook precmd _terax_precmd
-    add-zsh-hook preexec _terax_preexec
-    add-zsh-hook precmd _terax_zdotdir_prompt
-    precmd_functions=(_terax_zdotdir_prompt ${precmd_functions:#_terax_zdotdir_prompt})
-    add-zsh-hook preexec _terax_zdotdir_command
+    add-zsh-hook precmd _estate_precmd
+    add-zsh-hook preexec _estate_preexec
+    add-zsh-hook precmd _estate_zdotdir_prompt
+    precmd_functions=(_estate_zdotdir_prompt ${precmd_functions:#_estate_zdotdir_prompt})
+    add-zsh-hook preexec _estate_zdotdir_command
   fi
 
   # With POWERLEVEL9K_TERM_SHELL_INTEGRATION powerlevel10k emits its own C and
@@ -289,11 +290,11 @@ _terax_zshrc_setup() {
   # Report the starting directory before the first prompt; the first precmd
   # emits the prompt markers. Then show the user their own ZDOTDIR, which is
   # also what zsh reads their .zlogin from.
-  _terax_report_cwd
-  _terax_zdotdir_prompt
+  _estate_report_cwd
+  _estate_zdotdir_prompt
 }
 
-_terax_zshrc_setup
-unset -f _terax_zshrc_setup
-unset _terax_zdotdir _terax_user_zdotdir
+_estate_zshrc_setup
+unset -f _estate_zshrc_setup
+unset _estate_zdotdir _estate_user_zdotdir
 :

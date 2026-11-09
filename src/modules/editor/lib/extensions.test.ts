@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
@@ -12,7 +13,7 @@ describe("wordWrapExtension", () => {
     expect(state.facet(EditorView.contentAttributes)).toEqual(
       expect.arrayContaining([
         { class: "cm-lineWrapping" },
-        { style: "--terax-editor-wrap-column: 80ch" },
+        { style: "--estate-editor-wrap-column: 80ch" },
       ]),
     );
   });

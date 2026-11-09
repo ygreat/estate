@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -395,7 +396,7 @@ function AgentEditorDialog({
               onChange={(e) =>
                 setDraft({ ...draft, instructions: e.target.value })
               }
-              placeholder="Persona & rules. Appended to Terax's core system prompt."
+              placeholder="Persona & rules. Appended to Estate's core system prompt."
               className="min-h-40 resize-y text-[12px] leading-relaxed"
             />
           </div>

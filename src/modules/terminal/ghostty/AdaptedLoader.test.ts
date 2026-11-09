@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { readFile } from "node:fs/promises";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -25,8 +26,8 @@ describe("Ghostty artifact selection", () => {
         }),
       );
       vi.stubGlobal("fetch", fetch);
-      const { TeraxGhostty } = await import("@terax/ghostty-core/adapted");
-      const ghostty = await TeraxGhostty.load();
+      const { EstateGhostty } = await import("@estate/ghostty-core/adapted");
+      const ghostty = await EstateGhostty.load();
       expect(fetch).toHaveBeenCalledExactlyOnceWith(
         expect.stringContaining(filename),
       );
@@ -61,8 +62,8 @@ describe("Ghostty artifact selection", () => {
           async () => new Response(await artifact(), { headers }),
         );
       vi.stubGlobal("fetch", fetch);
-      const { TeraxGhostty } = await import("@terax/ghostty-core/adapted");
-      return { fetch, ghostty: await TeraxGhostty.load() };
+      const { EstateGhostty } = await import("@estate/ghostty-core/adapted");
+      return { fetch, ghostty: await EstateGhostty.load() };
     }
 
     it("fetches and compiles once however many terminals follow", async () => {
@@ -98,25 +99,25 @@ describe("Ghostty artifact selection", () => {
 
     it("rejects an empty artifact and a module without the bridge exports", async () => {
       vi.resetModules();
-      const { TeraxGhostty } = await import("@terax/ghostty-core/adapted");
-      await expect(TeraxGhostty.loadBytes(new ArrayBuffer(0))).rejects.toThrow(
+      const { EstateGhostty } = await import("@estate/ghostty-core/adapted");
+      await expect(EstateGhostty.loadBytes(new ArrayBuffer(0))).rejects.toThrow(
         "empty",
       );
       const bare = await WebAssembly.compile(
         Uint8Array.of(0, 0x61, 0x73, 0x6d, 1, 0, 0, 0),
       );
-      expect(() => TeraxGhostty.fromModule(bare)).toThrow(
+      expect(() => EstateGhostty.fromModule(bare)).toThrow(
         "Missing adapted Ghostty WASM export",
       );
     });
 
     it("gives each instance its own log import that stops reading memory once disposed", async () => {
       vi.resetModules();
-      const { TeraxGhostty } = await import("@terax/ghostty-core/adapted");
+      const { EstateGhostty } = await import("@estate/ghostty-core/adapted");
       const module = await WebAssembly.compile(await artifact());
       const imports: WebAssembly.Imports[] = [];
       const log = vi.fn();
-      const ghostty = TeraxGhostty.fromModule(module, {
+      const ghostty = EstateGhostty.fromModule(module, {
         log,
         instantiate: (compiled, supplied) => {
           imports.push(supplied);

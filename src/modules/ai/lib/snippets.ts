@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { LazyStore } from "@tauri-apps/plugin-store";
 
 export type Snippet = {
@@ -9,7 +10,7 @@ export type Snippet = {
   content: string;
 };
 
-const STORE_PATH = "terax-ai-snippets.json";
+const STORE_PATH = "estate-ai-snippets.json";
 const KEY_LIST = "snippets";
 
 const store = new LazyStore(STORE_PATH, { defaults: {}, autoSave: 200 });

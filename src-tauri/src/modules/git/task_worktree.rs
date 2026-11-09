@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -93,13 +94,13 @@ fn new_id() -> Result<String> {
 
 pub fn environment(task: &TaskRecord) -> BTreeMap<String, String> {
     let mut env = BTreeMap::from([
-        ("TERAX_TASK".into(), task.name.clone()),
-        ("TERAX_WORKSPACE_PATH".into(), task.path.clone()),
-        ("TERAX_ROOT_PATH".into(), task.root.clone()),
-        ("TERAX_PORT".into(), task.port.to_string()),
+        ("ESTATE_TASK".into(), task.name.clone()),
+        ("ESTATE_WORKSPACE_PATH".into(), task.path.clone()),
+        ("ESTATE_ROOT_PATH".into(), task.root.clone()),
+        ("ESTATE_PORT".into(), task.port.to_string()),
     ]);
     for n in 1..=9 {
-        env.insert(format!("TERAX_PORT_{n}"), (task.port + n).to_string());
+        env.insert(format!("ESTATE_PORT_{n}"), (task.port + n).to_string());
     }
     env
 }
@@ -248,7 +249,7 @@ fn materialize(
         let target = std::fs::canonicalize(&task.path)?;
         if let Some(snapshot) = snapshot {
             let restored = open_worktree(registry, &task.path, &repo.workspace)?;
-            let hooks = super::plumbing::git_dir(&restored)?.join("terax-empty-hooks");
+            let hooks = super::plumbing::git_dir(&restored)?.join("estate-empty-hooks");
             std::fs::create_dir_all(&hooks)?;
             let mut args = checkpoint::plumbing_config(&hooks);
             args.extend(os_args([
@@ -715,7 +716,7 @@ pub fn restore(
         ));
     }
     if let Some(reference) = reference {
-        let prefix = format!("refs/terax/tasks/{id}/archive/");
+        let prefix = format!("refs/estate/tasks/{id}/archive/");
         let suffix = reference
             .strip_prefix(&prefix)
             .ok_or_else(|| GitError::InvalidRef(reference.into()))?;

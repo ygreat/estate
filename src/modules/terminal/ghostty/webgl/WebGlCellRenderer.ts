@@ -1,10 +1,11 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 /**
  * Adapted from xterm.js's GlyphRenderer, RectangleRenderer, and WebglRenderer.
  * Copyright (c) 2018 The xterm.js authors. MIT licensed.
  */
 
 import type { TerminalDamage } from "@/modules/terminal/backend/contracts";
-import { CellFlags } from "@terax/ghostty-core/protocol";
+import { CellFlags } from "@estate/ghostty-core/protocol";
 import type { Rgb, TerminalCellReader } from "../core/packedCells";
 import type { GhosttyTerminalModelApi } from "../GhosttyTerminalModel";
 import {

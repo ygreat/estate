@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::io;
 
 use tauri::{
@@ -5,7 +6,7 @@ use tauri::{
     AppHandle, Manager, Runtime,
 };
 
-const GUARDED_QUIT_MENU_ID: &str = "terax.quit";
+const GUARDED_QUIT_MENU_ID: &str = "estate.quit";
 const QUIT_ACCELERATOR: &str = "Command+Q";
 
 fn invalid_default_menu(message: &'static str) -> tauri::Error {

@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { describe, expect, it } from "vitest";
 import { loopbackPreviewOrigin } from "./previewUrl";
 
@@ -31,7 +32,7 @@ it.each([
   "http://asset.localhost/C:/repo/demo.html",
   "https://tauri.localhost",
   "http://ipc.localhost",
-  "http://terax-pty.localhost",
+  "http://estate-pty.localhost",
 ])("never treats application protocol %s as a dev server", (url) => {
   expect(loopbackPreviewOrigin(url)).toBeNull();
 });

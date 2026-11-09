@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Modified by ygreat for Estate, 2026. Originally part of Terax.
 language: en-US
 
 # CodeRabbit is a first-pass filter, not a merge gate: humans build, run and
@@ -123,7 +124,7 @@ reviews:
         artifact production. A broken release affects every user's auto-update.
     - path: "**/*.{md,mdx}"
       instructions: >-
-        Only flag substance, not style. Terax is positioned terminal-first; flag
+        Only flag substance, not style. Estate is positioned terminal-first; flag
         README or marketing rewrites that reframe it as an IDE or generic developer
         environment.
 
@@ -148,7 +149,7 @@ knowledge_base:
   code_guidelines:
     enabled: true
     filePatterns:
-      - "**/TERAX.md"
+      - "**/ESTATE.md"
       - "**/CLAUDE.md"
       - "**/AGENTS.md"
   learnings:

@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! Real temporary repositories for the integration tests. The process-wide git
 //! environment is pinned once so a developer's global config (signing, diff
 //! settings, templates) can never change a result.
@@ -14,7 +15,7 @@ static ENV: Once = Once::new();
 fn pin_environment() {
     ENV.call_once(|| {
         let empty =
-            std::env::temp_dir().join(format!("terax-test-gitconfig-{}", std::process::id()));
+            std::env::temp_dir().join(format!("estate-test-gitconfig-{}", std::process::id()));
         std::fs::write(&empty, "").expect("write empty git config");
         std::env::set_var("GIT_CONFIG_GLOBAL", &empty);
         std::env::set_var("GIT_CONFIG_NOSYSTEM", "1");

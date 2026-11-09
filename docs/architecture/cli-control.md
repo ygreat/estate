@@ -1,38 +1,39 @@
+<!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 # CLI control plane
 
-This guide elaborates on `TERAX.md`. If anything here conflicts with `TERAX.md`, `TERAX.md` wins.
+This guide elaborates on `ESTATE.md`. If anything here conflicts with `ESTATE.md`, `ESTATE.md` wins.
 
 ## Current surface
 
-Terax bundles a small Rust client internally named `terax-cli`. Native terminal panes expose it as the public `terax` command:
+Estate bundles a small Rust client internally named `estate-cli`. Native terminal panes expose it as the public `estate` command:
 
 ```text
-terax <file> [--line <n>] [--no-focus] [--json]
-terax open <file> [--line <n>] [--no-focus] [--json]
-terax ping [--json]
-terax capabilities [--json]
-terax identify [--json]
-terax hook <agent> <event>
+estate <file> [--line <n>] [--no-focus] [--json]
+estate open <file> [--line <n>] [--no-focus] [--json]
+estate ping [--json]
+estate capabilities [--json]
+estate identify [--json]
+estate hook <agent> <event>
 ```
 
-The app must already be running. A command launched inside a Terax pane targets that pane's space, even if another space or tab has UI focus. An external client without pane context falls back to the active UI context.
+The app must already be running. A command launched inside a Estate pane targets that pane's space, even if another space or tab has UI focus. An external client without pane context falls back to the active UI context.
 
-`terax hook` is the entry point agent hooks call. It reads the hook JSON from stdin and delivers it with `TERAX_PANE_ID`. It does nothing outside a Terax pane, never exits non-zero, and prints `{}` unless it is returning a permission decision. `TERAX_HOOK_TIMEOUT` (seconds, default 600, at most 900) bounds how long it waits for a decision, `TERAX_HOOK_WAIT=0` disables waiting, and `TERAX_HOOK_DEBUG=1` prints why a delivery failed to stderr.
+`estate hook` is the entry point agent hooks call. It reads the hook JSON from stdin and delivers it with `ESTATE_PANE_ID`. It does nothing outside a Estate pane, never exits non-zero, and prints `{}` unless it is returning a permission decision. `ESTATE_HOOK_TIMEOUT` (seconds, default 600, at most 900) bounds how long it waits for a decision, `ESTATE_HOOK_WAIT=0` disables waiting, and `ESTATE_HOOK_DEBUG=1` prints why a delivery failed to stderr.
 
 ## Components
 
-- `src-tauri/crates/terax-control-protocol` contains dependency-light request, response, error, descriptor, and method types shared by the app and CLI.
-- `src-tauri/crates/terax-cli` contains the standalone console client. It intentionally avoids Clap, Tokio, reqwest, and Tauri.
+- `src-tauri/crates/estate-control-protocol` contains dependency-light request, response, error, descriptor, and method types shared by the app and CLI.
+- `src-tauri/crates/estate-cli` contains the standalone console client. It intentionally avoids Clap, Tokio, reqwest, and Tauri.
 - `src-tauri/src/modules/control.rs` owns endpoint discovery, authentication, message limits, concurrency limits, timeouts, path canonicalization, and request routing.
 - `src/modules/control/` maps a caller pane to its tab and space, then performs the small set of UI-only actions.
-- `terax-control-protocol::hook` holds the hook method types, the per-agent payload adapters, payload trimming and decision rendering. `src-tauri/src/modules/agent_events.rs` serves the method, and `src/modules/control/agents.ts` is the frontend API.
+- `estate-control-protocol::hook` holds the hook method types, the per-agent payload adapters, payload trimming and decision rendering. `src-tauri/src/modules/agent_events.rs` serves the method, and `src/modules/control/agents.ts` is the frontend API.
 - `scripts/build-cli.mjs` builds the target-specific helper expected by Tauri's `externalBin` bundler.
 
 Rust handles `ping`, `capabilities`, authentication, and file validation directly. Actions that must mutate React state are emitted to the main webview and completed through `control_respond`. This keeps OS validation in Rust without duplicating the tab model outside React.
 
 ## Transport and authentication
 
-The app binds an ephemeral loopback TCP port and writes a discovery descriptor to the user cache directory under `terax/control.json`. The descriptor contains the protocol version, address, process id, app version, and a random 256-bit token.
+The app binds an ephemeral loopback TCP port and writes a discovery descriptor to the user cache directory under `estate/control.json`. The descriptor contains the protocol version, address, process id, app version, and a random 256-bit token.
 
 Security properties:
 
@@ -42,34 +43,34 @@ Security properties:
 - Messages are newline-delimited JSON and capped at 64 KiB.
 - Request ids are bounded and restricted to log-safe ASCII.
 - Connections and pending UI requests are capped at 32, with bounded read, write, and UI response timeouts.
-- The CLI verifies that a cache descriptor still names a live Terax process before sending its token.
+- The CLI verifies that a cache descriptor still names a live Estate process before sending its token.
 - A hook names its pane in the caller context. The pane must belong to a live PTY, hook payloads are trimmed by the CLI (at most 40 KiB, 1 MiB read from stdin) and re-bounded by the adapters, and tool and subagent events are rate limited per pane.
 - A hook that waits for a permission decision is answered twice: an interim result with `held: true` right away, then the decision. The CLI waits about two seconds for the first answer and extends the wait only after `held`, so a dead or foreign endpoint never costs the decision wait.
 - A held hook keeps its connection for at most 15 minutes, no more than four per pane and sixteen overall. It is released immediately when the pane's window has not announced decision support, and cancelled when the agent disconnects, the pane closes, or that window withdraws or reloads its page (support is tracked per window and cleared on page load). Request ids are random and only the requesting connection learns them.
 - File paths are canonicalized and required to reference a regular file inside an authorized workspace before the editor is opened.
 - The descriptor is removed only when it still belongs to the exiting process, so an older instance cannot delete a newer instance's endpoint.
 
-The token is injected into Terax-spawned native shells together with `TERAX_PANE_ID`. Child coding agents inherit the caller context intentionally, which gives them the same local UI-control capability as the terminal that launched them. Tokens must never be logged or added to command output.
+The token is injected into Estate-spawned native shells together with `ESTATE_PANE_ID`. Child coding agents inherit the caller context intentionally, which gives them the same local UI-control capability as the terminal that launched them. Tokens must never be logged or added to command output.
 
 ## Command discovery inside a PTY
 
-The packaged helper is named `terax-cli` because a macOS app bundle places sidecars beside the GUI executable, which is already named `terax`. At app startup Terax creates a user-private, per-process `bin/terax` hard link to the packaged helper, falling back to a symlink on Unix or a copy on Windows. That directory is prepended to the PTY `PATH`.
+The packaged helper is named `estate-cli` because a macOS app bundle places sidecars beside the GUI executable, which is already named `estate`. At app startup Estate creates a user-private, per-process `bin/estate` hard link to the packaged helper, falling back to a symlink on Unix or a copy on Windows. That directory is prepended to the PTY `PATH`.
 
-Existing Bash, Zsh, Fish, and PowerShell integration also defines an interactive `terax` function that executes `$TERAX_CLI`. The real PATH entry is still required because non-interactive child shells do not reliably inherit shell functions.
+Existing Bash, Zsh, Fish, and PowerShell integration also defines an interactive `estate` function that executes `$ESTATE_CLI`. The real PATH entry is still required because non-interactive child shells do not reliably inherit shell functions.
 
 Launcher directories for exited processes are removed at the next control-server startup. Live process ids are preserved regardless of directory age.
 
 ## Packaging and size
 
-`tauri.conf.json` declares `binaries/terax-cli` as an external binary. Tauri selects the file with the current target-triple suffix and signs or packages it with the app. The release workflow passes its explicit Rust target to `scripts/build-cli.mjs`, which prevents an x86_64 macOS release from accidentally bundling an arm64 helper from the host.
+`tauri.conf.json` declares `binaries/estate-cli` as an external binary. Tauri selects the file with the current target-triple suffix and signs or packages it with the app. The release workflow passes its explicit Rust target to `scripts/build-cli.mjs`, which prevents an x86_64 macOS release from accidentally bundling an arm64 helper from the host.
 
 The release profile uses one codegen unit, fat LTO, size optimization, abort-on-panic, and stripping. Always measure the actual target artifacts after changing dependencies.
 
 ## Current limits
 
 - WSL panes do not receive the control credentials or CLI launcher yet. Windows path translation and WSL networking must be implemented and tested together.
-- Terax does not yet install a global command for external Terminal.app, PowerShell, or other terminals. The bundled helper and cache descriptor already support that future installer step.
-- The CLI does not launch a stopped Terax app yet.
+- Estate does not yet install a global command for external Terminal.app, PowerShell, or other terminals. The bundled helper and cache descriptor already support that future installer step.
+- The CLI does not launch a stopped Estate app yet.
 - Split, tab, screen-read, and input commands are not part of protocol version 1 yet.
 - Agent hooks are inert in WSL panes for the same reason the credentials are not injected there.
 
@@ -77,7 +78,7 @@ These limits are explicit so unsupported paths fail as unavailable instead of si
 
 ## Extending the protocol
 
-1. Add the method constant and typed parameters to `terax-control-protocol`.
+1. Add the method constant and typed parameters to `estate-control-protocol`.
 2. Validate authentication, protocol version, bounds, and OS-facing inputs in Rust.
 3. Handle the method in Rust when it does not require React state. Route only UI-bound work to the frontend.
 4. Resolve the explicit caller pane before falling back to active UI state.
@@ -86,7 +87,7 @@ These limits are explicit so unsupported paths fail as unavailable instead of si
 
 ## See also
 
-- [`TERAX.md`](../../TERAX.md) - architecture source of truth
+- [`ESTATE.md`](../../ESTATE.md) - architecture source of truth
 - [Two-process model](two-process-model.md) - Tauri IPC boundary
 - [PTY shell integration](pty-shell-integration.md) - environment injection and shell startup
 - [Security model](security-model.md) - workspace and secret boundaries

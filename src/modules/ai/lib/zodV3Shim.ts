@@ -1,6 +1,7 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 // Aliased in for `zod/v3` at build time. @ai-sdk/provider-utils imports only
 // this enum from it, to recognise zod 3 schemas, but the real entry carries all
-// of zod 3 (~14 kB gzipped) into the AI chunks. Terax builds its schemas with
+// of zod 3 (~14 kB gzipped) into the AI chunks. Estate builds its schemas with
 // zod 4. If provider-utils starts importing more, the build fails here.
 
 export const ZodFirstPartyTypeKind = {

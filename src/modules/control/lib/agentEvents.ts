@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type {
   AgentHookEvent,
   AgentModelEvent,
@@ -9,8 +10,8 @@ import type {
 } from "@/modules/agents/model";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
-export const AGENT_EVENT = "terax:agent-event";
-export const TERMINAL_NOTIFICATION_EVENT = "terax:terminal-notification";
+export const AGENT_EVENT = "estate:agent-event";
+export const TERMINAL_NOTIFICATION_EVENT = "estate:terminal-notification";
 
 const KINDS: ReadonlySet<string> = new Set<HookEventKind>([
   "session-start",
@@ -85,7 +86,7 @@ function parseSubagent(value: unknown): SubagentInfo | undefined {
   return { id: subagentId, type: text(subagent.type) ?? "agent", state };
 }
 
-/** Validates a native `terax:agent-event` payload; null when malformed. */
+/** Validates a native `estate:agent-event` payload; null when malformed. */
 export function parseAgentHookEvent(payload: unknown): AgentHookEvent | null {
   const raw = dict(payload);
   if (!raw) return null;
@@ -181,7 +182,7 @@ function fanout<T>(
         try {
           handler(value);
         } catch (error) {
-          console.error(`[terax] ${eventName} handler failed:`, error);
+          console.error(`[estate] ${eventName} handler failed:`, error);
         }
       }
     });
@@ -191,7 +192,7 @@ function fanout<T>(
     attachResult.catch(() => undefined);
     pending.catch((error) => {
       if (attached === pending) attached = null;
-      console.error(`[terax] could not listen for ${eventName}:`, error);
+      console.error(`[estate] could not listen for ${eventName}:`, error);
     });
   };
 
@@ -225,7 +226,7 @@ export function hookEventToModelEvent(event: AgentHookEvent): AgentModelEvent {
   return { type: "hook", event };
 }
 
-/** Adapts a legacy `terax:agent-signal` (process and OSC state) for the model. */
+/** Adapts a legacy `estate:agent-signal` (process and OSC state) for the model. */
 export function signalToModelEvent(
   signal: AgentSignalEvent,
   at: number = Date.now(),
