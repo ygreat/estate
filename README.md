@@ -2,7 +2,7 @@
 <div align="center">
   <h1>Estate</h1>
 
-  <p><strong>A focused developer workspace for Intel Macs on macOS 12 Monterey.</strong></p>
+  <p><strong>A lightweight, highly optimized workspace for agentic development, built to run well on older machines and operating systems.</strong></p>
 
   <p>
     <img src="https://img.shields.io/badge/platform-macOS%2012%2B%20Intel-lightgrey" alt="platform" />

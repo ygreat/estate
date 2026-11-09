@@ -77,7 +77,11 @@ export function AboutSection() {
             {name}
           </span>
           <span className="text-[11px] text-muted-foreground">
-            Developer workspace for Intel Macs on macOS 12
+            A lightweight, highly optimized workspace for agentic development
+          </span>
+          <span className="max-w-sm text-[11px] leading-4 text-muted-foreground/80">
+            Terminal, editor, git and coding agents in one small app that runs
+            smoothly on older Macs and operating systems.
           </span>
           <span className="mt-1 font-mono text-[11px] text-muted-foreground">
             v{version || "—"}
