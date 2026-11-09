@@ -1,7 +1,10 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   beginTerminalResizeInteraction,
   endTerminalResizeInteraction,
+  notifyTerminalLayoutMoved,
+  subscribeTerminalLayoutMoved,
   subscribeTerminalResizeInteraction,
 } from "./terminalResizeInteraction";
 
@@ -40,5 +43,17 @@ describe("terminalResizeInteraction", () => {
     endTerminalResizeInteraction(inner);
     expect(listener).toHaveBeenLastCalledWith(false);
     unsubscribe();
+  });
+});
+
+describe("terminal layout moved (Estate split view)", () => {
+  it("notifies subscribers until they unsubscribe", () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeTerminalLayoutMoved(listener);
+    notifyTerminalLayoutMoved();
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
+    notifyTerminalLayoutMoved();
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });

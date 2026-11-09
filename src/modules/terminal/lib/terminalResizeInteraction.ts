@@ -71,3 +71,30 @@ export function subscribeTerminalResizeInteraction(
 function notifyListeners(active: boolean): void {
   for (const listener of state.listeners) listener(active);
 }
+
+// Estate: split view of tabs moves whole terminal tabs between panes. A move
+// that keeps the size fires no ResizeObserver, so the window canvas would only
+// notice it on its once-a-second geometry check; this signal makes it re-read
+// pane positions at once.
+type MoveListener = () => void;
+const MOVE_LISTENERS_KEY = "__ESTATE_TERMINAL_LAYOUT_MOVE__";
+const moveScope = globalThis as typeof globalThis & {
+  [MOVE_LISTENERS_KEY]?: Set<MoveListener>;
+};
+const moveListeners: Set<MoveListener> =
+  moveScope[MOVE_LISTENERS_KEY] ?? new Set<MoveListener>();
+moveScope[MOVE_LISTENERS_KEY] = moveListeners;
+
+/** Tells terminal renderers that panes may have moved without resizing. */
+export function notifyTerminalLayoutMoved(): void {
+  for (const listener of moveListeners) listener();
+}
+
+export function subscribeTerminalLayoutMoved(
+  listener: MoveListener,
+): () => void {
+  moveListeners.add(listener);
+  return () => {
+    moveListeners.delete(listener);
+  };
+}

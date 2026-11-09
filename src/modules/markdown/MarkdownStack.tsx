@@ -1,4 +1,6 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { cn } from "@/lib/utils";
+import { placementStyle, useTabPlacement } from "@/modules/layout/placement";
 import type { MarkdownTab, Tab } from "@/modules/tabs";
 import { MarkdownPreviewPane } from "./MarkdownPreviewPane";
 
@@ -17,6 +19,7 @@ function workspaceRootOf(tabs: Tab[], activeId: number): string | null {
 }
 
 export function MarkdownStack({ tabs, activeId, onSetMarkdownView }: Props) {
+  const placementOf = useTabPlacement();
   const markdowns = tabs.filter(
     (t): t is MarkdownTab => t.kind === "markdown" && !t.cold,
   );
@@ -25,14 +28,13 @@ export function MarkdownStack({ tabs, activeId, onSetMarkdownView }: Props) {
   return (
     <div className="relative h-full w-full">
       {markdowns.map((t) => {
-        const visible = t.id === activeId;
+        const placement = placementOf(t.id, activeId);
+        const visible = placement !== null;
         return (
           <div
             key={t.id}
-            className={cn(
-              "absolute inset-0",
-              !visible && "invisible pointer-events-none",
-            )}
+            style={placementStyle(placement)}
+            className={cn(!visible && "invisible pointer-events-none")}
             aria-hidden={!visible}
           >
             <MarkdownPreviewPane

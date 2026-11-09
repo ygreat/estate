@@ -2,6 +2,7 @@
 import { smoothHooks } from "@/bench/smoothHooks";
 import { noteTerminalHostResize } from "@/modules/terminal/lib/terminalResizeGesture";
 import {
+  subscribeTerminalLayoutMoved,
   subscribeTerminalResizeInteraction,
   terminalResizeInteractionActive,
 } from "@/modules/terminal/lib/terminalResizeInteraction";
@@ -158,6 +159,7 @@ export class WebGpuWindowCanvas {
   private readonly observer: ResizeObserver;
   private readonly pixelRatioMonitor: DevicePixelRatioMonitor;
   private readonly unsubscribeGesture: () => void;
+  private readonly unsubscribeMoves: () => void;
   private area: HTMLElement | null = null;
   private areaCss: CssRect | null = null;
   private areaDevice: { width: number; height: number } | null = null;
@@ -224,6 +226,13 @@ export class WebGpuWindowCanvas {
       // The gesture is over: shrink the backing to the area, once.
       this.restage();
       this.requestFrame();
+    });
+    // Estate: a split-view layout change can move panes without resizing them.
+    this.unsubscribeMoves = subscribeTerminalLayoutMoved(() => {
+      if (!this.area) return;
+      this.lastGeometryCheck = Number.NEGATIVE_INFINITY;
+      this.verifyGeometry(performance.now());
+      if (this.dirty) this.requestFrame();
     });
   }
 
@@ -493,6 +502,7 @@ export class WebGpuWindowCanvas {
     this.observer.disconnect();
     this.pixelRatioMonitor.stop();
     this.unsubscribeGesture();
+    this.unsubscribeMoves();
     if (this.hideTimer !== null) clearTimeout(this.hideTimer);
     window.removeEventListener?.("resize", this.handleWindowResize);
     this.panes.clear();

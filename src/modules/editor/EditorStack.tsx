@@ -1,7 +1,9 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { cn, isMarkdownPath } from "@/lib/utils";
+import { placementStyle, useTabPlacement } from "@/modules/layout/placement";
 import { MarkdownViewToggle } from "@/modules/markdown";
-import { useWindowInactive } from "@/modules/theme/WindowActivityBridge";
 import type { EditorTab, Tab } from "@/modules/tabs";
+import { useWindowInactive } from "@/modules/theme/WindowActivityBridge";
 import { useEffect, useRef } from "react";
 import { EditorPane, type EditorPaneHandle } from "./EditorPane";
 
@@ -22,6 +24,7 @@ export function EditorStack({
   onCloseTab,
   onSetMarkdownView,
 }: Props) {
+  const placementOf = useTabPlacement();
   const editors = tabs.filter(
     (t): t is EditorTab => t.kind === "editor" && !t.cold,
   );
@@ -95,14 +98,13 @@ export function EditorStack({
   return (
     <div className="relative h-full w-full">
       {editors.map((t) => {
-        const visible = t.id === activeId;
+        const placement = placementOf(t.id, activeId);
+        const visible = placement !== null;
         return (
           <div
             key={t.id}
-            className={cn(
-              "absolute inset-0",
-              !visible && "invisible pointer-events-none",
-            )}
+            style={placementStyle(placement)}
+            className={cn(!visible && "invisible pointer-events-none")}
             aria-hidden={!visible}
           >
             <div className="relative h-full overflow-hidden bg-background">

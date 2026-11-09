@@ -1,3 +1,5 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+import { placementStyle, useTabPlacement } from "@/modules/layout/placement";
 import type { Tab } from "@/modules/tabs";
 import type { TerminalSearchController } from "@/modules/terminal/search/TerminalSearchController";
 import { useEffect, useMemo, useRef } from "react";
@@ -34,6 +36,7 @@ export function TerminalStack({
   onFocusLeaf,
 }: Props) {
   const terminals = useMemo(() => selectLiveTerminals(tabs), [tabs]);
+  const placementOf = useTabPlacement();
 
   const registerRef = useRef(registerHandle);
   const searchReadyRef = useRef(onSearchReady);
@@ -89,13 +92,17 @@ export function TerminalStack({
         className="zoom-exempt pointer-events-none absolute inset-0 overflow-hidden"
       />
       {terminals.map((t) => {
-        const tabVisible = t.id === activeId;
+        const placement = placementOf(t.id, activeId);
+        const tabVisible = placement !== null;
         return (
           <div
             key={t.id}
             data-terminal-tab={t.id}
-            className="absolute inset-0"
+            // Estate: the inset lives on each tab (not the stack), so the shared
+            // canvas above covers every pane of a split workspace.
+            className="px-3 pt-2 pb-2"
             style={{
+              ...placementStyle(placement),
               visibility: tabVisible ? "visible" : "hidden",
               pointerEvents: tabVisible ? "auto" : "none",
             }}

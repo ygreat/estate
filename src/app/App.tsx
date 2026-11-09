@@ -51,6 +51,7 @@ import {
   type SearchInlineHandle,
   type SearchTarget,
 } from "@/modules/header";
+import { useWorkspaceLayout } from "@/modules/layout/useWorkspaceLayout";
 import { setLspNavigator } from "@/modules/lsp";
 import type { PreviewPaneHandle } from "@/modules/preview";
 import { openSettingsWindow } from "@/modules/settings/openSettingsWindow";
@@ -201,6 +202,7 @@ export default function App() {
     closeActivePane,
     closePaneByLeaf,
     resetWorkspace,
+    warmTab,
   } = useTabs(getLaunchDir() ? { cwd: getLaunchDir() } : undefined);
 
   // Mirror `tabs` into a ref so callbacks scheduled with `setTimeout`
@@ -330,6 +332,14 @@ export default function App() {
     () => tabs.filter((t) => t.spaceId === (activeSpaceId ?? DEFAULT_SPACE_ID)),
     [tabs, activeSpaceId],
   );
+
+  const workspaceLayout = useWorkspaceLayout({
+    spaceId: activeSpaceId ?? DEFAULT_SPACE_ID,
+    spaceTabs,
+    activeId,
+    setActiveId,
+    warmTab,
+  });
 
   const {
     sidebarRef,
@@ -1535,6 +1545,12 @@ export default function App() {
               onPin={pinTab}
               onRename={handleRenameTab}
               onReorder={reorderTabByGap}
+              onDropOnPane={(id, target) =>
+                workspaceLayout.dropTabOnPane(id, target.leafId, target.zone)
+              }
+              onSplit={workspaceLayout.splitWithTab}
+              onClosePane={workspaceLayout.closePaneOfTab}
+              splitTabIds={workspaceLayout.splitTabIds}
               onToggleSidebar={toggleSidebar}
               onOpenCommandPalette={() => openCommandPalette("commands")}
               onActivateAgent={onActivateAgent}
@@ -1571,7 +1587,10 @@ export default function App() {
                       <WorkspaceSurface
                         tabs={tabs}
                         activeId={activeId}
-                        activeTab={activeTab}
+                        layout={workspaceLayout.layout}
+                        split={workspaceLayout.split}
+                        onFocusPane={workspaceLayout.focusPane}
+                        onPaneSizes={workspaceLayout.setSizes}
                         registerTerminalHandle={registerTerminalHandle}
                         onSearchReady={handleSearchReady}
                         onCwd={handleTerminalCwd}

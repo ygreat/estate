@@ -1,19 +1,35 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { useCallback, useEffect, useRef } from "react";
 import type { Tab } from "@/modules/tabs";
+import { serializeLayout, type WorkspaceLayout } from "@/modules/layout/model";
+import { useLayoutStore } from "@/modules/layout/store";
 import { isSerializableTab, serializeTabs } from "./serialize";
 import { saveState } from "./store";
 import { useSpaces } from "./useSpaces";
 
 const DEBOUNCE_MS = 3000;
 
-type Snapshot = { tabs: Tab[]; activeId: number; activeSpaceId: string };
+type Snapshot = {
+  tabs: Tab[];
+  activeId: number;
+  activeSpaceId: string;
+  layouts: Record<string, WorkspaceLayout>;
+};
 
-type Params = Snapshot & {
+type Params = Omit<Snapshot, "layouts"> & {
   /** Gate writes until boot hydration finished, so restore never round-trips. */
   enabled: boolean;
 };
 
 type LastWrite = { json: string; activeTabIndex: number };
+
+function layoutFor(group: Tab[], layout: WorkspaceLayout | undefined) {
+  if (!layout) return undefined;
+  const index = new Map<number, number>();
+  const saved = group.filter(isSerializableTab);
+  for (let i = 0; i < saved.length; i++) index.set(saved[i].id, i);
+  return serializeLayout(layout, (id) => index.get(id));
+}
 
 export function useSpacePersistence({
   tabs,
@@ -24,8 +40,9 @@ export function useSpacePersistence({
   const last = useRef<Map<string, LastWrite>>(new Map());
   const seeded = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latest = useRef<Snapshot>({ tabs, activeId, activeSpaceId });
-  latest.current = { tabs, activeId, activeSpaceId };
+  const layouts = useLayoutStore((s) => s.layouts);
+  const latest = useRef<Snapshot>({ tabs, activeId, activeSpaceId, layouts });
+  latest.current = { tabs, activeId, activeSpaceId, layouts };
 
   // Seed each space's last-known active index from disk so the first flush
   // preserves it for spaces the user never opens (empty json forces one write
@@ -57,7 +74,8 @@ export function useSpacePersistence({
           .findIndex((t) => t.id === snap.activeId);
         if (idx >= 0) activeTabIndex = idx;
       }
-      const json = JSON.stringify(serialized);
+      const layout = layoutFor(group, snap.layouts[spaceId]);
+      const json = JSON.stringify(layout ? [serialized, layout] : serialized);
       if (
         prev &&
         prev.json === json &&
@@ -66,13 +84,17 @@ export function useSpacePersistence({
         continue;
       }
       last.current.set(spaceId, { json, activeTabIndex });
-      void saveState(spaceId, { tabs: serialized, activeTabIndex });
+      void saveState(spaceId, {
+        tabs: serialized,
+        activeTabIndex,
+        ...(layout && { layout }),
+      });
     }
   }, []);
 
   useEffect(() => {
     if (!enabled) return;
-    const snap: Snapshot = { tabs, activeId, activeSpaceId };
+    const snap: Snapshot = { tabs, activeId, activeSpaceId, layouts };
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       timer.current = null;
@@ -81,7 +103,7 @@ export function useSpacePersistence({
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [tabs, activeId, activeSpaceId, enabled, flush]);
+  }, [tabs, activeId, activeSpaceId, layouts, enabled, flush]);
 
   useEffect(() => {
     if (!enabled) return;

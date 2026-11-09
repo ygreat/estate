@@ -1,11 +1,14 @@
-import type { ComponentProps } from "react";
-import { cn } from "@/lib/utils";
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+
 import { AiDiffStack, EditorStack, GitDiffStack } from "@/modules/editor";
 import { GitHistoryStack } from "@/modules/git-history";
+import type { WorkspaceLayout } from "@/modules/layout/model";
+import { WorkspaceLayoutFrame } from "@/modules/layout/WorkspaceLayoutFrame";
 import { MarkdownStack } from "@/modules/markdown";
 import { PreviewStack } from "@/modules/preview";
 import type { Tab } from "@/modules/tabs";
 import { TerminalStack } from "@/modules/terminal";
+import type { ComponentProps } from "react";
 
 type TerminalStackProps = ComponentProps<typeof TerminalStack>;
 type EditorStackProps = ComponentProps<typeof EditorStack>;
@@ -16,7 +19,10 @@ type GitHistoryStackProps = ComponentProps<typeof GitHistoryStack>;
 type Props = {
   tabs: Tab[];
   activeId: number;
-  activeTab: Tab | undefined;
+  layout: WorkspaceLayout;
+  split: boolean;
+  onFocusPane: (leafId: string) => void;
+  onPaneSizes: (splitId: string, sizes: number[]) => void;
   registerTerminalHandle: TerminalStackProps["registerHandle"];
   onSearchReady: TerminalStackProps["onSearchReady"];
   onCwd: TerminalStackProps["onCwd"];
@@ -34,20 +40,25 @@ type Props = {
   onSetMarkdownView: EditorStackProps["onSetMarkdownView"];
 };
 
-const LAYER = "absolute inset-0";
+/** Each kind's layer ignores the pointer; a shown tab inside it takes it back. */
+const LAYER = "pointer-events-none absolute inset-0";
 
 /**
- * Stacks every tab-kind surface absolutely on top of each other and toggles
- * visibility off the active tab, so panes keep their mounted state (terminal
- * buffers, editor scroll, ...) when switching tabs.
+ * Stacks every tab-kind surface absolutely on top of each other. Each tab is
+ * placed by the layout frame: the whole surface, a split pane, or hidden. Tabs
+ * stay mounted (terminal buffers, editor scroll, browser frames) when tabs
+ * switch or the layout changes.
  *
- * Layers sit flush inside the workspace pane; only the terminal layer is inset,
- * because the terminal draws glyphs right up to its container edge.
+ * Layers sit flush inside the workspace pane; terminal tabs carry their own
+ * inset, because the terminal draws glyphs right up to its container edge.
  */
 export function WorkspaceSurface({
   tabs,
   activeId,
-  activeTab,
+  layout,
+  split,
+  onFocusPane,
+  onPaneSizes,
   registerTerminalHandle,
   onSearchReady,
   onCwd,
@@ -64,25 +75,14 @@ export function WorkspaceSurface({
   onGitHistorySearchHandle,
   onSetMarkdownView,
 }: Props) {
-  const kind = activeTab?.kind;
-  const isTerminalTab = kind === "terminal";
-  const isEditorTab = kind === "editor";
-  const isPreviewTab = kind === "preview";
-  const isMarkdownTab = kind === "markdown";
-  const isAiDiffTab = kind === "ai-diff";
-  const isGitDiffTab = kind === "git-diff" || kind === "git-commit-file";
-  const isGitHistoryTab = kind === "git-history";
-
   return (
-    <div className="relative h-full min-h-0">
-      <div
-        className={cn(
-          LAYER,
-          "px-3 pt-2 pb-2",
-          !isTerminalTab && "invisible pointer-events-none",
-        )}
-        aria-hidden={!isTerminalTab}
-      >
+    <WorkspaceLayoutFrame
+      layout={layout}
+      split={split}
+      onFocusPane={onFocusPane}
+      onSizes={onPaneSizes}
+    >
+      <div className={LAYER}>
         <TerminalStack
           tabs={tabs}
           activeId={activeId}
@@ -93,10 +93,7 @@ export function WorkspaceSurface({
           onFocusLeaf={onFocusLeaf}
         />
       </div>
-      <div
-        className={cn(LAYER, !isEditorTab && "invisible pointer-events-none")}
-        aria-hidden={!isEditorTab}
-      >
+      <div className={LAYER}>
         <EditorStack
           tabs={tabs}
           activeId={activeId}
@@ -106,10 +103,7 @@ export function WorkspaceSurface({
           onSetMarkdownView={onSetMarkdownView}
         />
       </div>
-      <div
-        className={cn(LAYER, !isPreviewTab && "invisible pointer-events-none")}
-        aria-hidden={!isPreviewTab}
-      >
+      <div className={LAYER}>
         <PreviewStack
           tabs={tabs}
           activeId={activeId}
@@ -117,20 +111,14 @@ export function WorkspaceSurface({
           onUrlChange={onPreviewUrlChange}
         />
       </div>
-      <div
-        className={cn(LAYER, !isMarkdownTab && "invisible pointer-events-none")}
-        aria-hidden={!isMarkdownTab}
-      >
+      <div className={LAYER}>
         <MarkdownStack
           tabs={tabs}
           activeId={activeId}
           onSetMarkdownView={onSetMarkdownView}
         />
       </div>
-      <div
-        className={cn(LAYER, !isAiDiffTab && "invisible pointer-events-none")}
-        aria-hidden={!isAiDiffTab}
-      >
+      <div className={LAYER}>
         <AiDiffStack
           tabs={tabs}
           activeId={activeId}
@@ -138,19 +126,10 @@ export function WorkspaceSurface({
           onReject={onAiDiffReject}
         />
       </div>
-      <div
-        className={cn(LAYER, !isGitDiffTab && "invisible pointer-events-none")}
-        aria-hidden={!isGitDiffTab}
-      >
+      <div className={LAYER}>
         <GitDiffStack tabs={tabs} activeId={activeId} />
       </div>
-      <div
-        className={cn(
-          LAYER,
-          !isGitHistoryTab && "invisible pointer-events-none",
-        )}
-        aria-hidden={!isGitHistoryTab}
-      >
+      <div className={LAYER}>
         <GitHistoryStack
           tabs={tabs}
           activeId={activeId}
@@ -158,6 +137,6 @@ export function WorkspaceSurface({
           onSearchHandle={onGitHistorySearchHandle}
         />
       </div>
-    </div>
+    </WorkspaceLayoutFrame>
   );
 }

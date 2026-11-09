@@ -14,6 +14,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
+  type ComponentProps,
   type ReactNode,
   type RefObject,
   useEffect,
@@ -48,6 +49,10 @@ type Props = {
   onRename: (id: number, title: string) => void;
   /** Move a dragged tab to a new position (insertion gap index). */
   onReorder: (fromId: number, toGapIndex: number) => void;
+  onDropOnPane?: ComponentProps<typeof TabBar>["onDropOnPane"];
+  onSplit?: ComponentProps<typeof TabBar>["onSplit"];
+  onClosePane?: ComponentProps<typeof TabBar>["onClosePane"];
+  splitTabIds?: ReadonlySet<number>;
   onOverrideLanguage?: (id: number, lang: string | null) => void;
   onToggleSidebar: () => void;
   onOpenCommandPalette: () => void;
@@ -78,6 +83,10 @@ export function Header({
   onPin,
   onRename,
   onReorder,
+  onDropOnPane,
+  onSplit,
+  onClosePane,
+  splitTabIds,
   onOverrideLanguage,
   onToggleSidebar,
   onOpenCommandPalette,
@@ -192,6 +201,10 @@ export function Header({
           onPin={onPin}
           onRename={onRename}
           onReorder={onReorder}
+          onDropOnPane={onDropOnPane}
+          onSplit={onSplit}
+          onClosePane={onClosePane}
+          splitTabIds={splitTabIds}
           onOverrideLanguage={onOverrideLanguage}
           compact={compact}
         />
