@@ -1,137 +1,112 @@
 <!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 <div align="center">
+  <img src="design/logo-estate.png" alt="Estate" width="112" height="112" />
   <h1>Estate</h1>
 
-  <p><strong>A lightweight, highly optimized workspace for agentic development, built to run well on older machines and operating systems.</strong></p>
+  <p><strong>A lightweight, frictionless workspace for agentic development, built to run well on older machines.</strong></p>
 
   <p>
-    <img src="https://img.shields.io/badge/platform-macOS%2012%2B%20Intel-lightgrey" alt="platform" />
+    <img src="https://img.shields.io/badge/platform-macOS%20Intel-lightgrey" alt="platform" />
     <img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="license" />
   </p>
 </div>
 
 ---
 
-Estate is an open-source developer workspace with seven tools: terminal, SSH/SFTP, database browser, editor, AI agent, in-app browser and Git. It is built on Tauri 2 and Rust, runs on Intel Macs with macOS 12 Monterey, and sends no telemetry.
+Estate brings your terminal, editor, git and AI coding agents together in one small, fast app. It is made for people who build with agents, from seasoned developers to someone writing their first project with Claude Code, and it stays light enough to run smoothly on machines and operating systems that newer tools have left behind.
 
-Modern agent workspaces and CLIs are dropping Monterey, and Intel Macs that stop at Monterey can't upgrade their way out. Estate keeps a current, lightweight workspace running on those machines. The reference machine is a 15-inch 2015 MacBook Pro on macOS 12.7.
-
-> [!NOTE]
-> Estate is an independent project built on Tauri, starting from [Terax](https://github.com/crynta/terax-ai) 0.9.0 (commit `a2c0877`, 6 November 2026). It is developed on its own from there, and later Terax releases are not merged or ported. It is not affiliated with or endorsed by the Terax project.
+Estate is an independent project, built with Tauri and Rust on top of [Terax](https://github.com/crynta/terax-ai) 0.9.0.
 
 > [!IMPORTANT]
-> Estate is in early development and has no release yet. SSH/SFTP and the database browser are not built yet. See [ROADMAP.md](ROADMAP.md).
+> Estate is in early development and has no release yet. See [ROADMAP.md](ROADMAP.md) for what's next and [CHANGELOG.md](CHANGELOG.md) for what's new.
 
-## Tools
+## Why Estate
 
-| Tool | What it does |
-| --- | --- |
-| **Terminal** | Native PTY backend with tabs and splits, rendered by libghostty-vt in WebAssembly. WebGPU where available, WebGL2 on Monterey. |
-| **SSH/SFTP** *(planned)* | Saved hosts, `~/.ssh/config` import, key, agent and password login with host key checks; browse and transfer remote files and open them in the editor. |
-| **Database browser** *(planned)* | PostgreSQL, MySQL/MariaDB and SQLite, directly or over SSH, with a schema tree, SQL editor, paged results and a guard on destructive statements. |
-| **Editor** | CodeMirror 6 with a file explorer, AI edit diffs and opt-in language servers. |
-| **AI agent** | Built-in agent with your own API keys, and coding agents (Claude Code, Codex, Gemini CLI, OpenCode) in a terminal or as a chat. |
-| **In-app browser** | Local dev servers and external URLs in a child webview. Cutting it off from the app's commands is planned and not yet verified. |
-| **Git** | Stage hunks, commit, push, pull, branches and a history graph. |
+- **Frictionless.** Open a folder and start: talk to an agent, open a terminal, or split the window to watch both. Nothing to configure first.
+- **Agent-first.** Run Claude Code, Codex, Gemini CLI or OpenCode as a clean chat or in a terminal, and see every agent you have going in one place.
+- **Light on old hardware.** A small native app, not a bundled browser. Built and tested for Intel Macs back to macOS 12, with a renderer that keeps working on older GPUs.
+- **Private.** No telemetry, no analytics, no background update checks. Your keys stay in the system keychain.
 
-## What Estate adds
+## What you can do
 
-On top of the Terax 0.9.0 base, Estate adds these enhancements and quality-of-life improvements. The full list is in [CHANGELOG.md](CHANGELOG.md).
+**Work with coding agents**
+- Chat with an agent instead of reading a terminal UI: streaming replies, tool calls you can expand, and a Stop button.
+- Pick up where you left off: chats share the project's own Claude Code sessions, listed in a sidebar.
+- Stay in control: each chat has an access level (Read only, Edit files, Full access), and anything blocked shows an "Allow and retry" button.
+- Switch models, use `/` commands, and keep an eye on your 5-hour and 7-day usage limits in the chat's status line.
+- See every agent at a glance in the Agents panel: who's working, who needs you, who's done.
 
-- **Split view of tabs.** Up to four panes, each showing any kind of tab, grouped like Chrome or Arc split view: new tabs never replace a pane, and groups are saved per project. Drag a tab onto a pane edge to split.
-- **Agent chat.** Open Claude Code, Codex, Gemini CLI or OpenCode as a chat instead of a terminal: streaming replies, tool cards, an access level per chat, a model menu, `/` commands, the project's Claude Code sessions in a sidebar, and a status line with 5-hour and 7-day usage gauges. A sign-in screen appears when the agent isn't signed in.
-- **Agents panel.** A sidebar view that shows every coding agent you have going, in terminals and chats, colour-coded by state (Needs you, Working, Idle), with a click to jump to it.
-- **Quality of life.** The sidebar sits on the right (configurable), chats are the launcher's default, block tabs keep their welcome until you type, and "terminal is busy" messages say why.
+**Arrange your workspace**
+- Split the window into up to four panes of any kind: terminals, chats, files, browser previews.
+- Split groups stay put: opening a new tab never replaces a pane, and your layout is saved per project.
+- Switch projects from the status bar, with recent projects one click away.
 
-## Platform support
+**The everyday tools**
+- A fast terminal with tabs and splits, and a block mode that groups each command with its output.
+- A code editor with a file explorer, language support and AI edit diffs.
+- Git: stage hunks, commit, push, pull, branches and history.
+- A browser pane for your local dev server.
+- A built-in AI assistant with your own API keys, or a local or LAN model.
+
+**Make it yours**
+- Themes including Estate Default (green-to-lime accents) and Estate OLED (true black).
+- The sidebar on either side, and a status line you choose.
+
+## Runs on
 
 | Platform | Support |
 | --- | --- |
-| macOS 12.7, Intel x86_64 | Primary. Every release is tested here. |
-| macOS 12.x below 12.7, Intel | Best effort. Depends on the installed Safari version (16.4 or later is required). |
-| macOS 13 to 15, Intel | Secondary. Should work; smoke-tested when a Mac is available. |
-| Apple Silicon | Not targeted. Use [Terax](https://github.com/crynta/terax-ai). |
-| Windows, Linux | Not supported. The code inherited from Terax may still build, but Estate doesn't test or package it. |
+| macOS 12.7 or later, Intel | Primary. Every release is tested on a 2015 MacBook Pro. |
+| Older macOS 12, Intel | Best effort; needs Safari 16.4 or later. |
+| Apple Silicon | Not targeted yet. |
+| Windows, Linux | Not supported. |
 
 ## Install
 
-Estate has its own version numbers, starting at 0.1.0. The 0.9.0 mentioned elsewhere is the Terax version Estate started from.
-
 There are no releases yet. When there are, they'll be on the [Releases](https://github.com/ygreat/estate/releases) page.
 
-Estate is not notarized by Apple. After moving the app to Applications, clear the download quarantine:
+Estate isn't notarized by Apple. After moving it to Applications, clear the download quarantine once:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Estate.app
 ```
 
-## Security on Monterey
+## Using AI
 
-Apple's last macOS 12 update was in July 2024, and its WebKit will not be patched again. **Don't use the in-app browser for banking or personal accounts.** Keep it to local dev servers and sites you trust. See [SECURITY.md](SECURITY.md).
+- **Coding agents:** install Claude Code, Codex, Gemini CLI or OpenCode and sign in. Estate finds them on your PATH and shows a sign-in screen if one isn't ready.
+- **Built-in assistant:** open **Settings → Models**, pick a provider and paste your API key, or point Estate at LM Studio, Ollama or any OpenAI-compatible server on your network.
 
-## Privacy
+On an older OS, pin an agent version that still launches there and turn off its auto-update, or run a current version on a remote machine over SSH.
 
-- No telemetry, analytics or crash reports.
-- Network calls happen only for things you start: AI requests, SSH and database connections, update checks, and pages you open.
-- API keys are stored in the macOS Keychain, never on disk or in `localStorage`. SSH passphrases and database passwords will be stored the same way when those tools are built.
+## Privacy and security
 
-## Configure AI
-
-1. Open **Settings -> AI**.
-2. Pick a provider and paste your API key, or point Estate at a local or LAN endpoint (LM Studio, Ollama, or any OpenAI-compatible server).
-
-Local model inference on the Intel Mac itself isn't a goal; run the model on another machine and connect to it.
-
-For CLI agents, install a version known to launch on Monterey and turn off its auto-update, or run a current version over SSH on a Linux host.
+- No telemetry, analytics or crash reports. Network calls happen only for things you start.
+- API keys live in the macOS Keychain, never in files or `localStorage`.
+- Older macOS versions no longer get security updates, so keep the browser pane to your own dev servers and sites you trust. See [SECURITY.md](SECURITY.md).
 
 ## Build from source
 
-**Prerequisites**
-
-- Xcode Command Line Tools (14.2 is the last for Monterey): `xcode-select --install`
-- Rust, the version pinned in `rust-toolchain.toml`: https://rustup.rs
-- Node 22 (Node 24 requires macOS 13.5) and [pnpm](https://pnpm.io)
-
-**Run**
+You need Xcode Command Line Tools (`xcode-select --install`), Rust (the version in `rust-toolchain.toml`, via [rustup](https://rustup.rs)), Node 22 and [pnpm](https://pnpm.io).
 
 ```bash
 pnpm install
-pnpm tauri dev
-```
+pnpm tauri dev                      # run in development
 
-**Build for Intel**
-
-```bash
 export MACOSX_DEPLOYMENT_TARGET=12.0
-pnpm install --frozen-lockfile
-pnpm tauri build --target x86_64-apple-darwin
+pnpm tauri build --target x86_64-apple-darwin   # build the app and DMG
 ```
 
-The first build can take 20 to 40 minutes on a 2015 Mac.
-
-**Checks**
-
-```bash
-pnpm lint
-pnpm check-types
-pnpm test
-cd src-tauri && cargo clippy --all-targets --locked -- -D warnings
-cd src-tauri && cargo nextest run --locked    # or: cargo test --locked
-```
-
-## Tech stack
-
-Tauri 2, Rust, `portable-pty`, libghostty-vt (WebAssembly), React 19, TypeScript, Vite, CodeMirror 6, Vercel AI SDK, Tailwind v4, shadcn/ui, Zustand.
+Checks: `pnpm lint`, `pnpm check-types`, `pnpm test`, and in `src-tauri`, `cargo clippy --all-targets --locked -- -D warnings` and `cargo test --locked`.
 
 ## Contributing
 
-Issues and PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [architecture docs](docs/README.md) first.
+Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [architecture docs](docs/README.md) first.
 
 ## Credits
 
-Estate started from [Terax](https://github.com/crynta/terax-ai) 0.9.0 (commit `a2c0877`), copyright 2026 Crynta, licensed under the Apache License 2.0. Most of Estate's starting code comes from that version: the terminal, editor, AI agent, web preview, Git tools and the app shell. Thanks to Crynta and the Terax contributors, whose commits are kept in this repository's history.
+Estate is built on [Terax](https://github.com/crynta/terax-ai) 0.9.0 (commit `a2c0877`), copyright 2026 Crynta, licensed under the Apache License 2.0. Thanks to Crynta and the Terax contributors; their commits are kept in this repository's history. Estate is not affiliated with or endorsed by the Terax project.
 
-Estate also includes code and fonts from these projects, under their own licenses. Their license files stay in the source tree and ship with the app.
+Estate also includes code and fonts from these projects, under their own licenses, which stay in the source tree and ship with the app:
 
 | Component | Copyright | License | License file |
 | --- | --- | --- | --- |
@@ -142,12 +117,10 @@ Estate also includes code and fonts from these projects, under their own license
 | [xterm.js](https://github.com/xtermjs/xterm.js) (WebGL renderer, adapted) | 2017-2019 The xterm.js authors, and others | MIT | [`src/modules/terminal/ghostty/webgl/LICENSE.xterm-js`](src/modules/terminal/ghostty/webgl/LICENSE.xterm-js) |
 | Terminal symbol fonts, subset from [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts) and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | 2014 Ryan L McIntyre; 2020 The JetBrains Mono Project Authors; and others | SIL OFL 1.1, MIT and others | [`src/assets/fonts/LICENSE.nerd-fonts`](src/assets/fonts/LICENSE.nerd-fonts), [`src/assets/fonts/OFL.txt`](src/assets/fonts/OFL.txt), [`public/licenses/terminal-symbols.txt`](public/licenses/terminal-symbols.txt) |
 
-npm and Cargo dependencies keep their own licenses; see each package.
-
-"Terax" is used here only to describe where Estate's code comes from. Estate is not affiliated with or endorsed by the Terax project or Crynta.
+npm and Cargo dependencies keep their own licenses.
 
 ## License
 
-Estate is licensed under the [Apache License 2.0](LICENSE), the same license as Terax. The Terax copyright and attribution notices are kept; see [NOTICE](NOTICE). Changes Estate makes to files from Terax are marked in those files or listed in [MODIFICATIONS.md](MODIFICATIONS.md).
+Estate is licensed under the [Apache License 2.0](LICENSE). Attribution notices are in [NOTICE](NOTICE), and changed files from the base project are marked in place or listed in [MODIFICATIONS.md](MODIFICATIONS.md).
 
 Estate is provided as is, without warranty of any kind. See sections 7 and 8 of the license.
