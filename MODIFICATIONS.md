@@ -23,6 +23,7 @@ Files that can't hold comments, such as JSON, are listed here instead, along wit
 | `src/modules/ai/lib/pathPolicy.json` | Terax names changed to Estate. |
 | `scripts/app-lab/experiments/tab-switch-toggles.patch` | Terax names changed to Estate. |
 | `AGENTS.md`, `CLAUDE.md` | Point to `ESTATE.md` instead of `TERAX.md`. |
+| `src-tauri/icons/*`, `public/logo.png` | Terax's icons and logo replaced with Estate's, generated from `design/logo-estate.png` (`pnpm tauri icon design/app-icon-1024.png`). |
 | `pnpm-lock.yaml`, `src-tauri/Cargo.lock` | Package names changed to Estate. |
 
 ## Renamed from Terax to Estate
@@ -43,7 +44,7 @@ Some Terax names are kept on purpose, because the compiled WebAssembly terminal 
 
 ## Estate files that are not from Terax
 
-`NOTICE`, `MODIFICATIONS.md`, `PRD Estate.md` and `rust-toolchain.toml`.
+`NOTICE`, `MODIFICATIONS.md`, `PRD Estate.md`, `rust-toolchain.toml` and `design/` (the Estate logo and the padded 1024px app-icon source).
 
 ## Removed files
 
