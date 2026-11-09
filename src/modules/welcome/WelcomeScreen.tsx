@@ -1,24 +1,26 @@
 import {
-  AiChat02Icon,
   Cancel01Icon,
-  CommandIcon,
-  ComputerTerminal02Icon,
   Folder01Icon,
   FolderAddIcon,
-  Rocket01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { type AgentAuth, checkAgentAuth } from "@/modules/agent-chat/auth";
 import {
   CHAT_AGENT_LABEL,
   CHAT_AGENTS,
   type ChatAgentId,
 } from "@/modules/agent-chat/model";
-import { availableChatAgents } from "@/modules/agent-chat/store";
+import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import type { OrchestratorDelegate } from "@/modules/orchestrator/instructions";
-import { folderName, shortPath } from "@/modules/spaces/lib/projects";
+import { useShortcutLabel } from "@/modules/shortcuts";
+import { shortPath } from "@/modules/spaces/lib/projects";
 import type { SpaceMeta } from "@/modules/spaces/lib/store";
 
 type Props = {
@@ -31,18 +33,43 @@ type Props = {
   /** Resolves true when a folder was picked and opened. */
   onOpenFolder: () => Promise<boolean>;
   onSwitchProject: (spaceId: string) => void;
-  /** Starts an agent chat, optionally with a first message. */
-  onStartChat: (prompt: string) => void;
-  /** Which agent plans: a fixed one, or "ask" to choose each time. */
+  /** Opens a chat with `agent`, sending `prompt` first when it isn't empty. */
+  onStartChat: (prompt: string, agent: ChatAgentId) => void;
+  /** Which agent plans: a fixed one, or "ask" to use the one picked here. */
   planAgent: OrchestratorDelegate;
-  /** Plans the goal with the Orchestrator; `remember` saves the agent choice. */
-  onPlan: (goal: string, agent: ChatAgentId, remember: boolean) => void;
+  onPlan: (goal: string, agent: ChatAgentId) => void;
   onNewTerminal: () => void;
   onOpenCommandPalette: () => void;
   onClose: () => void;
 };
 
-/** Estate: the first thing you see, a calm place to pick a project and start. */
+const AGENT_KEY = "estate:welcome-agent";
+
+function readAgent(): ChatAgentId | null {
+  try {
+    const v = localStorage.getItem(AGENT_KEY);
+    return CHAT_AGENTS.includes(v as ChatAgentId) ? (v as ChatAgentId) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeAgent(agent: ChatAgentId): void {
+  try {
+    localStorage.setItem(AGENT_KEY, agent);
+  } catch {
+    // Private storage off: the choice just isn't remembered.
+  }
+}
+
+const STATUS: Record<AgentAuth["state"], { label: string; dot: string }> = {
+  "signed-in": { label: "Signed in", dot: "bg-emerald-500" },
+  "signed-out": { label: "Not signed in", dot: "bg-amber-500" },
+  missing: { label: "Not installed", dot: "bg-muted-foreground/40" },
+  unknown: { label: "Installed", dot: "bg-muted-foreground/60" },
+};
+
+/** Estate: the first thing you see. Pick a project, then start. */
 export function WelcomeScreen({
   current,
   recent,
@@ -61,22 +88,8 @@ export function WelcomeScreen({
   // The open project counts as chosen only once the user confirms it here.
   const [chosen, setChosen] = useState(false);
   const [goal, setGoal] = useState("");
-  // "ask": the agent chooser shows under the goal before planning.
-  const [choosing, setChoosing] = useState(false);
-  const [installed, setInstalled] = useState<ChatAgentId[] | null>(null);
-  const [remember, setRemember] = useState(false);
-  const plan = () => {
-    if (!goal.trim()) return;
-    if (planAgent !== "ask") {
-      onPlan(goal.trim(), planAgent, false);
-      return;
-    }
-    setChoosing(true);
-    if (installed === null)
-      void availableChatAgents()
-        .then(setInstalled)
-        .catch(() => setInstalled([...CHAT_AGENTS]));
-  };
+  const [auth, setAuth] = useState<Partial<Record<ChatAgentId, AgentAuth>>>({});
+  const [picked, setPicked] = useState<ChatAgentId | null>(readAgent);
   const goalRef = useRef<HTMLTextAreaElement | null>(null);
   const project = chosen ? current : null;
 
@@ -91,6 +104,30 @@ export function WelcomeScreen({
   useEffect(() => {
     if (project) goalRef.current?.focus();
   }, [project]);
+
+  useEffect(() => {
+    let alive = true;
+    for (const a of CHAT_AGENTS) {
+      void checkAgentAuth(a).then((result) => {
+        if (alive) setAuth((m) => ({ ...m, [a]: result }));
+      });
+    }
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Without a remembered choice, the first signed-in agent.
+  const agent: ChatAgentId =
+    picked ??
+    CHAT_AGENTS.find((a) => auth[a]?.state === "signed-in") ??
+    "claude";
+  const pick = (a: ChatAgentId) => {
+    setPicked(a);
+    writeAgent(a);
+  };
+  const planner = planAgent === "ask" ? agent : planAgent;
+  const text = goal.trim();
 
   const others = recent.filter((p) => p.id !== current?.id).slice(0, 5);
 
@@ -113,274 +150,274 @@ export function WelcomeScreen({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex max-w-xl flex-col items-center px-6 pt-6 pb-10">
-          <img
-            src="/logo.png"
-            alt=""
-            className="size-16 rounded-2xl shadow-lg shadow-black/20"
-          />
-          <h1 className="mt-5 text-center text-[24px] font-semibold tracking-tight">
-            What are we{" "}
-            <span className="bg-gradient-to-r from-[var(--brand-from)] to-[var(--brand-to)] bg-clip-text text-transparent">
-              building today?
-            </span>
-          </h1>
-
-          {!project ? (
-            <>
-              <p className="mt-2 text-center text-[13px] text-muted-foreground">
-                Start by opening the folder your project lives in. Estate keeps
-                each project's tabs, chats and layout together.
-              </p>
-              <div className="mt-6 flex w-full flex-col gap-2">
-                {current?.root && (
-                  <button
-                    type="button"
-                    onClick={() => setChosen(true)}
-                    className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-left hover:bg-primary/10"
-                  >
-                    <HugeiconsIcon
-                      icon={Folder01Icon}
-                      size={18}
-                      strokeWidth={1.75}
-                      className="text-primary"
-                    />
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-[13px] font-medium">
-                        Continue with {current.name}
-                      </span>
-                      <span className="truncate font-mono text-[11px] text-muted-foreground">
-                        {shortPath(current.root, home)}
-                      </span>
-                    </span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    void onOpenFolder().then((opened) => {
-                      if (opened) setChosen(true);
-                    });
-                  }}
-                  className="flex items-center gap-3 rounded-xl border border-border/70 px-4 py-3 text-left hover:bg-accent/60"
-                >
-                  <HugeiconsIcon
-                    icon={FolderAddIcon}
-                    size={18}
-                    strokeWidth={1.75}
-                  />
-                  <span className="flex flex-col">
-                    <span className="text-[13px] font-medium">
-                      Open a project folder…
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">
-                      Any folder works, even an empty one for a new idea.
-                    </span>
-                  </span>
-                </button>
+        <div className="flex min-h-full items-center justify-center px-8 py-12">
+          <div className="flex w-full max-w-[460px] flex-col items-center gap-10">
+            <div className="flex flex-col items-center gap-5 text-center">
+              <img
+                src="/logo.png"
+                alt=""
+                draggable={false}
+                className="size-20 rounded-3xl shadow-lg shadow-black/25"
+              />
+              <div className="flex flex-col gap-1.5">
+                <h1 className="text-[17px] font-semibold tracking-tight">
+                  What are we building today?
+                </h1>
+                <p className="text-[12px] text-muted-foreground">
+                  {project
+                    ? "Describe it and pick an agent, or start another way."
+                    : "Open the folder your project lives in to begin."}
+                </p>
               </div>
+            </div>
 
-              {others.length > 0 && (
-                <div className="mt-6 w-full">
-                  <p className="mb-1.5 px-1 text-[11px] font-medium text-muted-foreground">
-                    Recent projects
-                  </p>
-                  <ul className="flex flex-col gap-0.5">
-                    {others.map((p) => (
-                      <li key={p.id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onSwitchProject(p.id);
-                            setChosen(true);
-                          }}
-                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-accent/60"
-                        >
-                          <HugeiconsIcon
-                            icon={Folder01Icon}
-                            size={15}
-                            strokeWidth={1.75}
-                            className="text-muted-foreground"
-                          />
-                          <span className="text-[12.5px]">{p.name}</span>
-                          {p.root && (
-                            <span className="ml-auto truncate font-mono text-[10.5px] text-muted-foreground">
-                              {shortPath(p.root, home)}
-                            </span>
-                          )}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <p className="mt-2 text-center text-[13px] text-muted-foreground">
-                In{" "}
-                <span className="font-medium text-foreground">
-                  {project.name}
-                </span>
-                {project.root ? ` (${folderName(project.root)})` : ""}. Describe
-                your idea, or pick a way to start.
-              </p>
-
-              <div className="mt-6 w-full rounded-2xl border border-border/70 bg-card p-3 shadow-sm focus-within:border-primary/50">
-                <textarea
-                  ref={goalRef}
-                  value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
-                  rows={3}
-                  placeholder="e.g. A to-do app with a login page and a dark mode"
-                  onKeyDown={(e) => {
-                    if (
-                      e.key === "Enter" &&
-                      (e.metaKey || e.ctrlKey) &&
-                      goal.trim()
-                    ) {
-                      e.preventDefault();
-                      onStartChat(goal.trim());
-                    }
-                  }}
-                  className="w-full resize-none bg-transparent text-[13.5px] leading-6 outline-none placeholder:text-muted-foreground"
-                />
-                <div className="flex items-center justify-end gap-2">
-                  {!choosing && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!goal.trim()}
-                      onClick={plan}
-                      title="Break the goal into tasks and hand them to agents"
-                      className="gap-1.5"
-                    >
-                      <HugeiconsIcon
-                        icon={Rocket01Icon}
-                        size={13}
-                        strokeWidth={2}
-                      />
-                      Plan with Orchestrator
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    disabled={!goal.trim()}
-                    onClick={() => onStartChat(goal.trim())}
-                    className="gap-1.5 bg-gradient-to-r from-[var(--brand-from)] to-[var(--brand-to)] text-white hover:opacity-90"
-                  >
-                    <HugeiconsIcon
-                      icon={AiChat02Icon}
-                      size={13}
-                      strokeWidth={2}
+            {!project ? (
+              <div className="flex w-full flex-col gap-8">
+                <div className="flex flex-col gap-2.5">
+                  {current?.root && (
+                    <Row
+                      icon={<HugeiconsIcon icon={Folder01Icon} size={14} />}
+                      title={`Continue with ${current.name}`}
+                      hint={shortPath(current.root, home)}
+                      mono
+                      onClick={() => setChosen(true)}
                     />
-                    Start building
-                  </Button>
+                  )}
+                  <Row
+                    icon={<HugeiconsIcon icon={FolderAddIcon} size={14} />}
+                    title="Open a folder…"
+                    hint="Any folder works, even an empty one for a new idea."
+                    onClick={() => {
+                      void onOpenFolder().then((opened) => {
+                        if (opened) setChosen(true);
+                      });
+                    }}
+                  />
                 </div>
-                {choosing && (
-                  <div className="mt-2 border-t border-border/60 pt-2.5">
-                    <div className="mb-2 text-[12px] text-muted-foreground">
-                      Which agent should plan this?
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {CHAT_AGENTS.map((a) => {
-                        const missing =
-                          installed !== null && !installed.includes(a);
-                        return (
-                          <Button
-                            key={a}
-                            size="sm"
-                            variant="outline"
-                            disabled={missing || !goal.trim()}
-                            title={missing ? "Not installed" : undefined}
-                            onClick={() => onPlan(goal.trim(), a, remember)}
-                          >
-                            {CHAT_AGENT_LABEL[a]}
-                          </Button>
-                        );
-                      })}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setChoosing(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                    <label className="mt-2 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
-                      <input
-                        type="checkbox"
-                        checked={remember}
-                        onChange={(e) => setRemember(e.target.checked)}
+
+                {others.length > 0 && (
+                  <div className="flex flex-col gap-2.5">
+                    <SectionLabel>Recent</SectionLabel>
+                    {others.map((p) => (
+                      <Row
+                        key={p.id}
+                        icon={<HugeiconsIcon icon={Folder01Icon} size={14} />}
+                        title={p.name}
+                        hint={p.root ? shortPath(p.root, home) : undefined}
+                        mono
+                        onClick={() => {
+                          onSwitchProject(p.id);
+                          setChosen(true);
+                        }}
                       />
-                      Remember my choice (change it in Settings &gt; Agents)
-                    </label>
+                    ))}
                   </div>
                 )}
               </div>
+            ) : (
+              <div className="flex w-full flex-col gap-8">
+                <Row
+                  icon={<HugeiconsIcon icon={Folder01Icon} size={14} />}
+                  title={project.name}
+                  hint={
+                    project.root ? shortPath(project.root, home) : undefined
+                  }
+                  mono
+                  trailing={
+                    <span className="text-[11px] text-muted-foreground">
+                      Change
+                    </span>
+                  }
+                  onClick={() => setChosen(false)}
+                />
 
-              <div className="mt-5 grid w-full grid-cols-3 gap-2">
-                <QuickAction
-                  icon={AiChat02Icon}
-                  label="New agent chat"
-                  onClick={() => onStartChat("")}
-                />
-                <QuickAction
-                  icon={ComputerTerminal02Icon}
-                  label="New terminal"
-                  onClick={onNewTerminal}
-                />
-                <QuickAction
-                  icon={CommandIcon}
-                  label="Command palette"
-                  onClick={onOpenCommandPalette}
-                />
+                <div className="flex flex-col gap-2.5">
+                  <SectionLabel>Agent</SectionLabel>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {CHAT_AGENTS.map((a) => {
+                      const state = auth[a]?.state;
+                      const status = state ? STATUS[state] : null;
+                      const selected = a === agent;
+                      return (
+                        <button
+                          key={a}
+                          type="button"
+                          aria-pressed={selected}
+                          disabled={state === "missing"}
+                          onClick={() => pick(a)}
+                          className={cn(
+                            "flex items-center gap-2.5 rounded-lg border bg-card/70 px-2.5 py-2 text-left transition-colors",
+                            "disabled:cursor-not-allowed disabled:opacity-50",
+                            selected
+                              ? "border-primary/60 bg-primary/5"
+                              : "border-border hover:bg-muted/50",
+                          )}
+                        >
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/70 text-muted-foreground">
+                            <AgentIcon agent={a} size={14} />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[12px] font-medium">
+                              {CHAT_AGENT_LABEL[a]}
+                            </span>
+                            <span className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+                              <span
+                                className={cn(
+                                  "size-1.5 shrink-0 rounded-full",
+                                  status?.dot ?? "bg-muted-foreground/30",
+                                )}
+                              />
+                              {status?.label ?? "Checking…"}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <Textarea
+                    ref={goalRef}
+                    value={goal}
+                    onChange={(e) => setGoal(e.target.value)}
+                    rows={3}
+                    placeholder="Describe what you want to build…"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        onStartChat(text, agent);
+                      }
+                    }}
+                    className="min-h-20 text-[13px]"
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!text}
+                      onClick={() => onPlan(text, planner)}
+                      title={`${CHAT_AGENT_LABEL[planner]} splits the goal into tasks for several agents`}
+                    >
+                      Plan with Orchestrator
+                    </Button>
+                    <Button size="sm" onClick={() => onStartChat(text, agent)}>
+                      {text ? "Start chat" : "Open chat"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-[auto_auto] items-center justify-center gap-x-12 gap-y-3 text-[12px]">
+                  <Hint
+                    label="New terminal"
+                    shortcut="tab.new"
+                    onClick={onNewTerminal}
+                  />
+                  <Hint
+                    label="Command palette"
+                    shortcut="commandPalette.open"
+                    onClick={onOpenCommandPalette}
+                  />
+                </div>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setChosen(false)}
-                className="mt-4 text-[11.5px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                Choose another project
-              </button>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
-      <label className="flex shrink-0 items-center justify-center gap-2 pb-4 text-[11.5px] text-muted-foreground">
-        <input
-          type="checkbox"
+      <div className="flex shrink-0 items-center justify-center gap-2 pb-6">
+        <Checkbox
+          id="welcome-on-startup"
           checked={showOnStartup}
-          onChange={(e) => onShowOnStartupChange(e.target.checked)}
-          className="accent-[var(--primary)]"
+          onCheckedChange={(v) => onShowOnStartupChange(v === true)}
         />
-        Show this when Estate opens
-      </label>
+        <Label
+          htmlFor="welcome-on-startup"
+          className="text-[11.5px] font-normal text-muted-foreground"
+        >
+          Show this when Estate opens
+        </Label>
+      </div>
     </div>
   );
 }
 
-function QuickAction({
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <span className="px-0.5 text-[11px] font-medium text-muted-foreground">
+      {children}
+    </span>
+  );
+}
+
+/** The card row used by the AI panel's suggestions. */
+function Row({
   icon,
-  label,
+  title,
+  hint,
+  mono,
+  trailing,
   onClick,
 }: {
-  icon: Parameters<typeof HugeiconsIcon>[0]["icon"];
-  label: string;
+  icon: ReactNode;
+  title: string;
+  hint?: string;
+  mono?: boolean;
+  trailing?: ReactNode;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-1.5 rounded-xl border border-border/70 px-3 py-3 text-[12px] transition-colors hover:border-primary/40 hover:bg-accent/50",
-      )}
+      className="group flex w-full items-center gap-2.5 rounded-lg border border-border bg-card/70 px-2.5 py-2 text-left transition-colors hover:bg-muted/50"
     >
-      <HugeiconsIcon icon={icon} size={18} strokeWidth={1.75} />
-      {label}
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/70 text-muted-foreground transition-colors group-hover:bg-foreground/5 group-hover:text-foreground">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[12px] font-medium">{title}</span>
+        {hint && (
+          <span
+            className={cn(
+              "block truncate text-[10.5px] text-muted-foreground",
+              mono && "font-mono",
+            )}
+          >
+            {hint}
+          </span>
+        )}
+      </span>
+      {trailing}
+    </button>
+  );
+}
+
+/** A shortcut hint like the block terminal's, but clickable. */
+function Hint({
+  label,
+  shortcut,
+  onClick,
+}: {
+  label: string;
+  shortcut: Parameters<typeof useShortcutLabel>[0];
+  onClick: () => void;
+}) {
+  const keys = useShortcutLabel(shortcut).split(" ").filter(Boolean);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group col-span-2 grid grid-cols-subgrid items-center text-left"
+    >
+      <span className="text-muted-foreground/70 transition-colors group-hover:text-foreground">
+        {label}
+      </span>
+      <KbdGroup className="justify-self-end">
+        {keys.map((k) => (
+          <Kbd key={k}>{k}</Kbd>
+        ))}
+      </KbdGroup>
     </button>
   );
 }
