@@ -424,10 +424,14 @@ export default function App() {
   useEditorFileSync({ tabs, tabsRef, editorRefs });
   useThemeFileEditing({ tabsRef, openFileTab });
 
+  const projectRoot = useSpaces(
+    (s) => s.spaces.find((sp) => sp.id === s.activeId)?.root ?? null,
+  );
   const { explorerRoot, inheritedCwdForNewTab } = useWorkspaceCwd(
     activeTab,
     tabs,
     launchCwd ?? home,
+    projectRoot,
   );
 
   useWindowTitle(activeTab, explorerRoot);
@@ -894,6 +898,8 @@ export default function App() {
 
   const activeFilePath = (() => {
     if (activeTab?.kind === "editor") return activeTab.path;
+    // Estate: a markdown preview shows its file too.
+    if (activeTab?.kind === "markdown") return activeTab.path;
     if (activeTab?.kind === "git-diff") {
       if (/^([A-Za-z]:|\/|\\)/.test(activeTab.path)) return activeTab.path;
       const root = activeTab.repoRoot.replace(/[\\/]+$/, "");
@@ -1356,8 +1362,13 @@ export default function App() {
   ]);
 
   // Estate: a chat tab shows (and works in) its own folder.
+  // Estate: a chat shows its folder; tabs without one (browser, editor…)
+  // show the project's, instead of "no directory".
   const activeCwd =
-    activeTab?.kind === "agent-chat" ? activeTab.cwd : activeTerminalLeafCwd;
+    activeTab?.kind === "agent-chat"
+      ? activeTab.cwd
+      : (activeTerminalLeafCwd ??
+        (activeTab?.kind === "terminal" ? null : explorerRoot));
 
   const handleNewSpace = useCallback(() => {
     const { spaces, create, setActive } = useSpaces.getState();
