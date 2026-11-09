@@ -84,7 +84,7 @@ export function ProjectButton({
         )}
         <DropdownMenuItem onSelect={onOpenFolder} className="gap-2 text-[12px]">
           <HugeiconsIcon icon={FolderAddIcon} size={14} strokeWidth={1.75} />
-          Open folder…
+          Open Project…
         </DropdownMenuItem>
         {onShowWelcome && (
           <DropdownMenuItem

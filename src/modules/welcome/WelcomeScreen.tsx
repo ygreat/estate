@@ -21,6 +21,7 @@ import {
 import type { OrchestratorDelegate } from "@/modules/orchestrator/instructions";
 import { useShortcutLabel } from "@/modules/shortcuts";
 import { shortPath } from "@/modules/spaces/lib/projects";
+import { NewProjectDialog } from "./NewProjectDialog";
 import type { SpaceMeta } from "@/modules/spaces/lib/store";
 
 type Props = {
@@ -30,8 +31,10 @@ type Props = {
   home: string | null;
   showOnStartup: boolean;
   onShowOnStartupChange: (show: boolean) => void;
-  /** Resolves true when a folder was picked and opened. */
+  /** Open Project: resolves true when a folder was picked and opened. */
   onOpenFolder: () => Promise<boolean>;
+  /** Creates `root/name`, opens it as a project; resolves an error or null. */
+  onCreateProject: (name: string, root: string) => Promise<string | null>;
   onSwitchProject: (spaceId: string) => void;
   /** Opens a chat with `agent`, sending `prompt` first when it isn't empty. */
   onStartChat: (prompt: string, agent: ChatAgentId) => void;
@@ -70,6 +73,7 @@ export function WelcomeScreen({
   showOnStartup,
   onShowOnStartupChange,
   onOpenFolder,
+  onCreateProject,
   onSwitchProject,
   onStartChat,
   planAgent,
@@ -81,14 +85,18 @@ export function WelcomeScreen({
   // The open project counts as chosen only once the user confirms it here.
   const [chosen, setChosen] = useState(false);
   const [goal, setGoal] = useState("");
+  const [creating, setCreating] = useState(false);
   const { auth, checking } = useAgentStatuses();
   const [picked, setPicked] = useState<ChatAgentId | null>(readAgent);
   const goalRef = useRef<HTMLTextAreaElement | null>(null);
+  const creatingRef = useRef(creating);
+  creatingRef.current = creating;
   const project = chosen ? current : null;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      // The New Project dialog handles its own Escape.
+      if (e.key === "Escape" && !creatingRef.current) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -110,7 +118,11 @@ export function WelcomeScreen({
   const planner = planAgent === "ask" ? agent : planAgent;
   const text = goal.trim();
 
-  const others = recent.filter((p) => p.id !== current?.id).slice(0, 5);
+  // The open project first, then the most recent others.
+  const recentList = [
+    ...(current?.root ? [current] : []),
+    ...recent.filter((p) => p.id !== current?.id && p.root),
+  ].slice(0, 5);
 
   return (
     // Clicking anywhere outside the content skips straight to the editor.
@@ -158,53 +170,79 @@ export function WelcomeScreen({
                 <p className="text-[12px] text-muted-foreground">
                   {project
                     ? "Describe it and pick an agent, or start another way."
-                    : "Open the folder your project lives in to begin."}
+                    : "Create a new project, or open one you already have."}
                 </p>
               </div>
             </div>
 
             {!project ? (
               <div className="flex w-full flex-col gap-8">
-                <div className="flex flex-col gap-2.5">
-                  {current?.root && (
-                    <Row
-                      icon={<HugeiconsIcon icon={Folder01Icon} size={14} />}
-                      title={`Continue with ${current.name}`}
-                      hint={shortPath(current.root, home)}
-                      mono
-                      onClick={() => setChosen(true)}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Button
+                    className="h-10 gap-2"
+                    onClick={() => setCreating(true)}
+                  >
+                    <HugeiconsIcon
+                      icon={FolderAddIcon}
+                      size={15}
+                      strokeWidth={1.75}
                     />
-                  )}
-                  <Row
-                    icon={<HugeiconsIcon icon={FolderAddIcon} size={14} />}
-                    title="Open a folder…"
-                    hint="Any folder works, even an empty one for a new idea."
+                    Create New Project
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-10 gap-2"
                     onClick={() => {
                       void onOpenFolder().then((opened) => {
                         if (opened) setChosen(true);
                       });
                     }}
-                  />
+                  >
+                    <HugeiconsIcon
+                      icon={Folder01Icon}
+                      size={15}
+                      strokeWidth={1.75}
+                    />
+                    Open Project
+                  </Button>
                 </div>
 
-                {others.length > 0 && (
+                {recentList.length > 0 && (
                   <div className="flex flex-col gap-2.5">
                     <SectionLabel>Recent</SectionLabel>
-                    {others.map((p) => (
+                    {recentList.map((p) => (
                       <Row
                         key={p.id}
                         icon={<HugeiconsIcon icon={Folder01Icon} size={14} />}
                         title={p.name}
                         hint={p.root ? shortPath(p.root, home) : undefined}
                         mono
+                        trailing={
+                          p.id === current?.id ? (
+                            <span className="text-[10.5px] text-muted-foreground">
+                              Open now
+                            </span>
+                          ) : undefined
+                        }
                         onClick={() => {
-                          onSwitchProject(p.id);
+                          if (p.id !== current?.id) onSwitchProject(p.id);
                           setChosen(true);
                         }}
                       />
                     ))}
                   </div>
                 )}
+
+                <NewProjectDialog
+                  open={creating}
+                  home={home}
+                  onOpenChange={setCreating}
+                  onCreate={async (name, root) => {
+                    const failure = await onCreateProject(name, root);
+                    if (!failure) setChosen(true);
+                    return failure;
+                  }}
+                />
               </div>
             ) : (
               <div className="flex w-full flex-col gap-8">
