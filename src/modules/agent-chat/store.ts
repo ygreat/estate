@@ -40,6 +40,11 @@ export type AgentLimits = { windows: UsageWindow[]; at: number };
 type State = {
   chats: Record<string, ChatSession>;
   limits: Partial<Record<ChatAgentId, AgentLimits>>;
+  /** Slash commands each agent reported, for the composer's menu. */
+  commands: Partial<Record<ChatAgentId, string[]>>;
+  setModel: (id: string, model: string | undefined) => void;
+  /** Starts a fresh agent session in this chat (like /clear). */
+  newSession: (id: string) => void;
   /** Creates the chat in memory (if new) and loads its saved transcript. */
   open: (id: string, init: { agent: ChatAgentId; cwd: string }) => void;
   send: (id: string, text: string) => Promise<void>;
@@ -106,6 +111,7 @@ function updateChat(id: string, fn: (c: ChatSession) => ChatSession) {
 }
 
 const LIMITS_KEY = "__limits__";
+const COMMANDS_KEY = "__commands__";
 let limitsLoaded = false;
 
 /** Loads saved limits once, so a new chat shows them before its first reply. */
@@ -121,6 +127,28 @@ function loadLimits() {
         limits: { ...saved, ...s.limits },
       }));
     });
+  void disk
+    .get<State["commands"]>(COMMANDS_KEY)
+    .catch(() => undefined)
+    .then((saved) => {
+      if (!saved || typeof saved !== "object") return;
+      useAgentChatStore.setState((s) => ({
+        commands: { ...saved, ...s.commands },
+      }));
+    });
+}
+
+function recordCommands(agent: ChatAgentId, events: ChatEvent[]) {
+  for (const e of events) {
+    if (e.type !== "session" || !e.commands?.length) continue;
+    const list = e.commands;
+    useAgentChatStore.setState((s) => ({
+      commands: { ...s.commands, [agent]: list },
+    }));
+    void disk
+      .set(COMMANDS_KEY, useAgentChatStore.getState().commands)
+      .catch(() => {});
+  }
 }
 
 function recordLimits(agent: ChatAgentId, events: ChatEvent[]) {
@@ -139,7 +167,10 @@ function recordLimits(agent: ChatAgentId, events: ChatEvent[]) {
 function applyEvents(id: string, events: ChatEvent[]) {
   if (events.length === 0) return;
   const agent = useAgentChatStore.getState().chats[id]?.agent;
-  if (agent) recordLimits(agent, events);
+  if (agent) {
+    recordLimits(agent, events);
+    recordCommands(agent, events);
+  }
   updateChat(id, (c) => ({
     ...c,
     transcript: events.reduce(applyChatEvent, c.transcript),
@@ -180,6 +211,7 @@ function stderrSummary(stderr: string): string {
 export const useAgentChatStore = create<State>((set, get) => ({
   chats: {},
   limits: {},
+  commands: {},
 
   open(id, init) {
     loadLimits();
@@ -311,6 +343,32 @@ export const useAgentChatStore = create<State>((set, get) => ({
   cancel(id) {
     if (!get().chats[id]?.running) return;
     void invoke("agent_chat_cancel", { chatId: id }).catch(() => {});
+  },
+
+  setModel(id, model) {
+    const next = model?.trim() || undefined;
+    updateChat(id, (c) => (c.model === next ? c : { ...c, model: next }));
+    scheduleSave(id);
+  },
+
+  newSession(id) {
+    const chat = get().chats[id];
+    if (!chat || chat.running) return;
+    updateChat(id, (c) => ({
+      ...c,
+      transcript: {
+        ...EMPTY_TRANSCRIPT,
+        items: [
+          {
+            kind: "notice",
+            id: `info-new-${Date.now()}`,
+            tone: "info",
+            text: "New session started.",
+          },
+        ],
+      },
+    }));
+    scheduleSave(id);
   },
 
   setAccess(id, access) {

@@ -48,6 +48,8 @@ export function claudeAdapter(): TurnAdapter {
   const streamTextCount = new Map<string, number>();
   const finalTextCount = new Map<string, number>();
   let ended = false;
+  // Built-in commands (/context, /cost…) answer only in the result.
+  let sawText = false;
 
   const nextKey = (counts: Map<string, number>, msgId: string) => {
     const n = counts.get(msgId) ?? 0;
@@ -64,7 +66,18 @@ export function claudeAdapter(): TurnAdapter {
         case "system": {
           const id = str(o.session_id);
           return o.subtype === "init" && id
-            ? [{ type: "session", id, model: str(o.model) }]
+            ? [
+                {
+                  type: "session",
+                  id,
+                  model: str(o.model),
+                  commands: arr(o.slash_commands)
+                    .map(str)
+                    .filter(
+                      (c): c is string => Boolean(c) && !c?.startsWith("__"),
+                    ),
+                },
+              ]
             : [];
         }
         case "stream_event": {
@@ -108,6 +121,7 @@ export function claudeAdapter(): TurnAdapter {
             const b = obj(raw);
             if (b.type === "text") {
               const text = str(b.text) ?? "";
+              if (text) sawText = true;
               out.push({
                 type: "text",
                 id: nextKey(finalTextCount, msgId),
@@ -184,6 +198,16 @@ export function claudeAdapter(): TurnAdapter {
               message:
                 str(o.result) ||
                 `Claude Code stopped: ${str(o.subtype) ?? "error"}`,
+            });
+          }
+          const resultText = str(o.result);
+          if (!failed && !sawText && resultText) {
+            out.push({
+              type: "text",
+              // Unique per turn, so a later command's output doesn't replace this one.
+              id: `result:${str(o.uuid) ?? Date.now().toString(36)}`,
+              text: resultText,
+              final: true,
             });
           }
           out.push({ type: "done", ok: !failed });
