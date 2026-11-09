@@ -1,0 +1,6 @@
+# Estate: pinned so Intel macOS builds are reproducible (PRD, Technical approach).
+[toolchain]
+channel = "1.99.1"
+profile = "minimal"
+components = ["clippy", "rustfmt"]
+targets = ["x86_64-apple-darwin"]

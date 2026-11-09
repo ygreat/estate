@@ -174,7 +174,12 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => ({
   },
   build: {
     target:
-      process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome120" : "es2022",
+      process.env.TAURI_ENV_PLATFORM === "windows"
+        ? "chrome120"
+        : process.env.TAURI_ENV_PLATFORM === "darwin"
+          ? // Estate: Monterey's WKWebView is frozen at Safari 17.6; floor is 16.4.
+            "safari16.4"
+          : "es2022",
     chunkSizeWarningLimit: 1500,
     rolldownOptions: {
       input: {
