@@ -1,5 +1,9 @@
 # TERAX.md
 
+<!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
+
+> **Estate note.** This repository is Estate, not Terax. Estate started from Terax 0.9.0 (commit `a2c0877`, 6 November 2026) and is developed independently from there, for Intel Macs on macOS 12. Later Terax releases are not merged or ported. The rest of this file is Terax's architecture doc as of that version: it still describes the code, but where it mentions Terax's product goals, platforms or release process, Estate's [PRD](PRD%20Estate.md) and [ROADMAP](ROADMAP.md) take precedence. The file keeps its name because the app loads `TERAX.md` as agent memory.
+
 Terax loads `TERAX.md` from the workspace root as agent memory (similar to AGENTS.md / CLAUDE.md). This file is also the project's living architecture doc - read it before making changes.
 
 ## Project

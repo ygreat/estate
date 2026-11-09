@@ -6,7 +6,7 @@ Nov 9, 2026 · @Yeremia Greatto
 
 Estate is a focused developer workspace with seven tools that runs on Intel Macs with macOS 12 Monterey and sends no telemetry.
 
-It is an open-source Tauri 2 and Rust hard fork of Terax's `main` branch, at [ygreat/estate](https://github.com/ygreat/estate). The seven tools are terminal, SSH/SFTP, database browser, editor, AI agent, in-app browser and Git. The reference machine is a 15-inch 2015 MacBook Pro on Monterey with Safari 17.6.
+It is an open-source Tauri 2 and Rust project at [ygreat/estate](https://github.com/ygreat/estate). It started from Terax 0.9.0 (the `main` branch at commit `a2c0877`, 6 November 2026, 50 commits after the v0.9.0 release) and is developed independently from there; later Terax releases are not relevant to Estate. The seven tools are terminal, SSH/SFTP, database browser, editor, AI agent, in-app browser and Git. The reference machine is a 15-inch 2015 MacBook Pro on Monterey with Safari 17.6.
 
 Research found no blocker in the stack, but nothing has run on the Mac yet. A review of the fork's source on 9 November 2026 corrected several public-source assumptions (see Codebase findings); everything else must still be confirmed in Phase 0.
 
@@ -35,11 +35,11 @@ The release succeeds when one x86\_64 build launches on Monterey and all seven t
 - Run on macOS 12 Intel without any dependency on macOS 13 or later.
 - Send no telemetry, analytics or crash reports.
 - Let CLI agents run in a local or SSH terminal, with versions the user can pin.
-- Own the codebase as a hard fork: no upstream tracking, with Terax fixes ported by hand only when they matter to Estate.
+- Develop Estate on its own from the Terax 0.9.0 starting point. Later Terax releases are not merged or ported.
 
 **Non-goals**
 
-- Apple Silicon builds. Upstream Terax already serves those Macs.
+- Apple Silicon builds. Terax already serves those Macs.
 - macOS below 12, and Windows or Linux packaging changes.
 - Voice input, custom backgrounds and other Terax features outside the seven tools.
 - Local model inference on the Intel Mac. Remote or LAN endpoints stay supported.
@@ -93,15 +93,15 @@ Every layer has a workable path on Monterey Intel, and the frozen WebKit and age
 
 ## Codebase findings
 
-A source review of the fork (upstream `main` at `a2c0877`, 9 November 2026) found these differences from the assumptions above. None blocks the goal, but each changes the work.
+A source review of the starting point (Terax 0.9.0, `main` at `a2c0877`), done on 9 November 2026, found these differences from the assumptions above. None blocks the goal, but each changes the work.
 
 | Area | What the code has | What Estate needs |
 | --- | --- | --- |
 | Terminal | libghostty-vt WebAssembly with WebGPU, WebGL2 fallback and an Automatic/WebGPU/WebGL setting (`src/settings/sections/GeneralSection.tsx`). WebGL context loss already reports a failure after 3 s. | Make the WebGL2 path solid on the reference GPU; see FR-6. |
-| Identity | `src-tauri/tauri.conf.json` has `productName` "Terax", identifier `app.crynta.terax` and `minimumSystemVersion` `13.0`. | Change all three (FR-1, FR-3). |
-| Updater | Points at `crynta/terax-ai` releases with upstream's signing key. | Point at ygreat/estate with Estate's own key, or turn it off (FR-3). |
-| Web build target | `vite.config.ts` targets `es2022` on macOS. | `safari16.4`, plus polyfills. |
-| Toolchain | No `rust-toolchain.toml`. Node is `>=22`. | Pin Rust; keep Node 22. |
+| Identity | `src-tauri/tauri.conf.json` has `productName` "Terax", identifier `app.crynta.terax` and `minimumSystemVersion` `13.0`. | Done in `9baae5c`. UI branding is still FR-3. |
+| Updater | Points at `crynta/terax-ai` releases with upstream's signing key. | Endpoint now ygreat/estate and no check at launch (`9baae5c`). Still needs Estate's own signing key (FR-3). |
+| Web build target | `vite.config.ts` targets `es2022` on macOS. | `safari16.4` done in `9baae5c`; polyfills still needed. |
+| Toolchain | No `rust-toolchain.toml`. Node is `>=22`. | Rust 1.99.1 pinned in `9baae5c`; keep Node 22. |
 | SSH/SFTP and database | No code or dependencies (no russh, sqlx or `tauri-plugin-sql`). | New modules, as planned. |
 | Telemetry | No analytics or crash-reporting library found by search. | Confirm with the FR-4 network capture. |
 | Licensing | Root `LICENSE` is Apache-2.0; no upstream `NOTICE`. Bundled third-party code carries its own licenses (MIT for xterm.js, Ghostty and restty; mixed for Nerd Fonts). | Keep those files; see Licensing. |
@@ -159,7 +159,7 @@ The browser pane is the only part that loads untrusted pages, so it is walled of
 
 **Why one process.** A separate daemon would add memory use and a second release artifact on a 2015 Mac. Move to a daemon later only if long-running remote sessions need to outlive the app.
 
-**Identity.** In `tauri.conf.json`, set `productName` to `Estate`, the identifier to `io.github.ygreat.estate`, and `bundle.macOS.minimumSystemVersion` to `12.0` (currently `13.0`). Replace `plugins.updater.endpoints` and `pubkey` with ygreat/estate's release URL and a new Estate signing key, or disable the updater until releases exist.
+**Identity.** In `tauri.conf.json`, set `productName` to `Estate`, the identifier to `io.github.ygreat.estate`, and `bundle.macOS.minimumSystemVersion` to `12.0` (done; it was `13.0`). Replace `plugins.updater.endpoints` and `pubkey` with ygreat/estate's release URL and a new Estate signing key, or disable the updater until releases exist.
 
 **Terminal rendering.** On Monterey the terminal runs on the WebGL2 fallback, so treat it as the primary renderer there: test it on the reference GPU in Phase 0, measure CPU and battery while idle and under heavy output, and keep the fallback's changes in its own module. Also confirm the libghostty-vt WebAssembly module loads in Safari 17.6.
 
@@ -181,7 +181,7 @@ find "$APP" -type f -perm +111 -exec otool -l {} \; | grep -A3 -E 'LC_BUILD_VERS
 open "$APP"
 ```
 
-**Web baseline.** Set Vite's `build.target` to `safari16.4` (currently `es2022` on macOS in `vite.config.ts`). Load polyfills for Iterator helpers, `Promise.try` and ReadableStream async iteration before any other code, and test AI streaming early.
+**Web baseline.** Set Vite's `build.target` to `safari16.4` (done; it was `es2022`). Load polyfills for Iterator helpers, `Promise.try` and ReadableStream async iteration before any other code, and test AI streaming early.
 
 **SSH and SFTP.** Build on russh and russh-sftp, with the crypto backend rustls already uses so only one compiles. A [community Terax SSH preview](https://github.com/crynta/terax-ai/issues/1276) covers similar ground, but it lists only Windows and states no license. Treat it as design input until its license is confirmed.
 
@@ -198,7 +198,7 @@ export DISABLE_AUTOUPDATER=1
 
 Reports conflict on the last working Claude Code version, so find it on the reference Mac. The variable name above is from memory; verify it against current docs.
 
-**Hard fork.** Estate does not track Terax and has no `upstream` remote. Put new tools in separate modules so the code stays easy to reason about. When a Terax fix matters to Estate, especially a security fix, port it by hand and rerun the release checklist, because Terax targets macOS 13 and its code may use newer APIs.
+**Independent development.** Estate started from Terax 0.9.0 and is developed from there on its own, for older macOS. It has no `upstream` remote, and later Terax releases are not merged or ported: Terax targets macOS 13 and later, so its future changes are not relevant to Estate. Put new tools in separate modules so the code stays easy to reason about.
 
 ## Setup: Git, repository and authorship
 
@@ -246,7 +246,7 @@ git config user.name "ygreat"
 git config user.email "ygreatto@gmail.com"
 ```
 
-Afterwards the `upstream` remote was removed (`git remote remove upstream`). Estate is a hard fork: `main` on ygreat/estate is the only working branch, and Terax is not tracked. Commit `a2c0877` is the fork point.
+Afterwards the `upstream` remote was removed (`git remote remove upstream`). `main` on ygreat/estate is the only working branch, and Terax is not tracked. Commit `a2c0877` (Terax 0.9.0 plus 50 commits) is Estate's starting point.
 
 Still to do: publish with `git push -u origin main`. Because `ygreat/estate` is not a GitHub fork, GitHub shows no "forked from" link, so the README must name Terax as the origin (see Licensing). Archive or delete `ygreat/terax-ai` once Estate is pushed, to avoid two copies.
 
@@ -274,7 +274,7 @@ In your IDE, turn off any AI co-author or attribution setting too, and add this 
 git log --format='%an <%ae>' a2c0877..HEAD | sort -u
 ```
 
-**Authorship scope.** The rule covers all work in this fork. Upstream commits keep their original authors, so GitHub's contributor list will still show upstream contributors. The license and copyright notices stay in place either way.
+**Authorship scope.** The rule covers all Estate work. Upstream commits keep their original authors, so GitHub's contributor list will still show upstream contributors. The license and copyright notices stay in place either way.
 
 ## Licensing
 
@@ -357,7 +357,7 @@ The largest risks are vendors dropping Monterey and a WebKit that will never be 
 | WebGL2 renders poorly on the old GPU | Missing text or heavy battery use; there is no renderer below WebGL2 | Test in Phase 0; FR-6 context-loss recovery; build FR-6a only if needed |
 | WebGPU never available on Monterey | The less-tested WebGL2 path is the only one Estate users run | Treat WebGL2 as primary; measure it against the Success metrics |
 | Remote output attacks the app | Local files or commands exposed | Treat PTY data as untrusted; retest upstream's fix over SSH |
-| Terax ships a security fix Estate lacks | Known flaw stays open in Estate | Watch Terax releases; port security fixes by hand |
+| A flaw in the Terax 0.9.0 code Estate started from | Known flaw stays open in Estate | Estate owns that code now: review it as Estate's own, and fix reported issues in Estate |
 
 **Open questions**
 
@@ -369,7 +369,7 @@ The largest risks are vendors dropping Monterey and a WebKit that will never be 
 
 - Name and repository: Estate, at ygreat/estate.
 - Stack: Tauri 2, Rust, one process, libghostty-vt (WebGL2 on Monterey), CodeMirror 6, russh, sqlx.
-- Repository: hard fork; all Estate work lands on `main` at ygreat/estate. No `upstream` remote; Terax fixes are ported by hand.
+- Origin: started from Terax 0.9.0 (commit `a2c0877`); developed independently, with no `upstream` remote and no porting of later Terax changes. All work lands on `main` at ygreat/estate.
 - Web floor: Safari 16.4, with the reference Mac on 17.6.
 - Privacy: no telemetry.
 - Distribution: open source under Apache-2.0, with no Apple notarization. The README tells users to clear the download quarantine after moving the app to Applications: `xattr -dr com.apple.quarantine /Applications/Estate.app`.

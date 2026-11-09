@@ -17,7 +17,7 @@ Estate is an open-source developer workspace with seven tools: terminal, SSH/SFT
 Modern agent workspaces and CLIs are dropping Monterey, and Intel Macs that stop at Monterey can't upgrade their way out. Estate keeps a current, lightweight workspace running on those machines. The reference machine is a 15-inch 2015 MacBook Pro on macOS 12.7.
 
 > [!NOTE]
-> Estate is an independent project derived from [Terax](https://github.com/crynta/terax-ai). It is not affiliated with or endorsed by the Terax project.
+> Estate is an independent project built on Tauri, starting from [Terax](https://github.com/crynta/terax-ai) 0.9.0 (commit `a2c0877`, 6 November 2026). It is developed on its own from there, and later Terax releases are not merged or ported. It is not affiliated with or endorsed by the Terax project.
 
 > [!IMPORTANT]
 > Estate is in early development and has no release yet. SSH/SFTP and the database browser are not built yet. See [ROADMAP.md](ROADMAP.md).
@@ -31,7 +31,7 @@ Modern agent workspaces and CLIs are dropping Monterey, and Intel Macs that stop
 | **Database browser** *(planned)* | PostgreSQL, MySQL/MariaDB and SQLite, directly or over SSH, with a schema tree, SQL editor, paged results and a guard on destructive statements. |
 | **Editor** | CodeMirror 6 with a file explorer, AI edit diffs and opt-in language servers. |
 | **AI agent** | Built-in agent with your own API keys, plus CLI agents (such as Claude Code) in local or SSH terminals, with versions you can pin. |
-| **In-app browser** | Local dev servers and external URLs in a child webview that has no access to the app's commands. |
+| **In-app browser** | Local dev servers and external URLs in a child webview. Cutting it off from the app's commands is planned and not yet verified. |
 | **Git** | Stage hunks, commit, push, pull, branches and a history graph. |
 
 ## Platform support
@@ -62,7 +62,7 @@ Apple's last macOS 12 update was in July 2024, and its WebKit will not be patche
 
 - No telemetry, analytics or crash reports.
 - Network calls happen only for things you start: AI requests, SSH and database connections, update checks, and pages you open.
-- API keys, SSH passphrases and database passwords are stored in the macOS Keychain, never on disk or in `localStorage`.
+- API keys are stored in the macOS Keychain, never on disk or in `localStorage`. SSH passphrases and database passwords will be stored the same way when those tools are built.
 
 ## Configure AI
 
@@ -118,7 +118,7 @@ Issues and PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [arc
 
 ## Credits
 
-Estate is built on [Terax](https://github.com/crynta/terax-ai), copyright 2026 Crynta, licensed under the Apache License 2.0. Most of Estate's code comes from Terax: the terminal, editor, AI agent, web preview, Git tools and the app shell. Thanks to Crynta and the Terax contributors, whose commits are kept in this repository's history.
+Estate started from [Terax](https://github.com/crynta/terax-ai) 0.9.0 (commit `a2c0877`), copyright 2026 Crynta, licensed under the Apache License 2.0. Most of Estate's starting code comes from that version: the terminal, editor, AI agent, web preview, Git tools and the app shell. Thanks to Crynta and the Terax contributors, whose commits are kept in this repository's history.
 
 Estate also includes code and fonts from these projects, under their own licenses. Their license files stay in the source tree and ship with the app.
 
