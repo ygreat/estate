@@ -5,7 +5,6 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { Toaster } from "@/components/ui/sonner";
-import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { consumeLaunchFiles, getLaunchDir } from "@/lib/launchDir";
 import { IS_MAC } from "@/lib/platform";
@@ -84,8 +83,8 @@ import {
 } from "@/modules/spaces";
 import { StatusBar } from "@/modules/statusbar";
 import {
-  TabSwitcherHud,
   type CloseTabsPlan,
+  TabSwitcherHud,
   useTabSwitcher,
   useTabs,
   useWindowTitle,
@@ -108,9 +107,9 @@ import {
   whenSessionReady,
   writeToSession,
 } from "@/modules/terminal";
-import type { TerminalSearchController } from "@/modules/terminal/search/TerminalSearchController";
 import { bindTerminalWindowFocus } from "@/modules/terminal/ghostty/renderScheduling";
 import { subscribeWindowPresentation } from "@/modules/terminal/ghostty/windowPresentation";
+import type { TerminalSearchController } from "@/modules/terminal/search/TerminalSearchController";
 import {
   LivePageResizeBridge,
   ThemeProvider,
@@ -137,18 +136,19 @@ import {
   useRef,
   useState,
 } from "react";
+import { toast } from "sonner";
 import { CloseDialogs } from "./components/CloseDialogs";
 import {
   TOGGLE_BLOCK_INPUT_EVENT,
   WorkspaceInputBar,
 } from "./components/WorkspaceInputBar";
 import { WorkspaceSurface } from "./components/WorkspaceSurface";
-import { useAppCloseGuard } from "./hooks/useAppCloseGuard";
 import {
   hasOpenPathTab,
   renamedPath,
   spacesEmptiedByTabs,
 } from "./hooks/tabCloseGuards";
+import { useAppCloseGuard } from "./hooks/useAppCloseGuard";
 import { useTabCloseGuards } from "./hooks/useTabCloseGuards";
 import { useWorkspaceSwitcher } from "./hooks/useWorkspaceSwitcher";
 
@@ -670,7 +670,8 @@ export default function App() {
           return;
         }
         toast("Terminal is busy", {
-          description: "Open a new tab to go there, or exit the running program.",
+          description:
+            "Open a new tab to go there, or exit the running program.",
         });
       });
     },
@@ -821,6 +822,7 @@ export default function App() {
   const explorerGitDecorations = usePreferencesStore(
     (s) => s.explorerGitDecorations,
   );
+  const sidebarSide = usePreferencesStore((s) => s.sidebarSide);
   const { sourceControl, toggleSourceControl, openGitGraphFromContext } =
     useSourceControlContext({
       activeTab,
@@ -1420,6 +1422,79 @@ export default function App() {
     terminalRefs,
   });
 
+  // The sidebar renders in a slot before or after the workspace; the workspace keeps
+  // its place among the group's children, so switching sides never remounts it.
+  const sidebarPanel = (
+    <ResizablePanel
+      id="sidebar"
+      panelRef={sidebarRef}
+      defaultSize={
+        initialSidebarCollapsed ? "0px" : `${sidebarWidthRef.current}px`
+      }
+      minSize={`${SIDEBAR_MIN_WIDTH}px`}
+      maxSize={`${SIDEBAR_MAX_WIDTH}px`}
+      collapsible
+      collapsedSize={0}
+      onResize={(size) => {
+        persistSidebarCollapsed(size.inPixels <= 0);
+      }}
+    >
+      <div
+        className={
+          sidebarSide === "left"
+            ? "h-full min-h-0 pl-2 pr-0.5"
+            : "h-full min-h-0 pl-0.5 pr-2"
+        }
+      >
+        <div className="estate-pane flex h-full min-h-0 flex-col">
+          <div
+            key={sidebarView}
+            className="min-h-0 flex-1 estate-panel-in"
+            data-side={sidebarSide}
+          >
+            {sidebarView === "explorer" ? (
+              <FileExplorer
+                ref={explorerRef}
+                rootPath={explorerRoot}
+                gitStatus={explorerGitDecorations ? sourceControl.status : null}
+                activeFilePath={explorerActiveFilePath}
+                onOpenFile={handleOpenFile}
+                onPathRenamed={handleExplorerPathRenamed}
+                onPathsDeleted={handlePathsDeleted}
+                canReplacePath={canReplaceExplorerPath}
+                onRevealInTerminal={cdInNewTab}
+                onOpenInSourceControl={handleOpenRepositoryInSourceControl}
+                onOpenGitHistory={handleOpenGitHistoryForPath}
+                onAttachToAgent={handleAttachFileToAgent}
+                pathDropTarget={terminalPathDropTarget}
+                visible={!sidebarCollapsed}
+              />
+            ) : (
+              <SourceControlPanel
+                open
+                sourceControl={sourceControl}
+                onOpenDiff={openGitDiffTab}
+                onOpenGitGraph={openGitGraphFromContext}
+                onOpenFile={handleOpenFile}
+                onNavigateToPath={cdInNewTab}
+                repositoryTarget={sourceControlRepositoryTarget}
+                onFollowRepositoryContext={handleFollowRepositoryContext}
+              />
+            )}
+          </div>
+          <SidebarRail
+            activeView={sidebarView}
+            onSelectView={persistSidebarView}
+            changedCount={sourceControl.changedCount}
+          />
+        </div>
+      </div>
+    </ResizablePanel>
+  );
+  const sidebarHandle = (
+    <ResizableHandle className="w-1 rounded-full bg-transparent transition-colors duration-[var(--dur-fast)] after:w-4 hover:bg-border" />
+  );
+
   const shell = (
     <ThemeProvider>
       <TooltipProvider>
@@ -1481,75 +1556,16 @@ export default function App() {
                 persistSidebarWidth(width, isUserInteraction);
               }}
             >
-              <ResizablePanel
-                id="sidebar"
-                panelRef={sidebarRef}
-                defaultSize={
-                  initialSidebarCollapsed
-                    ? "0px"
-                    : `${sidebarWidthRef.current}px`
-                }
-                minSize={`${SIDEBAR_MIN_WIDTH}px`}
-                maxSize={`${SIDEBAR_MAX_WIDTH}px`}
-                collapsible
-                collapsedSize={0}
-                onResize={(size) => {
-                  persistSidebarCollapsed(size.inPixels <= 0);
-                }}
-              >
-                <div className="h-full min-h-0 pl-2 pr-0.5">
-                  <div className="estate-pane flex h-full min-h-0 flex-col">
-                    <div
-                      key={sidebarView}
-                      className="min-h-0 flex-1 estate-panel-in"
-                    >
-                      {sidebarView === "explorer" ? (
-                        <FileExplorer
-                          ref={explorerRef}
-                          rootPath={explorerRoot}
-                          gitStatus={
-                            explorerGitDecorations ? sourceControl.status : null
-                          }
-                          activeFilePath={explorerActiveFilePath}
-                          onOpenFile={handleOpenFile}
-                          onPathRenamed={handleExplorerPathRenamed}
-                          onPathsDeleted={handlePathsDeleted}
-                          canReplacePath={canReplaceExplorerPath}
-                          onRevealInTerminal={cdInNewTab}
-                          onOpenInSourceControl={
-                            handleOpenRepositoryInSourceControl
-                          }
-                          onOpenGitHistory={handleOpenGitHistoryForPath}
-                          onAttachToAgent={handleAttachFileToAgent}
-                          pathDropTarget={terminalPathDropTarget}
-                          visible={!sidebarCollapsed}
-                        />
-                      ) : (
-                        <SourceControlPanel
-                          open
-                          sourceControl={sourceControl}
-                          onOpenDiff={openGitDiffTab}
-                          onOpenGitGraph={openGitGraphFromContext}
-                          onOpenFile={handleOpenFile}
-                          onNavigateToPath={cdInNewTab}
-                          repositoryTarget={sourceControlRepositoryTarget}
-                          onFollowRepositoryContext={
-                            handleFollowRepositoryContext
-                          }
-                        />
-                      )}
-                    </div>
-                    <SidebarRail
-                      activeView={sidebarView}
-                      onSelectView={persistSidebarView}
-                      changedCount={sourceControl.changedCount}
-                    />
-                  </div>
-                </div>
-              </ResizablePanel>
-              <ResizableHandle className="w-1 rounded-full bg-transparent transition-colors duration-[var(--dur-fast)] after:w-4 hover:bg-border" />
+              {sidebarSide === "left" && sidebarPanel}
+              {sidebarSide === "left" && sidebarHandle}
               <ResizablePanel id="workspace" defaultSize="78%" minSize="30%">
-                <div className="h-full min-h-0 pl-0.5 pr-2">
+                <div
+                  className={
+                    sidebarSide === "left"
+                      ? "h-full min-h-0 pl-0.5 pr-2"
+                      : "h-full min-h-0 pl-2 pr-0.5"
+                  }
+                >
                   <div className="estate-pane flex h-full min-h-0 flex-col">
                     <div className="relative min-h-0 flex-1">
                       <WorkspaceSurface
@@ -1588,6 +1604,8 @@ export default function App() {
                   </div>
                 </div>
               </ResizablePanel>
+              {sidebarSide === "right" && sidebarHandle}
+              {sidebarSide === "right" && sidebarPanel}
             </ResizablePanelGroup>
           </main>
 
