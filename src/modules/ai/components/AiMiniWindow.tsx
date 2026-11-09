@@ -30,7 +30,12 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { PresenceState } from "@/lib/usePresence";
 import { useEffect, useMemo } from "react";
-import { estimateCost, getModel, getModelContextLimit, type ModelId } from "../config";
+import {
+  estimateCost,
+  getModel,
+  getModelContextLimit,
+  type ModelId,
+} from "../config";
 import type { ResizeDir } from "../lib/miniWindowGeometry";
 import type { SessionMeta } from "../lib/sessions";
 import { useMiniWindowGeometry } from "../lib/useMiniWindowGeometry";
@@ -39,6 +44,7 @@ import { useChatStore } from "../store/chatStore";
 import { getOrCreateChat } from "../store/chatRuntime";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { usePlanStore } from "../store/planStore";
+import { AccountModelStrip } from "./AccountNotice";
 import { AgentSwitcher } from "./AgentSwitcher";
 import { AiChatView } from "./AiChat";
 import { PlanDiffReview } from "./PlanDiffReview";
@@ -154,7 +160,10 @@ function ResizeHandle({
     <div
       data-no-drag
       onPointerDown={onPointerDown}
-      className={cn("absolute z-50 touch-none select-none", RESIZE_HANDLE_CLASS[dir])}
+      className={cn(
+        "absolute z-50 touch-none select-none",
+        RESIZE_HANDLE_CLASS[dir],
+      )}
     />
   );
 }
@@ -190,6 +199,7 @@ function Body({
       />
 
       <PlanModeStrip />
+      <AccountModelStrip />
 
       <div className="flex min-h-0 flex-1 flex-col">
         {helpers.messages.length === 0 ? (
@@ -404,7 +414,9 @@ function ContextIndicator({ messages }: { messages: UIMessage[] }) {
               {tokens.cachedInputTokens > 0 && (
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Cache hit</span>
-                  <span className="font-mono text-foreground">{cacheRate}%</span>
+                  <span className="font-mono text-foreground">
+                    {cacheRate}%
+                  </span>
                 </div>
               )}
               {cost != null && (

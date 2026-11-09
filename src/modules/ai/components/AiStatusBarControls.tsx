@@ -46,6 +46,7 @@ import { useMemo, useRef, useState } from "react";
 import {
   compatModelIdForEndpoint,
   getCompatModelInfo,
+  getProvider,
   getModel,
   isCompatModelId,
   MODELS,
@@ -61,6 +62,8 @@ import { ACCEPTED_FILES, useComposer } from "../lib/composer";
 import { toggleFavoriteModel } from "../lib/modelPrefs";
 import { useChatStore } from "../store/chatStore";
 import { usePreferencesStore } from "@/modules/settings/preferences";
+import { ACCOUNT_AGENTS, useAgentStatuses } from "@/modules/agent-chat/auth";
+import { ACCOUNT_SUMMARY, AccountTradeoffs } from "./AccountNotice";
 
 const PROVIDER_ICON = {
   openai: ChatGptIcon,
@@ -227,14 +230,29 @@ function ModelDropdown() {
   const [activeProvider, setActiveProvider] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const inputRef = useRef<HTMLInputElement>(null);
+  // Estate: account providers are usable when their CLI is signed in. Checked
+  // when the menu opens (or an account model is selected), not at launch.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const currentAccount = isCompatModelId(selected)
+    ? undefined
+    : getProvider(current.provider).account;
+  const { auth: accountAuth } = useAgentStatuses(
+    ACCOUNT_AGENTS,
+    menuOpen || !!currentAccount,
+  );
+  const accountReady = (agent: "claude" | "codex") => {
+    const state = accountAuth[agent]?.state;
+    // Unknown until checked: don't grey it out meanwhile.
+    return state === undefined || state === "signed-in" || state === "unknown";
+  };
+  const hasKeyFor = (id: ProviderId) => {
+    const account = getProvider(id).account;
+    if (account) return accountReady(account);
+    return providerNeedsKey(id) ? !!apiKeys[id] : true;
+  };
   const currentProviderHasKey = isCompatModelId(selected)
     ? true
-    : providerNeedsKey(current.provider)
-      ? !!apiKeys[current.provider]
-      : true;
-
-  const hasKeyFor = (id: ProviderId) =>
-    providerNeedsKey(id) ? !!apiKeys[id] : true;
+    : hasKeyFor(current.provider);
 
   const epModelInfos = useMemo(() => {
     return customEndpoints.map((ep) =>
@@ -251,7 +269,7 @@ function ModelDropdown() {
     }
     return { configured, unconfigured };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKeys]);
+  }, [apiKeys, accountAuth]);
 
   const allModels = useMemo(() => [...MODELS, ...epModelInfos], [epModelInfos]);
 
@@ -287,8 +305,46 @@ function ModelDropdown() {
     return pool;
   }, [activeProvider, allModels, favoriteIds, recentIds, search, tab]);
 
+  // Estate: in the full list, signed-in account models come first under their
+  // own heading, so a Claude or ChatGPT login is easy to find.
+  const accountFirst = activeProvider === null && tab === "all";
+  const accountModels = accountFirst
+    ? filtered.filter(
+        (m) =>
+          !isCompatModelId(m.id) &&
+          getProvider(m.provider).account &&
+          accountAuth[getProvider(m.provider).account as "claude" | "codex"]
+            ?.state === "signed-in",
+      )
+    : [];
+  const restModels = accountModels.length
+    ? filtered.filter((m) => !accountModels.includes(m))
+    : filtered;
+  const activeAccount =
+    activeProvider !== null && activeProvider !== COMPAT_PROVIDER_ID
+      ? getProvider(activeProvider as ProviderId).account
+      : undefined;
+  const row = (m: ModelInfo) => (
+    <ModelRow
+      key={m.id}
+      model={m}
+      selected={m.id === selected}
+      hasKey={isCompatModelId(m.id) || hasKeyFor(m.provider)}
+      favorite={favoriteIds.includes(m.id)}
+      showProviderIcon={activeProvider === null}
+      onPick={() => {
+        if (!isCompatModelId(m.id) && !hasKeyFor(m.provider)) {
+          void openSettingsWindow("models");
+          return;
+        }
+        setSelected(m.id);
+      }}
+      onToggleFavorite={() => void toggleFavoriteModel(m.id)}
+    />
+  );
+
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
@@ -411,10 +467,38 @@ function ModelDropdown() {
             activeProvider !== COMPAT_PROVIDER_ID ? (
               <ProviderHeader providerId={activeProvider as ProviderId} />
             ) : null}
+            {activeAccount ? (
+              <AccountTradeoffs className="mx-3 mb-1.5" />
+            ) : null}
             {activeProvider !== null &&
             activeProvider !== COMPAT_PROVIDER_ID &&
             !hasKeyFor(activeProvider as ProviderId) ? (
               <ProviderConfigureCTA providerId={activeProvider as ProviderId} />
+            ) : null}
+            {(activeProvider === "anthropic" &&
+              accountAuth.claude?.state === "signed-in") ||
+            (activeProvider === "openai" &&
+              accountAuth.codex?.state === "signed-in") ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveProvider(
+                    activeProvider === "anthropic"
+                      ? "claude-account"
+                      : "chatgpt-account",
+                  )
+                }
+                className="mx-2 mb-1 flex w-[calc(100%-1rem)] items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-left text-[11px] text-foreground transition-colors hover:bg-primary/10"
+              >
+                <span className="flex-1">
+                  You're signed in with a{" "}
+                  {activeProvider === "anthropic" ? "Claude" : "ChatGPT"}{" "}
+                  account. Use its models without an API key.
+                </span>
+                <span className="shrink-0 text-[10px] underline-offset-2">
+                  Show
+                </span>
+              </button>
             ) : null}
             {filtered.length === 0 ? (
               <div className="flex items-center justify-center px-4 py-10 text-xs text-muted-foreground/70">
@@ -424,25 +508,15 @@ function ModelDropdown() {
                     ? "No recently-used models."
                     : "No models match."}
               </div>
+            ) : accountModels.length > 0 ? (
+              <>
+                <SectionHeading title="Your accounts" note={ACCOUNT_SUMMARY} />
+                {accountModels.map(row)}
+                <SectionHeading title="API keys and local models" />
+                {restModels.map(row)}
+              </>
             ) : (
-              filtered.map((m) => (
-                <ModelRow
-                  key={m.id}
-                  model={m}
-                  selected={m.id === selected}
-                  hasKey={isCompatModelId(m.id) || hasKeyFor(m.provider)}
-                  favorite={favoriteIds.includes(m.id)}
-                  showProviderIcon={activeProvider === null}
-                  onPick={() => {
-                    if (!isCompatModelId(m.id) && !hasKeyFor(m.provider)) {
-                      void openSettingsWindow("models");
-                      return;
-                    }
-                    setSelected(m.id);
-                  }}
-                  onToggleFavorite={() => void toggleFavoriteModel(m.id)}
-                />
-              ))
+              filtered.map(row)
             )}
           </div>
         </div>
@@ -540,12 +614,29 @@ function ProviderConfigureCTA({ providerId }: { providerId: ProviderId }) {
     >
       <HugeiconsIcon icon={Settings01Icon} size={13} strokeWidth={1.75} />
       <span className="flex-1 truncate">
-        Configure {p.label} to use these models.
+        {p.account
+          ? `Sign in with your ${p.label} in Settings > Models.`
+          : `Configure ${p.label} to use these models.`}
       </span>
       <span className="shrink-0 text-[10px] underline-offset-2 group-hover:underline">
         Open
       </span>
     </button>
+  );
+}
+
+function SectionHeading({ title, note }: { title: string; note?: string }) {
+  return (
+    <div className="flex items-baseline gap-2 px-3 pt-2 pb-1">
+      <span className="shrink-0 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+        {title}
+      </span>
+      {note ? (
+        <span className="truncate text-[10px] text-muted-foreground/70">
+          {note}
+        </span>
+      ) : null}
+    </div>
   );
 }
 

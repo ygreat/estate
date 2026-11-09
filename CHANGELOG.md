@@ -45,6 +45,8 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 - Settings > Models has an Accounts section: sign in with a Claude account (through Claude Code) or a ChatGPT account (through Codex) instead of adding an API key. Each shows whether you're signed in, with a Sign in button that runs the agent's own login in a terminal.
 - Once signed in, the panel's model picker offers Claude Sonnet, Opus and Haiku, or Codex's default model, marked "Account". Requests run through the signed-in app, read only, in the project folder; Estate never sees the account's credentials. The panel's own tools aren't used with these models; the agent uses its own read-only tools.
 - The AI panel opens without any API key when one of these accounts is signed in, and starts on its model.
+- The model picker lists signed-in account models first under "Your accounts". A model is greyed out only when its account isn't signed in. Browsing Anthropic or OpenAI while signed in with that account offers a shortcut to the account's models.
+- A notice explains the trade-offs (read only, no Estate tools, slower start, uses your plan's limits): a strip in the AI chat while an account model is selected (collapsible), in the picker, and in Settings > Models.
 
 **Welcome screen**
 - Opens on launch over the editor, which shows blurred behind it (Settings > General can turn it off). Go to editor, Esc or a click anywhere outside skips it. First pick a project: the open one, a recent one or a new folder.
