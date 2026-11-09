@@ -1,44 +1,49 @@
+# Modified by ygreat for Estate, 2026. Originally part of Terax.
+#
+# Estate takes dependency updates slowly: every update has to launch on the
+# macOS 12 reference Mac, which CI cannot do. So updates come once a month, in
+# one grouped PR per ecosystem, minor and patch only. Major updates are skipped
+# here; when one is wanted, bump it by hand and test it on Monterey on its own.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 1
     cooldown:
-      default-days: 3
+      default-days: 7
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
-      npm-dev:
-        dependency-type: development
-        update-types:
-          - minor
-          - patch
-      npm-prod-minor-patch:
-        dependency-type: production
-        update-types:
-          - minor
-          - patch
+      npm:
+        patterns: ["*"]
+        update-types: [minor, patch]
 
   - package-ecosystem: cargo
     directory: "/src-tauri"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 1
     cooldown:
-      default-days: 3
+      default-days: 7
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       cargo:
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
+        patterns: ["*"]
+        update-types: [minor, patch]
 
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 1
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       github-actions:
-        patterns:
-          - "*"
+        patterns: ["*"]

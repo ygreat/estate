@@ -26,4 +26,6 @@ Files that can't hold comments, such as JSON, are listed here instead, along wit
 
 | File | Reason |
 | --- | --- |
+| `.github/workflows/signpath-test.yml` | Windows code signing for the Terax repository only. |
+| `.github/workflows/update-nix-sources.yml` | Updated Nix sources for Terax's Linux releases, which Estate doesn't package. |
 | `docs/readme/README.*.md` (11 translations) | Translations of the Terax README; they described Terax, not Estate. Available in the Terax repository and this repository's history. |
