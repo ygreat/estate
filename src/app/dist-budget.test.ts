@@ -313,7 +313,7 @@ describe("built startup graph", () => {
     expect(failure({ TERAX_BENCH_IDENTIFIER: "" })).toContain(
       "TERAX_BENCH_IDENTIFIER",
     );
-    expect(failure({ TERAX_BENCH_IDENTIFIER: "app.crynta.terax" })).toContain(
+    expect(failure({ TERAX_BENCH_IDENTIFIER: "io.github.ygreat.estate" })).toContain(
       "not the product identifier",
     );
     // Nothing was emitted by either attempt.

@@ -14,7 +14,7 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, WebviewWindow};
 
 /// Identifier of the shipped application; a bench build must not run under it.
-const PRODUCT_IDENTIFIER: &str = "app.crynta.terax";
+const PRODUCT_IDENTIFIER: &str = "io.github.ygreat.estate";
 
 /// Called from `setup` and by every bench command. A bench build must not run under the
 /// product identifier (it would share the installed app's profile), and only starts when the
@@ -729,7 +729,7 @@ mod tests {
 
     #[test]
     fn product_identifier_is_refused() {
-        assert!(guard_environment("app.crynta.terax", Some("1")).is_err());
+        assert!(guard_environment("io.github.ygreat.estate", Some("1")).is_err());
         assert!(guard_environment("app.crynta.terax.app-lab", Some("1")).is_ok());
     }
 

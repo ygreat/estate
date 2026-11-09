@@ -7,7 +7,7 @@ import { IS_LINUX } from "@/lib/platform";
 const LAST_CHECK_KEY = "terax:updater:last-check";
 const CHECK_INTERVAL_MS = 30 * 60 * 1000;
 const GITHUB_LATEST_RELEASE =
-  "https://api.github.com/repos/crynta/terax-ai/releases/latest";
+  "https://api.github.com/repos/ygreat/estate/releases/latest";
 
 export interface ManualUpdateInfo {
   version: string;
@@ -77,11 +77,14 @@ interface Options {
 }
 
 interface HookOptions {
-  /** When false, the hook does not run an automatic check on mount. */
+  /**
+   * When true, the hook runs an automatic check on mount. Estate defaults to
+   * false: no network call happens unless the user asks (PRD FR-4).
+   */
   autoCheck?: boolean;
 }
 
-export function useUpdater({ autoCheck = true }: HookOptions = {}) {
+export function useUpdater({ autoCheck = false }: HookOptions = {}) {
   const [status, setStatus] = useState<UpdaterStatus>({ kind: "idle" });
 
   const runCheck = useCallback(async ({ manual }: Options = {}) => {
