@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { TerminalSearchController } from "@/modules/terminal/search/TerminalSearchController";
 import { useTheme } from "@/modules/theme";
@@ -18,11 +19,14 @@ import {
   ghosttyBlockGeometry,
 } from "./ghostty/useGhosttyTerminalSession";
 import { ghosttyBlocks } from "./ghostty/ghosttyBlockSessions";
+import type { ShellBusyReason } from "./lib/promptInjection";
 
 export type TerminalPaneHandle = {
   write: (data: string) => void;
   /** Like `write`, but only when the shell is at its prompt; false if not. */
   writeAtPrompt: (data: string) => Promise<boolean>;
+  /** Estate: why `writeAtPrompt` would refuse right now, or null. */
+  busyReason: () => Promise<ShellBusyReason | null>;
   focus: () => void;
   getBuffer: (maxLines?: number) => string | null;
   getSelection: () => string | null;
@@ -99,6 +103,7 @@ const GhosttyTerminalPane = memo(
       () => ({
         write: session.write,
         writeAtPrompt: session.writeAtPrompt,
+        busyReason: session.busyReason,
         focus: session.focus,
         getBuffer: session.getBuffer,
         getSelection: session.getSelection,

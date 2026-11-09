@@ -27,7 +27,14 @@ import {
   useSnippetsStore,
 } from "@/modules/ai/store/snippetsStore";
 import { usePreferencesStore } from "@/modules/settings/preferences";
-import { setCustomInstructions } from "@/modules/settings/store";
+import {
+  CHAT_STATUS_ITEMS,
+  type ChatStatusItem,
+  setAgentChatStatusItems,
+  setCustomInstructions,
+} from "@/modules/settings/store";
+import { Switch } from "@/components/ui/switch";
+import { SettingRow } from "../components/SettingRow";
 import {
   Add01Icon,
   CheckmarkCircle02Icon,
@@ -78,6 +85,8 @@ export function AgentsSection() {
       />
 
       <CustomInstructionsBlock value={customInstructions} />
+
+      <ChatStatusLineBlock />
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
@@ -556,6 +565,50 @@ function CustomInstructionsBlock({ value }: { value: string }) {
         className="min-h-[100px] resize-y bg-card/60 font-sans text-[12px] leading-relaxed border border-border"
       />
     </div>
+  );
+}
+
+const CHAT_STATUS_LABELS: Record<ChatStatusItem, [string, string]> = {
+  folder: ["Folder", "The folder the agent works in."],
+  branch: [
+    "Branch and worktree",
+    "The git branch, and the worktree when it isn't the main checkout.",
+  ],
+  model: ["Model", "The model the agent reports using."],
+  access: ["Access level", "Read only, Edit files or Full access."],
+  context: ["Context", "Tokens in the model's context (Claude Code)."],
+  tokens: ["Tokens", "Input and output tokens used in this chat."],
+  cost: ["Cost", "What this chat has cost so far, when the agent reports it."],
+};
+
+/** Estate: which items the agent chat status line shows. */
+function ChatStatusLineBlock() {
+  const items = usePreferencesStore((s) => s.agentChatStatusItems);
+  const toggle = (item: ChatStatusItem, on: boolean) => {
+    const next = on ? [...items, item] : items.filter((i) => i !== item);
+    void setAgentChatStatusItems(next);
+  };
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex flex-col">
+        <Label>Agent chat status line</Label>
+        <span className="text-[10.5px] text-muted-foreground">
+          Shown under the message box of agent chats.
+        </span>
+      </div>
+      {CHAT_STATUS_ITEMS.map((item) => (
+        <SettingRow
+          key={item}
+          title={CHAT_STATUS_LABELS[item][0]}
+          description={CHAT_STATUS_LABELS[item][1]}
+        >
+          <Switch
+            checked={items.includes(item)}
+            onCheckedChange={(on) => toggle(item, on)}
+          />
+        </SettingRow>
+      ))}
+    </section>
   );
 }
 

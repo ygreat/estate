@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Tab } from "./useTabs";
 
@@ -21,6 +22,8 @@ export function useWorkspaceCwd(
 
   const explorerRoot = useMemo<string | null>(() => {
     if (activeTab?.kind === "terminal" && activeTab.cwd) return activeTab.cwd;
+    // Estate: a chat works in its own folder; the explorer follows it.
+    if (activeTab?.kind === "agent-chat") return activeTab.cwd;
     if (lastTerminalCwd.current) return lastTerminalCwd.current;
     const anyTerm = tabs.find((t) => t.kind === "terminal" && t.cwd);
     if (anyTerm?.kind === "terminal" && anyTerm.cwd) return anyTerm.cwd;
@@ -29,6 +32,7 @@ export function useWorkspaceCwd(
 
   const inheritedCwdForNewTab = useCallback((): string | undefined => {
     if (activeTab?.kind === "terminal" && activeTab.cwd) return activeTab.cwd;
+    if (activeTab?.kind === "agent-chat") return activeTab.cwd;
     // Editor tabs inherit the last terminal's cwd (or workspace home), not
     // the file's folder — opening a new terminal from a file shouldn't
     // hijack the user's working directory context.

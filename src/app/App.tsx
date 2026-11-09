@@ -651,7 +651,16 @@ export default function App() {
       // Estate: chat mode runs the agent headless in a chat tab.
       if (request.view === "chat") {
         if (!isChatCapable(request.agent)) return;
-        const cwd = inheritedCwdForNewTab() ?? home;
+        // The project the user is in: the active terminal's (or chat's)
+        // folder, else the space's root, else the last terminal or home.
+        const current =
+          activeTab?.kind === "terminal" || activeTab?.kind === "agent-chat"
+            ? inheritedCwdForNewTab()
+            : undefined;
+        const spaceRoot = useSpaces
+          .getState()
+          .spaces.find((sp) => sp.id === useSpaces.getState().activeId)?.root;
+        const cwd = current ?? spaceRoot ?? inheritedCwdForNewTab() ?? home;
         if (!cwd) {
           toast.error("Open a folder before starting a chat");
           return;
@@ -701,9 +710,11 @@ export default function App() {
         })();
       }
     },
-    [inheritedCwdForNewTab, newAgentGroupTab, newAgentChatTab, home],
+    [inheritedCwdForNewTab, newAgentGroupTab, newAgentChatTab, home, activeTab],
   );
 
+  // Estate: the busy toast offers the new-tab route, defined further down.
+  const cdInNewTabRef = useRef<(path: string) => void>(() => {});
   const sendCd = useCallback(
     (path: string) => {
       if (activeLeafId === null) return;
@@ -714,9 +725,35 @@ export default function App() {
           term.focus();
           return;
         }
-        toast("Terminal is busy", {
-          description:
-            "Open a new tab to go there, or exit the running program.",
+        // Estate: say what is in the way, not just "busy".
+        void term.busyReason().then((reason) => {
+          const why: Record<string, [string, string]> = {
+            agent: [
+              "A coding agent is running in this terminal",
+              "Exit the agent, or open a new tab to go there.",
+            ],
+            fullscreen: [
+              "A full-screen program is open in this terminal",
+              "Quit it, or open a new tab to go there.",
+            ],
+            running: [
+              "A command is still running in this terminal",
+              "Wait for it to finish, or open a new tab to go there.",
+            ],
+            "not-integrated": [
+              "This terminal isn't at a prompt Estate can type into",
+              "Press Enter once at the prompt, or open a new tab to go there.",
+            ],
+            closed: ["This terminal has closed", "Open a new tab to go there."],
+          };
+          const [title, description] = why[reason ?? "running"] ?? why.running;
+          toast(title, {
+            description,
+            action: {
+              label: "Open in new tab",
+              onClick: () => cdInNewTabRef.current(path),
+            },
+          });
         });
       });
     },
@@ -737,6 +774,7 @@ export default function App() {
     },
     [newTab],
   );
+  cdInNewTabRef.current = cdInNewTab;
 
   const handleOpenFile = useCallback(
     (path: string, pin?: boolean) => {
@@ -1235,7 +1273,9 @@ export default function App() {
     gitHistoryHandle,
   ]);
 
-  const activeCwd = activeTerminalLeafCwd;
+  // Estate: a chat tab shows (and works in) its own folder.
+  const activeCwd =
+    activeTab?.kind === "agent-chat" ? activeTab.cwd : activeTerminalLeafCwd;
 
   const handleNewSpace = useCallback(() => {
     const { spaces, create, setActive } = useSpaces.getState();
@@ -1668,7 +1708,7 @@ export default function App() {
               cwd={activeCwd}
               filePath={activeFilePath}
               home={home}
-              onCd={sendCd}
+              onCd={activeTab?.kind === "agent-chat" ? cdInNewTab : sendCd}
               onWorkspaceChange={handleWorkspaceChange}
               onOpenMini={openMini}
               onOpenAi={togglePanelAndFocus}

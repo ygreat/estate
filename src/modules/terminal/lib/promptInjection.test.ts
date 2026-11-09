@@ -1,9 +1,11 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { describe, expect, it } from "vitest";
 
 import {
   type InjectionTarget,
   type ShellInputState,
   shellAcceptsInjectedCommand,
+  shellBusyReason,
   writeAtShellPrompt,
 } from "./promptInjection";
 
@@ -142,5 +144,48 @@ describe("writeAtShellPrompt", () => {
     active = false;
     expect(writeAtShellPrompt(target, "cd /tmp\r", agentActive)).toBe(true);
     expect(written).toEqual(["cd /tmp\r"]);
+  });
+});
+
+describe("shellBusyReason (Estate)", () => {
+  it("is null exactly when an injected command would be accepted", () => {
+    const states: ShellInputState[] = [];
+    for (const integrated of [true, false])
+      for (const commandRunning of [true, false])
+        for (const commandTracked of [true, false])
+          for (const alternateScreen of [true, false])
+            for (const agentActive of [true, false])
+              states.push({
+                integrated,
+                commandRunning,
+                commandTracked,
+                alternateScreen,
+                agentActive,
+              });
+    for (const state of states) {
+      expect(shellBusyReason(state) === null).toBe(
+        shellAcceptsInjectedCommand(state),
+      );
+    }
+  });
+
+  it("names the most useful reason first", () => {
+    expect(
+      shellBusyReason({ ...idle, agentActive: true, alternateScreen: true }),
+    ).toBe("agent");
+    expect(shellBusyReason({ ...idle, alternateScreen: true })).toBe(
+      "fullscreen",
+    );
+    expect(shellBusyReason({ ...idle, integrated: false })).toBe(
+      "not-integrated",
+    );
+    expect(shellBusyReason({ ...idle, commandTracked: false })).toBe(
+      "not-integrated",
+    );
+    expect(shellBusyReason({ ...idle, commandRunning: true })).toBe("running");
+    expect(
+      shellBusyReason({ ...idle, commandRunning: true, commandTracked: false }),
+    ).toBe("running");
+    expect(shellBusyReason(idle)).toBeNull();
   });
 });

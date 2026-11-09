@@ -20,6 +20,9 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { AgentIcon } from "@/modules/agents/lib/agentIcon";
+import { git } from "@/modules/git";
+import { usePreferencesStore } from "@/modules/settings/preferences";
+import type { ChatStatusItem } from "@/modules/settings/store";
 import {
   ACCESS_HINT,
   ACCESS_LABEL,
@@ -27,6 +30,7 @@ import {
   type ChatAgentId,
   type ChatItem,
   CHAT_AGENT_LABEL,
+  type Transcript,
   type TurnStats,
 } from "./model";
 import { useAgentChatStore } from "./store";
@@ -130,13 +134,13 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
             </SelectTrigger>
             <SelectContent>
               {ACCESS_ORDER.map((a) => (
-                <SelectItem key={a} value={a} className="text-[12px]">
-                  <span className="flex flex-col">
-                    <span>{ACCESS_LABEL[a]}</span>
-                    <span className="text-[10.5px] text-muted-foreground">
-                      {ACCESS_HINT[a]}
-                    </span>
-                  </span>
+                <SelectItem
+                  key={a}
+                  value={a}
+                  className="text-[12px]"
+                  title={ACCESS_HINT[a]}
+                >
+                  {ACCESS_LABEL[a]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -239,7 +243,146 @@ export function AgentChatPane({ chatId, agent, cwd, visible }: Props) {
             </Button>
           )}
         </div>
+        {chat && (
+          <ChatStatusLine
+            cwd={cwd}
+            access={access}
+            transcript={chat.transcript}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+function compact(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}k`;
+  return `${(n / 1_000_000).toFixed(1)}M`;
+}
+
+/** Repository root and branch for the chat's folder, refreshed after turns. */
+function useRepo(cwd: string, refresh: number) {
+  const [repo, setRepo] = useState<{ root: string; branch: string } | null>(
+    null,
+  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `refresh` re-resolves after each turn
+  useEffect(() => {
+    let alive = true;
+    git
+      .resolveRepo(cwd)
+      .then((r) => {
+        if (alive) setRepo(r ? { root: r.repoRoot, branch: r.branch } : null);
+      })
+      .catch(() => {
+        if (alive) setRepo(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [cwd, refresh]);
+  return repo;
+}
+
+type StatusPart = { key: ChatStatusItem; text: string; title?: string };
+
+/** Estate: configurable line under the composer (Settings > Agents). */
+function ChatStatusLine({
+  cwd,
+  access,
+  transcript,
+}: {
+  cwd: string;
+  access: ChatAccess;
+  transcript: Transcript;
+}) {
+  const items = usePreferencesStore((s) => s.agentChatStatusItems);
+  const repo = useRepo(cwd, transcript.totals.turns);
+  if (items.length === 0) return null;
+
+  const worktree = repo?.root.includes("/.estate/worktrees/")
+    ? folderName(repo.root)
+    : null;
+  const t = transcript.totals;
+  const parts: StatusPart[] = [];
+  for (const item of items) {
+    switch (item) {
+      case "folder":
+        parts.push({ key: item, text: folderName(cwd), title: cwd });
+        break;
+      case "branch":
+        if (repo?.branch) {
+          parts.push({
+            key: item,
+            text: worktree
+              ? `${repo.branch} · worktree ${worktree}`
+              : repo.branch,
+            title: repo.root,
+          });
+        }
+        break;
+      case "model":
+        if (transcript.model) parts.push({ key: item, text: transcript.model });
+        break;
+      case "access":
+        parts.push({ key: item, text: ACCESS_LABEL[access] });
+        break;
+      case "context":
+        if (transcript.contextTokens) {
+          parts.push({
+            key: item,
+            text: `${compact(transcript.contextTokens)} context`,
+            title: `${transcript.contextTokens.toLocaleString()} tokens in context`,
+          });
+        }
+        break;
+      case "tokens":
+        if (t.inputTokens || t.outputTokens) {
+          parts.push({
+            key: item,
+            text:
+              compact(t.inputTokens) +
+              " in · " +
+              compact(t.outputTokens) +
+              " out",
+          });
+        }
+        break;
+      case "cost":
+        if (t.costUsd > 0) {
+          parts.push({
+            key: item,
+            text: `$${t.costUsd.toFixed(t.costUsd < 1 ? 4 : 2)}`,
+            title:
+              "This chat so far (" +
+              t.turns +
+              (t.turns === 1 ? " turn)" : " turns)"),
+          });
+        }
+        break;
+    }
+  }
+  if (parts.length === 0) return null;
+  return (
+    <div className="mx-auto mt-1.5 flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] text-muted-foreground">
+      {parts.map((part, i) => (
+        <span
+          key={part.key}
+          className="flex items-center gap-2"
+          title={part.title}
+        >
+          {i > 0 && <span className="text-muted-foreground/40">·</span>}
+          <span
+            className={
+              part.key === "branch" || part.key === "model"
+                ? "font-mono"
+                : undefined
+            }
+          >
+            {part.text}
+          </span>
+        </span>
+      ))}
     </div>
   );
 }

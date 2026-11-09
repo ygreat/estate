@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { enqueueTerminalInput } from "../ghostty/input/terminalInputEncoding";
 
 export type ShellInputState = {
@@ -23,6 +24,41 @@ export function shellAcceptsInjectedCommand(state: ShellInputState): boolean {
   if (state.alternateScreen || state.agentActive) return false;
   if (!state.integrated || !state.commandTracked) return false;
   return !state.commandRunning;
+}
+
+/** Estate: why typed text would not reach the shell (for a precise message). */
+export type ShellBusyReason =
+  | "agent"
+  | "fullscreen"
+  | "running"
+  | "not-integrated"
+  | "closed";
+
+export function shellBusyReason(
+  state: ShellInputState,
+): ShellBusyReason | null {
+  if (state.agentActive) return "agent";
+  if (state.alternateScreen) return "fullscreen";
+  // A running command also clears `commandTracked`, so check it first.
+  if (state.integrated && state.commandRunning) return "running";
+  if (!state.integrated || !state.commandTracked) return "not-integrated";
+  return null;
+}
+
+/** Estate: the reason `writeAtShellPrompt` would refuse, or null if it wouldn't. */
+export function explainShellRefusal(
+  session: InjectionTarget,
+  agentActive: () => boolean,
+): ShellBusyReason | null {
+  if (session.shellExited || session.disposed || !session.pty || !session.model)
+    return "closed";
+  return shellBusyReason({
+    integrated: session.promptIntegrated,
+    commandRunning: session.commandRunning,
+    commandTracked: session.commandTracked,
+    alternateScreen: session.model.modes().alternateScreen,
+    agentActive: agentActive(),
+  });
 }
 
 /** What a terminal session shows about the shell behind it. */

@@ -124,6 +124,23 @@ export function Header({
     </Button>
   );
 
+  // Estate: the toggle sits on the same side as the sidebar it controls.
+  const sidebarToggle = (
+    <Button
+      onClick={onToggleSidebar}
+      title="Toggle sidebar"
+      variant="ghost"
+      size="icon-sm"
+      className="shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+    >
+      <HugeiconsIcon
+        icon={sidebarSide === "right" ? SidebarRightIcon : SidebarLeftIcon}
+        size={18}
+        strokeWidth={1.75}
+      />
+    </Button>
+  );
+
   return (
     <div
       ref={rootRef}
@@ -133,19 +150,7 @@ export function Header({
       }`}
     >
       <div className="flex shrink-0 items-center gap-0.5">
-        <Button
-          onClick={onToggleSidebar}
-          title="Toggle sidebar"
-          variant="ghost"
-          size="icon-sm"
-          className="shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-        >
-          <HugeiconsIcon
-            icon={sidebarSide === "right" ? SidebarRightIcon : SidebarLeftIcon}
-            size={18}
-            strokeWidth={1.75}
-          />
-        </Button>
+        {sidebarSide === "left" && sidebarToggle}
 
         <Button
           size="icon-sm"
@@ -224,6 +229,8 @@ export function Header({
       )}
 
       {!IS_MAC && settingsButton}
+
+      {sidebarSide === "right" && sidebarToggle}
 
       {USE_CUSTOM_WINDOW_CONTROLS && (
         <>
