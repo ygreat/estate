@@ -53,6 +53,8 @@ import {
   type SearchTarget,
 } from "@/modules/header";
 import { useWorkspaceLayout } from "@/modules/layout/useWorkspaceLayout";
+import { AgentsPanel } from "@/modules/agents/components/AgentsPanelLazy";
+import { useAgentStore } from "@/modules/agents/store/agentStore";
 import {
   LOGIN_COMMANDS,
   RUN_IN_TERMINAL_EVENT,
@@ -1236,6 +1238,50 @@ export default function App() {
 
   const onActivateAgent = activateAgentTarget;
 
+  // Estate: the Agents sidebar view.
+  const spaceList = useSpaces((s) => s.spaces);
+  const spaceNames = useMemo(
+    () => new Map(spaceList.map((sp) => [sp.id, sp.name])),
+    [spaceList],
+  );
+  const agentsNeedingYou = useAgentStore(
+    (s) =>
+      Object.values(s.sessions).filter(
+        (a) => a.status === "waiting" && a.waitingReason !== "finished",
+      ).length,
+  );
+  const activateAgentRow = useCallback(
+    (tabId: number, leafId: number | null) => {
+      if (leafId !== null) {
+        activateAgentTarget(tabId, leafId);
+        return;
+      }
+      const space = tabsRef.current.find((t) => t.id === tabId)?.spaceId;
+      if (space && space !== useSpaces.getState().activeId) {
+        useSpaces.getState().setActive(space);
+      }
+      setActiveId(tabId);
+    },
+    [activateAgentTarget, setActiveId],
+  );
+  // Resumes a saved Claude Code session in a new chat tab.
+  const openClaudeSession = useCallback(
+    (cwd: string, sessionId: string) => {
+      const tabId = newAgentChatTab("claude", cwd);
+      const tab = tabsRef.current.find((t) => t.id === tabId);
+      if (tab?.kind !== "agent-chat") return;
+      const { chatId } = tab;
+      void import("@/modules/agent-chat/store").then(
+        ({ useAgentChatStore }) => {
+          const store = useAgentChatStore.getState();
+          store.open(chatId, { agent: "claude", cwd });
+          void store.openSession(chatId, sessionId);
+        },
+      );
+    },
+    [newAgentChatTab],
+  );
+
   const onActivateLocalAgent = useCallback(() => {
     openPanel();
     focusInput(null);
@@ -1579,6 +1625,16 @@ export default function App() {
                 pathDropTarget={terminalPathDropTarget}
                 visible={!sidebarCollapsed}
               />
+            ) : sidebarView === "agents" ? (
+              <AgentsPanel
+                tabs={tabs}
+                activeTabId={activeId}
+                activeSpaceId={activeSpaceId ?? DEFAULT_SPACE_ID}
+                spaceNames={spaceNames}
+                cwd={explorerRoot}
+                onActivate={activateAgentRow}
+                onOpenSession={openClaudeSession}
+              />
             ) : (
               <SourceControlPanel
                 open
@@ -1596,6 +1652,7 @@ export default function App() {
             activeView={sidebarView}
             onSelectView={persistSidebarView}
             changedCount={sourceControl.changedCount}
+            attentionCount={agentsNeedingYou}
           />
         </div>
       </div>

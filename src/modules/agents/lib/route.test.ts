@@ -49,7 +49,9 @@ describe("routeAgentNotification sound preference", () => {
       leafId: 201,
       onActivate: vi.fn(),
     });
-    await vi.waitFor(() => expect(notifications.osNotify).toHaveBeenCalledOnce());
+    await vi.waitFor(() =>
+      expect(notifications.osNotify).toHaveBeenCalledOnce(),
+    );
 
     expect(notifications.playSound).toHaveBeenCalledOnce();
   });
@@ -70,7 +72,9 @@ describe("routeAgentNotification sound preference", () => {
       leafId: 202,
       onActivate: vi.fn(),
     });
-    await vi.waitFor(() => expect(notifications.osNotify).toHaveBeenCalledOnce());
+    await vi.waitFor(() =>
+      expect(notifications.osNotify).toHaveBeenCalledOnce(),
+    );
 
     expect(notifications.pushNotification).toHaveBeenCalledOnce();
     expect(notifications.playSound).not.toHaveBeenCalled();

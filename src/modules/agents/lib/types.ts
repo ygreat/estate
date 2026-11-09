@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 export type AgentStatus = "working" | "waiting";
 
 export type AgentSource = "terminal" | "local";
@@ -23,6 +24,8 @@ export type AgentSession = {
   startedAt: number;
   lastActivityAt: number;
   attentionSince: number | null;
+  /** Estate: why a waiting agent waits: it needs you, or it finished. */
+  waitingReason?: "attention" | "finished";
 };
 
 export type AgentNotification = {

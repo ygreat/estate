@@ -1,5 +1,10 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { cn } from "@/lib/utils";
-import { FolderGitTwoIcon, FolderTreeIcon } from "@hugeicons/core-free-icons";
+import {
+  AiBrain01Icon,
+  FolderGitTwoIcon,
+  FolderTreeIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { SidebarViewId } from "./types";
 
@@ -16,9 +21,16 @@ type Props = {
   activeView: SidebarViewId;
   onSelectView: (view: SidebarViewId) => void;
   changedCount: number;
+  /** Estate: agents waiting on the user (the Agents badge). */
+  attentionCount?: number;
 };
 
-export function SidebarRail({ activeView, onSelectView, changedCount }: Props) {
+export function SidebarRail({
+  activeView,
+  onSelectView,
+  changedCount,
+  attentionCount = 0,
+}: Props) {
   const items: RailItem[] = [
     { id: "explorer", label: "Files", icon: FolderTreeIcon },
     {
@@ -26,6 +38,12 @@ export function SidebarRail({ activeView, onSelectView, changedCount }: Props) {
       label: "Git",
       icon: FolderGitTwoIcon,
       badge: changedCount,
+    },
+    {
+      id: "agents",
+      label: "Agents",
+      icon: AiBrain01Icon,
+      badge: attentionCount,
     },
   ];
 
