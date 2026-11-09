@@ -30,9 +30,18 @@ Modern agent workspaces and CLIs are dropping Monterey, and Intel Macs that stop
 | **SSH/SFTP** *(planned)* | Saved hosts, `~/.ssh/config` import, key, agent and password login with host key checks; browse and transfer remote files and open them in the editor. |
 | **Database browser** *(planned)* | PostgreSQL, MySQL/MariaDB and SQLite, directly or over SSH, with a schema tree, SQL editor, paged results and a guard on destructive statements. |
 | **Editor** | CodeMirror 6 with a file explorer, AI edit diffs and opt-in language servers. |
-| **AI agent** | Built-in agent with your own API keys, plus CLI agents (such as Claude Code) in local or SSH terminals, with versions you can pin. |
+| **AI agent** | Built-in agent with your own API keys, and coding agents (Claude Code, Codex, Gemini CLI, OpenCode) in a terminal or as a chat. |
 | **In-app browser** | Local dev servers and external URLs in a child webview. Cutting it off from the app's commands is planned and not yet verified. |
 | **Git** | Stage hunks, commit, push, pull, branches and a history graph. |
+
+## What Estate adds
+
+On top of the Terax 0.9.0 base, Estate adds these enhancements and quality-of-life improvements. The full list is in [CHANGELOG.md](CHANGELOG.md).
+
+- **Split view of tabs.** Up to four panes, each showing any kind of tab, grouped like Chrome or Arc split view: new tabs never replace a pane, and groups are saved per project. Drag a tab onto a pane edge to split.
+- **Agent chat.** Open Claude Code, Codex, Gemini CLI or OpenCode as a chat instead of a terminal: streaming replies, tool cards, an access level per chat, a model menu, `/` commands, the project's Claude Code sessions in a sidebar, and a status line with 5-hour and 7-day usage gauges. A sign-in screen appears when the agent isn't signed in.
+- **Agents panel.** A sidebar view that shows every coding agent you have going, in terminals and chats, colour-coded by state (Needs you, Working, Idle), with a click to jump to it.
+- **Quality of life.** The sidebar sits on the right (configurable), chats are the launcher's default, block tabs keep their welcome until you type, and "terminal is busy" messages say why.
 
 ## Platform support
 

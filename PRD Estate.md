@@ -133,9 +133,16 @@ P0 items block the first release, P1 items should ship in it, and P2 items can f
 | FR-18 | In-app browser | Isolate browsing from the app. | The browser webview has no Tauri command access; external sites show a warning bar. | P0 |
 | FR-19 | Git | Stage hunks, commit, push, pull, branch and history, local first. | All complete using the Xcode tools Git. | P0 |
 | FR-20 | Git | Git over SSH sessions. | Status, commit and push work on a remote repository. | P2 |
-| FR-21 | Workspace | Split view of tabs: up to four panes, each showing a tab of any kind, saved per project. | Drag a tab onto a pane edge to split; dividers resize; the layout returns after relaunch; terminals and browser frames keep their state when the layout changes. | P1 |
-| FR-22 | Workspace | Files and source control sidebar on the right by default, configurable. | Settings > General > Layout moves it to either side without reloading the workspace. | P1 |
-| FR-23 | AI agent | Chat mode for Claude Code, Codex, Gemini CLI and OpenCode, as an alternative to the terminal. | The launcher opens a chat that streams replies and tool calls, resumes the agent's session on follow-ups, and can be stopped. | P1 |
+| FR-21 | Workspace | Split view of tabs as groups: up to four panes, each showing a tab of any kind; new tabs never replace a pane; saved per project. | Drag a tab onto a pane edge to split; dividers resize; a new tab shows alone and the split returns when a grouped tab is clicked; groups return after relaunch; terminals and browser frames keep their state. | P1 |
+| FR-22 | Workspace | Files and source control sidebar on the right by default, configurable; its toggle sits on the same side. | Settings > General > Layout moves it to either side without reloading the workspace. | P1 |
+| FR-23 | AI agent | Chat mode for Claude Code, Codex, Gemini CLI and OpenCode, as an alternative to the terminal, and the launcher's default. | The launcher opens a chat that streams replies and tool calls, resumes the agent's session on follow-ups, and can be stopped. | P1 |
+| FR-24 | AI agent | Chat sessions shared with the agent's own history for the project folder (Claude Code first). | A sidebar lists the folder's sessions; opening one shows its messages and the next message continues it. | P1 |
+| FR-25 | AI agent | Model choice and slash commands in chat. | The model menu changes the next turn's model; `/` lists the agent's commands; `/clear` starts a new session. | P1 |
+| FR-26 | AI agent | Configurable chat status line with usage limits. | Shows folder, branch, model, access, context, tokens, cost and 5-hour / 7-day gauges, each toggled in Settings. | P2 |
+| FR-27 | AI agent | Sign-in screen when a chat's agent isn't installed or signed in. | Signed-out agents show the screen with a terminal sign-in; account details are never read into the app. | P1 |
+| FR-28 | Workspace | Agents sidebar panel for every running coding agent. | Lists terminal and chat agents colour-coded Needs you / Working / Idle / Ready; clicking one activates its tab and pane. | P1 |
+
+FR-21 to FR-28 are enhancements and quality-of-life improvements added while building Estate, beyond the seven tools; [CHANGELOG.md](CHANGELOG.md) lists them with the smaller fixes.
 
 ## Non-functional requirements
 

@@ -46,19 +46,42 @@ These came with the Terax 0.9.0 code Estate started from, and need verifying on 
 ## Phase 1: Core tools on Monterey
 
 - [ ] Show a clear message instead of a blank window when WebKit is older than Safari 16.4
-- [ ] Remove Terax branding from the UI
+- [x] Remove Terax branding from the UI (names, icons, About)
 - [ ] Confirm no telemetry with a network capture
 - [ ] Terminal: vim, htop and tmux render and resize correctly
 - [ ] Terminal: automatic WebGPU-to-WebGL2 fallback and recovery from WebGL2 context loss
 - [ ] Editor, Git and the built-in AI agent work under Safari 17.6
 - [ ] In-app browser: no Tauri command access, warning bar on external sites
 
-## Workspace and agents (built ahead of the phases)
+## Enhancements and quality of life (built ahead of the phases)
 
-- [x] Split view of tabs, saved per project (up to four panes)
-- [x] Sidebar on the right by default, configurable
-- [x] Chat mode for Claude Code and Codex (tested), Gemini CLI and OpenCode (built from published formats, untested)
-- [ ] Verify split view and chat mode on the reference Mac
+Additions beyond the PRD's seven tools, from using Estate day to day. Details in [CHANGELOG.md](CHANGELOG.md).
+
+**Enhancements**
+
+- [x] Split view of tabs as groups (up to four panes, any tab kind), saved per project
+- [x] Agent chat for Claude Code and Codex (tested), Gemini CLI and OpenCode (built from published formats, untested)
+- [x] Agent chat: access level per chat with "Allow and retry"
+- [x] Agent chat: Claude Code session history sidebar, shared with terminal `claude`
+- [x] Agent chat: model menu and `/` commands
+- [x] Agent chat: configurable status line with 5-hour and 7-day usage gauges
+- [x] Agent chat: sign-in screen when the agent isn't installed or signed in
+- [x] Agents sidebar panel: every running agent, colour-coded by state, click to jump
+
+**Quality of life**
+
+- [x] Sidebar on the right by default, configurable; its toggle follows it
+- [x] Agent launcher opens chats by default
+- [x] Block tab welcome stays until the user types
+- [x] "Terminal is busy" says why and offers a new tab
+- [x] Chat tabs show their folder in the status bar and explorer
+- [x] Estate icon, logo and About credit for Terax
+
+**Still to do**
+
+- [ ] Verify all of the above on the reference Mac
+- [ ] Fix Claude Code's input box being partly hidden in a terminal after a resize (inherited from Terax; needs a diagnostic report)
+- [ ] Session history for Codex chats
 
 ## Phase 2: New tools
 
