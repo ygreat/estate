@@ -278,7 +278,7 @@ git log --format='%an <%ae>' a2c0877..HEAD | sort -u
 
 ## Licensing
 
-Estate stays under Apache-2.0, the license of its base, [Terax](https://www.everydev.ai/tools/terax), and must keep Terax's notices even though its name and branding are removed.
+Estate stays under Apache-2.0, the license of its base, [Terax](https://github.com/crynta/terax-ai), and must keep Terax's notices even though its name and branding are removed.
 
 | [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) term | What Estate does |
 | --- | --- |

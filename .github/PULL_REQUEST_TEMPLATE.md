@@ -1,3 +1,4 @@
+<!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 <!--
 PR title should follow Conventional Commits - it becomes the squash commit message.
 Examples: feat(terminal): add split panes / fix(explorer): close button alignment
@@ -24,8 +25,11 @@ Examples: feat(terminal): add split panes / fix(explorer): close button alignmen
 - [ ] (If you touched `src-tauri/`) `cargo nextest run --locked` clean (or `cargo test --locked`)
 - [ ] (If you changed a `#[tauri::command]` signature) called out below so the FE caller can be updated in lockstep
 - [ ] (If UI) tested in `pnpm tauri dev`
-- [ ] Platforms tested: <!-- macOS / Linux / Windows -->
-- [ ] Shells tested (if relevant): <!-- bash / zsh / fish / pwsh / cmd -->
+- [ ] Tested on macOS 12 Intel, or said below that it wasn't
+- [ ] Doesn't raise the macOS 12.0 binary floor or the Safari 16.4 web floor
+- [ ] (If you changed a file from Terax) kept its notices and added the Estate modification line, or listed it in `MODIFICATIONS.md`
+- [ ] Mac and macOS version tested: <!-- e.g. MacBook Pro 2015, macOS 12.7.6 -->
+- [ ] Shells tested (if relevant): <!-- zsh / bash -->
 
 
 ## Screenshots / GIFs

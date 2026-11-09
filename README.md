@@ -1,185 +1,142 @@
+<!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 <div align="center">
-  <img src="public/logo.png" width="144" height="144" alt="Terax" />
-  <h1>Terax</h1>
+  <h1>Estate</h1>
 
-  <p><strong>Lightweight Terminal-first AI-native dev workspace.</strong></p>
-  <p>
-    <a href="https://terax.app">Website</a>
-    ·
-    <a href="https://terax.app/docs">Docs</a>
-    ·
-    <a href="https://github.com/crynta/Terax-website">Website's source code</a>
-  </p>
+  <p><strong>A focused developer workspace for Intel Macs on macOS 12 Monterey.</strong></p>
 
   <p>
-    <img src="https://img.shields.io/github/v/release/crynta/terax-ai?label=version&color=blue" alt="version" />
-    <img src="https://img.shields.io/github/downloads/crynta/terax-ai/total?label=downloads&color=blue" alt="downloads" />
-    <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey" alt="platform" />
-    <a href="https://discord.gg/tyveTUyEp7"><img src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white" alt="Discord" /></a>
-    <a href="https://www.youtube.com/@crynta"><img src="https://img.shields.io/badge/Youtube-FF0000?logo=youtube&logoColor=white" alt="YouTube" /></a>
+    <img src="https://img.shields.io/badge/platform-macOS%2012%2B%20Intel-lightgrey" alt="platform" />
+    <img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="license" />
   </p>
 </div>
 
-<p align="center">
-  <a href="docs/readme/README.zh-CN.md">简体中文</a> |
-  <a href="docs/readme/README.es.md">Español</a> |
-  <a href="docs/readme/README.de.md">Deutsch</a> |
-  <a href="docs/readme/README.fr.md">Français</a> |
-  <a href="docs/readme/README.ja.md">日本語</a> |
-  <a href="docs/readme/README.ko.md">한국어</a> |
-  <a href="docs/readme/README.pt-BR.md">Português</a> |
-  <a href="docs/readme/README.pl.md">Polski</a> |
-  <a href="docs/readme/README.ru.md">Русский</a> |
-  <a href="docs/readme/README.id.md">Bahasa Indonesia</a> |
-  <a href="docs/readme/README.hi.md">हिन्दी</a>
-</p>
-
 ---
 
-Terax is a lightweight open-source terminal-first AI-native development environment (ADE) built on Tauri 2 + Rust and React 19. A native PTY backend with a WebGL renderer, an agentic AI side-panel that runs against your own keys or fully local models, plus a code editor, file explorer, source control with a git graph, and a web preview pane built in. About 7-8 MB on disk. No telemetry. No account.
+Estate is an open-source developer workspace with seven tools: terminal, SSH/SFTP, database browser, editor, AI agent, in-app browser and Git. It is built on Tauri 2 and Rust, runs on Intel Macs with macOS 12 Monterey, and sends no telemetry.
+
+Modern agent workspaces and CLIs are dropping Monterey, and Intel Macs that stop at Monterey can't upgrade their way out. Estate keeps a current, lightweight workspace running on those machines. The reference machine is a 15-inch 2015 MacBook Pro on macOS 12.7.
 
 > [!NOTE]
-> Over the past few months, most of my development time went into building [Zephium](https://zephium.app), a new browser-native work environment rebuilt for humans and agents.
->
-> Terax is now returning to active development. A major **v0.9.0** update is already in progress, with some substantial architectural changes, including moving from **xterm.js to libghostty + WebGPU**.
->
-> More updates soon.
+> Estate is an independent project derived from [Terax](https://github.com/crynta/terax-ai). It is not affiliated with or endorsed by the Terax project.
 
-## Screenshots
+> [!IMPORTANT]
+> Estate is in early development and has no release yet. SSH/SFTP and the database browser are not built yet. See [ROADMAP.md](ROADMAP.md).
 
-<table>
-  <tr>
-    <td align="center"><img src="docs/web-preview.png" alt="Web preview" /><br/><sub>Web preview of local dev servers</sub></td>
-    <td align="center"><img src="docs/ai-workflow.png" alt="AI window" /><br/><sub>Agentic AI workflow with edit diffs in the code editor</sub></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/themes.png" alt="Themes and background image" style="margin-top: 12px;"/><br/><sub>Custom themes, presets, and background images</sub></td>
-    <td align="center"><img src="docs/source-control.png" alt="Source control and git graph" style="margin-top: 12px;"/><br/><sub>Source control panel with git graph in history</sub></td>
-  </tr>
-  <tr>
-    <td colspan="2" align="center"><img src="docs/terminal.png" alt="Terminal" style="border-radius: 4px; margin-top: 12px;" /><br/><sub>Block-based WebGL terminal with editor-like input panel</sub></td>
-  </tr>
-</table>
+## Tools
 
-## Features
+| Tool | What it does |
+| --- | --- |
+| **Terminal** | Native PTY backend with tabs and splits, rendered by libghostty-vt in WebAssembly. WebGPU where available, WebGL2 on Monterey. |
+| **SSH/SFTP** *(planned)* | Saved hosts, `~/.ssh/config` import, key, agent and password login with host key checks; browse and transfer remote files and open them in the editor. |
+| **Database browser** *(planned)* | PostgreSQL, MySQL/MariaDB and SQLite, directly or over SSH, with a schema tree, SQL editor, paged results and a guard on destructive statements. |
+| **Editor** | CodeMirror 6 with a file explorer, AI edit diffs and opt-in language servers. |
+| **AI agent** | Built-in agent with your own API keys, plus CLI agents (such as Claude Code) in local or SSH terminals, with versions you can pin. |
+| **In-app browser** | Local dev servers and external URLs in a child webview that has no access to the app's commands. |
+| **Git** | Stage hunks, commit, push, pull, branches and a history graph. |
 
-### Terminal
+## Platform support
 
-- xterm.js with WebGL renderer, multi-tab with background streaming
-- GPU-accelerated block-based terminal with editor-like command input
-- Native PTY backend via `portable-pty` (zsh, bash, pwsh, fish, cmd)
-- Split panels (horizontal and vertical)
-- Inline search, link detection, true-color
-- Drag files from the explorer or desktop into a terminal as shell-safe quoted paths
-- Per-tab workspace environments on Windows (Local, or any installed WSL distro)
-- Spaces restore tabs, working directories, and split layouts across launches
-
-### Code editor
-
-- CodeMirror 6 (supports all popular languages - TS/JS, Rust, Python, Go, C/C++, Java, HTML/CSS, JSON, Markdown, etc.)
-- Inline AI autocomplete with local model support
-- AI edit diffs, accept or reject hunk by hunk
-- Opt-in language server support with diagnostics, navigation, completion, formatting, and custom servers
-- Rendered Markdown plus image, video, audio, and PDF viewing
-- Vim mode
-- Built-in editor themes including Kanagawa, Catppuccin, Rosé Pine, Everforest, Dracula, Solarized, Nord, Tokyo Night, GitHub, and Xcode
-
-### Source control
-
-- Stage / unstage hunks, commit (Cmd+Enter / Ctrl+Enter), push with upstream awareness
-- Branch display including detached HEAD state
-- Git history pane with a real commit graph (lane rendering for merges and branches)
-- Commit search and filter, click through to the remote commit page
-
-### File explorer
-
-- Catppuccin icon theme
-- Fuzzy search, keyboard navigation, inline rename, context actions
-- Live updates when files change on disk
-- Attach files and selections directly to the AI side-panel
-
-### Web preview
-
-- Auto-detects local dev servers and opens them in a preview tab
-- External URL preview via a native child webview
-
-### Themes and customization
-
-- Custom themes built in-app, switch between bundled presets and your own
-- Create your own themes, share them or import from the community
-- Background images with adjustable opacity and blur
-- Editor theme is independent from the app theme
-
-### AI
-
-- **BYOK providers:** OpenAI, Anthropic, Google (Gemini), Groq, xAI (Grok), Cerebras, OpenRouter, DeepSeek, Mistral, plus any OpenAI-compatible endpoint
-- **Local / offline:** LM Studio, MLX, Ollama
-- **Agentic workflow:** plans, sub-agents, project memory via `TERAX.md`, file read / write / edit / multi-edit / grep / glob, bash with approval gating, background processes
-- **Coding-agent orchestration:** spawn Claude Code in a terminal, inspect its output, and send follow-up work through approval-gated tools
-- **Composer:** prompt snippets via `#handle`, files via `@path`, voice input, attach-to-agent from explorer or selection
-- **Custom agents** with their own system prompt and tool subset
-- **Plan mode** for multi-step work, generates and confirms before doing
+| Platform | Support |
+| --- | --- |
+| macOS 12.7, Intel x86_64 | Primary. Every release is tested here. |
+| macOS 12.x below 12.7, Intel | Best effort. Depends on the installed Safari version (16.4 or later is required). |
+| macOS 13 to 15, Intel | Secondary. Should work; smoke-tested when a Mac is available. |
+| Apple Silicon | Not targeted. Use [Terax](https://github.com/crynta/terax-ai). |
+| Windows, Linux | Not supported. The code inherited from Terax may still build, but Estate doesn't test or package it. |
 
 ## Install
 
-Latest installers are on the [Releases](https://github.com/crynta/terax-ai/releases/latest) page. Terax auto-updates from there.
+There are no releases yet. When there are, they'll be on the [Releases](https://github.com/ygreat/estate/releases) page.
 
-### Windows notes
+Estate is not notarized by Apple. After moving the app to Applications, clear the download quarantine:
 
-- Default shell detection: `pwsh.exe` (PowerShell 7+) -> `powershell.exe` (Windows PowerShell 5.1) -> `cmd.exe`.
-- WSL is a first-class workspace environment, not a wrapped subprocess.
+```bash
+xattr -dr com.apple.quarantine /Applications/Estate.app
+```
 
-### Linux notes
+## Security on Monterey
 
-- **Arch / AUR:** `yay -S terax-bin` (or `paru`, etc.). Tracks the latest release.
-- **NixOS / Nix**: use the official flake - `nix profile install github:crynta/terax-ai` (non-NixOS), or import the flake and add `inputs.terax.packages.${pkgs.system}.terax` to `environment.systemPackages` (NixOS). The `nixosModules.terax` output is also available for a simpler setup.
-- **AppImage:** needs FUSE. Without it: `./Terax_*.AppImage --appimage-extract-and-run`. On Wayland with rendering glitches, try `WEBKIT_DISABLE_DMABUF_RENDERER=1`. Otherwise the `.deb` / `.rpm` packages link against the system GTK stack and tend to be smoother.
+Apple's last macOS 12 update was in July 2024, and its WebKit will not be patched again. **Don't use the in-app browser for banking or personal accounts.** Keep it to local dev servers and sites you trust. See [SECURITY.md](SECURITY.md).
+
+## Privacy
+
+- No telemetry, analytics or crash reports.
+- Network calls happen only for things you start: AI requests, SSH and database connections, update checks, and pages you open.
+- API keys, SSH passphrases and database passwords are stored in the macOS Keychain, never on disk or in `localStorage`.
 
 ## Configure AI
 
 1. Open **Settings -> AI**.
-2. Pick a provider and paste your API key. For local inference, point Terax at your LM Studio / MLX / Ollama endpoint.
-3. Keys are written to the OS keychain via `keyring`. They never touch disk or localStorage.
+2. Pick a provider and paste your API key, or point Estate at a local or LAN endpoint (LM Studio, Ollama, or any OpenAI-compatible server).
+
+Local model inference on the Intel Mac itself isn't a goal; run the model on another machine and connect to it.
+
+For CLI agents, install a version known to launch on Monterey and turn off its auto-update, or run a current version over SSH on a Linux host.
 
 ## Build from source
 
 **Prerequisites**
-- Rust (stable), https://rustup.rs
-- Node 22+ and [pnpm](https://pnpm.io)
-- Tauri prerequisites for your platform, https://tauri.app/start/prerequisites/
+
+- Xcode Command Line Tools (14.2 is the last for Monterey): `xcode-select --install`
+- Rust, the version pinned in `rust-toolchain.toml`: https://rustup.rs
+- Node 22 (Node 24 requires macOS 13.5) and [pnpm](https://pnpm.io)
 
 **Run**
+
 ```bash
 pnpm install
-pnpm tauri dev          # development
-pnpm tauri build        # production bundle
+pnpm tauri dev
 ```
 
+**Build for Intel**
+
+```bash
+export MACOSX_DEPLOYMENT_TARGET=12.0
+pnpm install --frozen-lockfile
+pnpm tauri build --target x86_64-apple-darwin
+```
+
+The first build can take 20 to 40 minutes on a 2015 Mac.
+
 **Checks**
+
 ```bash
 pnpm lint
 pnpm check-types
 pnpm test
-cd src-tauri && cargo clippy --all-targets --locked -- -D warnings   # Rust lint (matches CI)
-cd src-tauri && cargo nextest run --locked                           # or: cargo test --locked
+cd src-tauri && cargo clippy --all-targets --locked -- -D warnings
+cd src-tauri && cargo nextest run --locked    # or: cargo test --locked
 ```
 
 ## Tech stack
 
-Tauri 2, Rust, `portable-pty`, React 19, TypeScript, Vite, xterm.js, CodeMirror 6, Vercel AI SDK v6, Tailwind v4, shadcn/ui, Zustand.
+Tauri 2, Rust, `portable-pty`, libghostty-vt (WebAssembly), React 19, TypeScript, Vite, CodeMirror 6, Vercel AI SDK, Tailwind v4, shadcn/ui, Zustand.
 
 ## Contributing
 
-Issues and PRs are welcome! Feel free to open issues, suggest features, or submit pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [architecture docs](docs/README.md) for more details.
+Issues and PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [architecture docs](docs/README.md) first.
 
-## Code signing
+## Credits
 
-<a href="https://signpath.org"><img src="https://avatars.githubusercontent.com/u/34448643?s=200&v=4" width="80" alt="SignPath" align="left" /></a>
+Estate is built on [Terax](https://github.com/crynta/terax-ai), copyright 2026 Crynta, licensed under the Apache License 2.0. Most of Estate's code comes from Terax: the terminal, editor, AI agent, web preview, Git tools and the app shell. Thanks to Crynta and the Terax contributors, whose commits are kept in this repository's history.
 
-Windows builds are signed with a free code signing certificate provided by [SignPath.io](https://signpath.io), certificate by the [SignPath Foundation](https://signpath.org).
+Estate also includes code and fonts from these projects, under their own licenses. Their license files stay in the source tree and ship with the app.
 
-<br clear="left" />
+| Component | Copyright | License | License file |
+| --- | --- | --- | --- |
+| [Terax](https://github.com/crynta/terax-ai) | 2026 Crynta | Apache-2.0 | [`LICENSE`](LICENSE), [`NOTICE`](NOTICE) |
+| [Ghostty](https://github.com/ghostty-org/ghostty) (terminal core, adapted) | 2024 Mitchell Hashimoto, Ghostty contributors | MIT | [`packages/ghostty-core/adapted/LICENSE.ghostty`](packages/ghostty-core/adapted/LICENSE.ghostty) |
+| [ghostty-web](https://github.com/coder/ghostty-web) | 2025 Coder | MIT | [`packages/ghostty-core/LICENSE`](packages/ghostty-core/LICENSE) |
+| [restty](https://github.com/wiedymi/restty) (adapted) | 2026 Wiedy Mi | MIT | [`packages/ghostty-core/adapted/LICENSE.restty`](packages/ghostty-core/adapted/LICENSE.restty) |
+| [xterm.js](https://github.com/xtermjs/xterm.js) (WebGL renderer, adapted) | 2017-2019 The xterm.js authors, and others | MIT | [`src/modules/terminal/ghostty/webgl/LICENSE.xterm-js`](src/modules/terminal/ghostty/webgl/LICENSE.xterm-js) |
+| Terminal symbol fonts, subset from [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts) and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | 2014 Ryan L McIntyre; 2020 The JetBrains Mono Project Authors; and others | SIL OFL 1.1, MIT and others | [`src/assets/fonts/LICENSE.nerd-fonts`](src/assets/fonts/LICENSE.nerd-fonts), [`src/assets/fonts/OFL.txt`](src/assets/fonts/OFL.txt), [`public/licenses/terminal-symbols.txt`](public/licenses/terminal-symbols.txt) |
+
+npm and Cargo dependencies keep their own licenses; see each package.
+
+"Terax" is used here only to describe where Estate's code comes from. Estate is not affiliated with or endorsed by the Terax project or Crynta.
 
 ## License
 
-Terax is licensed under the Apache-2.0 License. For more information on our dependencies, see [Apache License 2.0](LICENSE).
+Estate is licensed under the [Apache License 2.0](LICENSE), the same license as Terax. The Terax copyright and attribution notices are kept; see [NOTICE](NOTICE). Changes Estate makes to files from Terax are marked in those files or listed in [MODIFICATIONS.md](MODIFICATIONS.md).
+
+Estate is provided as is, without warranty of any kind. See sections 7 and 8 of the license.
