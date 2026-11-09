@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { isValidElement, type ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
@@ -27,6 +28,13 @@ vi.mock("react/compiler-runtime", () => ({
 vi.mock("sonner", () => ({ toast: { error: state.error } }));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: state.invoke }));
 vi.mock("@/components/ui/sonner", () => ({ Toaster: () => null }));
+// Estate: the Accounts block's sign-in state (its hooks would shift the
+// positional useState slots this test relies on).
+vi.mock("@/modules/agent-chat/auth", () => ({
+  useAgentStatuses: () => ({ auth: {}, checking: [], recheck: vi.fn() }),
+  INSTALL_HINT: {},
+  runInNewTerminal: vi.fn(),
+}));
 vi.mock("@/modules/ai/store/chatStore", () => ({
   useChatStore: {
     getState: () => ({ selectedModelId: "other", setSelectedModelId: vi.fn() }),

@@ -27,8 +27,34 @@ function fetchAuth(agent: ChatAgentId, fresh: boolean): Promise<AgentAuth> {
 }
 
 /** Whether an agent is installed and signed in (cached per app session). */
-export function checkAgentAuth(agent: ChatAgentId): Promise<AgentAuth> {
-  return fetchAuth(agent, false);
+export function checkAgentAuth(
+  agent: ChatAgentId,
+  fresh = false,
+): Promise<AgentAuth> {
+  return fetchAuth(agent, fresh);
+}
+
+/**
+ * Calls `onChange` with whether any of `agents` is signed in, now and each
+ * time the window regains focus (after a sign-in). Returns a stop function.
+ */
+export function watchSignedIn(
+  agents: readonly ChatAgentId[],
+  onChange: (signedIn: boolean) => void,
+): () => void {
+  let alive = true;
+  const check = (fresh: boolean) => {
+    void Promise.all(agents.map((a) => fetchAuth(a, fresh))).then((states) => {
+      if (alive) onChange(states.some((a) => a.state === "signed-in"));
+    });
+  };
+  check(false);
+  const onFocus = () => check(true);
+  window.addEventListener("focus", onFocus);
+  return () => {
+    alive = false;
+    window.removeEventListener("focus", onFocus);
+  };
 }
 
 export function useAgentAuth(agent: ChatAgentId) {

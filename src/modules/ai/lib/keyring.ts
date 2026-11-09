@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { invoke } from "@tauri-apps/api/core";
 import {
   getProvider,
@@ -25,6 +26,8 @@ export const EMPTY_PROVIDER_KEYS: ProviderKeys = {
   lmstudio: null,
   mlx: null,
   ollama: null,
+  "claude-account": null,
+  "chatgpt-account": null,
 };
 
 export async function getKey(provider: ProviderId): Promise<string | null> {
