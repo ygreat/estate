@@ -15,7 +15,8 @@ Files that can't hold comments, such as JSON, are listed here instead, along wit
 
 | File | Change |
 | --- | --- |
-| `src-tauri/tauri.conf.json` | Product name, bundle identifier, window title, publisher, copyright line, minimum macOS version, updater endpoint and updater artifacts changed for Estate. |
+| `src-tauri/tauri.conf.json` | Product name, bundle identifier, window title, publisher, copyright line, minimum macOS version, updater endpoint and updater artifacts changed for Estate. Version restarted at 0.1.0. |
+| `package.json` | Version restarted at 0.1.0 (Terax was 0.9.0). |
 
 ## Estate files that are not from Terax
 
