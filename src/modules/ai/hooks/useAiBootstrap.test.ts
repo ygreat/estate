@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 const harness = vi.hoisted(() => ({
@@ -71,6 +72,11 @@ vi.mock("@/modules/settings/preferences", () => {
     ),
   };
 });
+// Estate: signed-in Claude Code / Codex accounts (none here).
+vi.mock("@/modules/agent-chat/auth", () => ({
+  checkAgentAuth: vi.fn(async () => ({ state: "signed-out" })),
+  watchSignedIn: () => () => {},
+}));
 vi.mock("@/modules/settings/store", () => ({
   onKeysChanged: harness.onKeysChanged,
 }));

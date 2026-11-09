@@ -41,6 +41,11 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 - Settings > Agents lists Claude Code, Codex, Gemini CLI and OpenCode with what each signs in with (Claude account, ChatGPT account, Google account or an API key) and whether you're signed in. Sign in opens a terminal in the main window running the agent's own login; a missing agent shows its install command to copy.
 - The same status shows wherever you pick an agent (welcome screen, Orchestrator), with a Sign in button on agents that need it. Status refreshes when you come back to Estate after signing in.
 
+**Claude and ChatGPT accounts for the Estate AI panel**
+- Settings > Models has an Accounts section: sign in with a Claude account (through Claude Code) or a ChatGPT account (through Codex) instead of adding an API key. Each shows whether you're signed in, with a Sign in button that runs the agent's own login in a terminal.
+- Once signed in, the panel's model picker offers Claude Sonnet, Opus and Haiku, or Codex's default model, marked "Account". Requests run through the signed-in app, read only, in the project folder; Estate never sees the account's credentials. The panel's own tools aren't used with these models; the agent uses its own read-only tools.
+- The AI panel opens without any API key when one of these accounts is signed in, and starts on its model.
+
 **Welcome screen**
 - Opens on launch over the editor, which shows blurred behind it (Settings > General can turn it off). Go to editor, Esc or a click anywhere outside skips it. First pick a project: the open one, a recent one or a new folder.
 - Then: "What are we building today?" Pick an agent (each shows whether it's installed and signed in), describe the idea, and start a chat or plan it with the Orchestrator. New terminal and Command palette sit below with their shortcuts.

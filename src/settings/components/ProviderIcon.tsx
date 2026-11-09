@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { ProviderId } from "@/modules/ai/config";
 import {
   AppleIcon,
@@ -30,6 +31,8 @@ const ICON_BY_PROVIDER = {
   lmstudio: ComputerIcon,
   mlx: AppleIcon,
   ollama: ServerStack01Icon,
+  "claude-account": ClaudeIcon,
+  "chatgpt-account": ChatGptIcon,
 } as const satisfies Record<ProviderId, typeof ChatGptIcon>;
 
 type Props = {

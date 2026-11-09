@@ -14,7 +14,9 @@ export type ProviderId =
   | "openai-compatible"
   | "lmstudio"
   | "mlx"
-  | "ollama";
+  | "ollama"
+  | "claude-account"
+  | "chatgpt-account";
 
 export type ProviderInfo = {
   id: ProviderId;
@@ -24,6 +26,11 @@ export type ProviderInfo = {
   consoleUrl: string;
   /** Provider accepts (but does not require) an API key. */
   keyOptional?: boolean;
+  /**
+   * Estate: runs through this signed-in coding agent's CLI (a Claude or
+   * ChatGPT account) instead of an API key.
+   */
+  account?: "claude" | "codex";
 };
 
 export const PROVIDERS: readonly ProviderInfo[] = [
@@ -110,7 +117,8 @@ export const PROVIDERS: readonly ProviderInfo[] = [
     label: "MLX",
     keyringAccount: "",
     keyPrefix: null,
-    consoleUrl: "https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/SERVER.md",
+    consoleUrl:
+      "https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/SERVER.md",
   },
   {
     id: "ollama",
@@ -118,6 +126,22 @@ export const PROVIDERS: readonly ProviderInfo[] = [
     keyringAccount: "",
     keyPrefix: null,
     consoleUrl: "https://ollama.com/download",
+  },
+  {
+    id: "claude-account",
+    label: "Claude account",
+    keyringAccount: "",
+    keyPrefix: null,
+    consoleUrl: "https://claude.ai",
+    account: "claude",
+  },
+  {
+    id: "chatgpt-account",
+    label: "ChatGPT account",
+    keyringAccount: "",
+    keyPrefix: null,
+    consoleUrl: "https://chatgpt.com",
+    account: "codex",
   },
 ] as const;
 
@@ -631,7 +655,52 @@ export const MODELS = [
     description: "Local models via Ollama.",
     capabilities: { intelligence: 3, speed: 3, cost: 5 },
   },
+
+  // ── Estate: accounts (through the signed-in Claude Code / Codex CLI) ──────
+  {
+    id: "claude-account-sonnet",
+    provider: "claude-account",
+    label: "Claude Sonnet",
+    hint: "Account",
+    description: "Your Claude account, through Claude Code. No API key.",
+    capabilities: { intelligence: 4, speed: 3, cost: 5 },
+    tags: ["reasoning", "coding"],
+  },
+  {
+    id: "claude-account-opus",
+    provider: "claude-account",
+    label: "Claude Opus",
+    hint: "Account",
+    description:
+      "Your Claude account's most capable model, through Claude Code.",
+    capabilities: { intelligence: 5, speed: 2, cost: 5 },
+    tags: ["reasoning", "coding"],
+  },
+  {
+    id: "claude-account-haiku",
+    provider: "claude-account",
+    label: "Claude Haiku",
+    hint: "Account",
+    description: "Your Claude account's fastest model, through Claude Code.",
+    capabilities: { intelligence: 3, speed: 5, cost: 5 },
+    tags: ["coding"],
+  },
+  {
+    id: "chatgpt-account-default",
+    provider: "chatgpt-account",
+    label: "Codex default model",
+    hint: "Account",
+    description: "Your ChatGPT account, through Codex. No API key.",
+    capabilities: { intelligence: 4, speed: 3, cost: 5 },
+    tags: ["reasoning", "coding"],
+  },
 ] as const satisfies readonly ModelInfo[];
+
+/** Estate: the CLI model name for an account model ("sonnet"), or undefined. */
+export function accountModelArg(modelId: string): string | undefined {
+  const m = /^claude-account-(sonnet|opus|haiku)$/.exec(modelId);
+  return m ? m[1] : undefined;
+}
 
 export type ModelId = (typeof MODELS)[number]["id"];
 
@@ -845,6 +914,8 @@ const KEYLESS_PROVIDERS: readonly ProviderId[] = [
   "mlx",
   "ollama",
   "openai-compatible",
+  "claude-account",
+  "chatgpt-account",
 ] as const;
 
 export function providerNeedsKey(id: ProviderId): boolean {
@@ -880,7 +951,11 @@ export const DEFAULT_AUTOCOMPLETE_MODEL: Partial<Record<ProviderId, string>> = {
 /** Curated list of fast models suitable for inline completion (speed ≥ 4). */
 export function getAutocompleteEligibleModels(): readonly ModelInfo[] {
   return MODELS.filter(
-    (m) => m.capabilities.speed >= 4 && m.id !== "openai-compatible-custom",
+    (m) =>
+      m.capabilities.speed >= 4 &&
+      m.id !== "openai-compatible-custom" &&
+      // Estate: account models start a CLI per request, too slow to complete.
+      !getProvider(m.provider).account,
   );
 }
 

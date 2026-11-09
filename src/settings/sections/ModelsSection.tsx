@@ -1,4 +1,11 @@
 // Modified by ygreat for Estate, 2026. Originally part of Terax.
+import { AuthStatus, signIn } from "@/modules/agent-chat/AgentPicker";
+import {
+  type AgentAuth,
+  INSTALL_HINT,
+  useAgentStatuses,
+} from "@/modules/agent-chat/auth";
+import type { ChatAgentId } from "@/modules/agent-chat/model";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -158,6 +165,11 @@ function reportPartialRemovalError(error: unknown): void {
 }
 
 export function ModelsSection() {
+  const {
+    auth: agentAuth,
+    checking: agentChecking,
+    recheck: recheckAgents,
+  } = useAgentStatuses();
   const [keys, setKeys] = useState<KeysMap | null>(null);
   const [epKeys, setEpKeys] = useState<CustomEndpointKeys>({});
   const [adding, setAdding] = useState<Set<ProviderId>>(new Set());
@@ -323,6 +335,8 @@ export function ModelsSection() {
   };
 
   const isConfigured = (id: ProviderId): boolean => {
+    const account = getProvider(id).account;
+    if (account) return agentAuth[account]?.state === "signed-in";
     if (id === "openrouter") return !!keys?.[id] && !!openrouterModelId.trim();
     if (!isLocalProvider(id)) return !!keys?.[id];
     const cfg = localConfig(id);
@@ -342,10 +356,10 @@ export function ModelsSection() {
   const visibleIds = new Set<ProviderId>(configuredIds);
   for (const id of adding) visibleIds.add(id);
   const visibleProviders = PROVIDERS.filter(
-    (p) => p.id !== "openai-compatible" && visibleIds.has(p.id),
+    (p) => p.id !== "openai-compatible" && !p.account && visibleIds.has(p.id),
   );
   const addableProviders = PROVIDERS.filter(
-    (p) => p.id !== "openai-compatible" && !visibleIds.has(p.id),
+    (p) => p.id !== "openai-compatible" && !p.account && !visibleIds.has(p.id),
   );
 
   const removeProvider = async (id: ProviderId) => {
@@ -389,6 +403,12 @@ export function ModelsSection() {
       />
 
       <VoiceBlock />
+
+      <AccountsBlock
+        auth={agentAuth}
+        checking={agentChecking}
+        onRecheck={() => recheckAgents()}
+      />
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -1445,6 +1465,115 @@ function VoiceBlock() {
           </FieldRow>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Estate: sign in with a Claude or ChatGPT account instead of an API key. The
+ * panel then runs through the signed-in Claude Code / Codex CLI.
+ */
+const ACCOUNTS = [
+  {
+    provider: "claude-account",
+    agent: "claude",
+    title: "Claude account",
+    via: "Claude Code",
+    models: "Claude Sonnet, Opus and Haiku",
+  },
+  {
+    provider: "chatgpt-account",
+    agent: "codex",
+    title: "ChatGPT account",
+    via: "Codex",
+    models: "Codex's default model",
+  },
+] as const;
+
+function AccountsBlock({
+  auth,
+  checking,
+  onRecheck,
+}: {
+  auth: Partial<Record<ChatAgentId, AgentAuth>>;
+  checking: readonly ChatAgentId[];
+  onRecheck: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-end justify-between">
+        <div className="flex flex-col">
+          <Label>Accounts</Label>
+          <span className="text-[10.5px] text-muted-foreground">
+            Use a Claude or ChatGPT subscription instead of an API key. Requests
+            run through the signed-in Claude Code or Codex app, read only, in
+            your project folder; Estate never sees your account's credentials.
+          </span>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 shrink-0 px-2 text-[11px]"
+          disabled={checking.length > 0}
+          onClick={onRecheck}
+        >
+          Check again
+        </Button>
+      </div>
+      <div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/60">
+        {ACCOUNTS.map((a) => {
+          const state = auth[a.agent]?.state;
+          return (
+            <div
+              key={a.provider}
+              className="flex items-center gap-3 px-3 py-2.5"
+            >
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/70 text-muted-foreground">
+                <ProviderIcon provider={a.provider} size={14} />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="text-[12px] font-medium">
+                  {a.title}
+                  <span className="ml-1.5 font-normal text-muted-foreground">
+                    via {a.via} · {a.models}
+                  </span>
+                </span>
+                {state === "missing" ? (
+                  <code className="truncate font-mono text-[10.5px] text-muted-foreground">
+                    Install {a.via}: {INSTALL_HINT[a.agent]}
+                  </code>
+                ) : (
+                  <AuthStatus
+                    auth={auth[a.agent]}
+                    checking={checking.includes(a.agent)}
+                  />
+                )}
+              </span>
+              {state === "signed-out" && (
+                <Button
+                  size="sm"
+                  className="h-7 px-2.5 text-[11px]"
+                  onClick={() => signIn(auth[a.agent], "")}
+                >
+                  Sign in
+                </Button>
+              )}
+              {state === "missing" && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2.5 text-[11px]"
+                  onClick={() =>
+                    void navigator.clipboard.writeText(INSTALL_HINT[a.agent])
+                  }
+                >
+                  Copy
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

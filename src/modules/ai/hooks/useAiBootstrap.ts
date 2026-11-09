@@ -1,6 +1,9 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { firePendingReviewForSession } from "@/modules/agents/lib/review";
+import { checkAgentAuth, watchSignedIn } from "@/modules/agent-chat/auth";
+import { getModel, getProvider, isKnownModelId } from "../config";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { onKeysChanged } from "@/modules/settings/store";
 import {
@@ -55,10 +58,19 @@ export function useAiBootstrap(): {
     customEndpoints.some(
       (e) => e.baseURL.trim().length > 0 && e.modelId.trim().length > 0,
     );
-  const hasComposer = hasAnyKey(apiKeys) || hasLocalModel;
-
   const prefsHydrated = usePreferencesStore((s) => s.hydrated);
   const [keysLoaded, setKeysLoaded] = useState(false);
+
+  // Estate: a signed-in Claude Code or Codex can power the panel without a
+  // key. Checked only when there's no key or local model, and again when the
+  // window regains focus (after signing in).
+  const keyless = keysLoaded && !hasAnyKey(apiKeys) && !hasLocalModel;
+  const [hasAccount, setHasAccount] = useState(false);
+  useEffect(() => {
+    if (!keyless) return;
+    return watchSignedIn(["claude", "codex"], setHasAccount);
+  }, [keyless]);
+  const hasComposer = hasAnyKey(apiKeys) || hasLocalModel || hasAccount;
   useEffect(() => {
     let alive = true;
     const loadProviderKeys = () => {
@@ -110,6 +122,21 @@ export function useAiBootstrap(): {
     if (!prefsHydrated) return;
     setSelectedModelId(prefDefaultModel);
   }, [prefsHydrated, prefDefaultModel, setSelectedModelId]);
+
+  // Estate: with only an account (no key), start on the account's model
+  // rather than a default that needs a key.
+  const selectedModelId = useChatStore((s) => s.selectedModelId);
+  useEffect(() => {
+    if (!hasAccount || !keyless || !isKnownModelId(selectedModelId)) return;
+    if (getProvider(getModel(selectedModelId).provider).account) return;
+    void checkAgentAuth("claude").then((a) =>
+      setSelectedModelId(
+        a.state === "signed-in"
+          ? "claude-account-sonnet"
+          : "chatgpt-account-default",
+      ),
+    );
+  }, [hasAccount, keyless, selectedModelId, setSelectedModelId]);
 
   useEffect(() => {
     void hydrateSessions().catch((error: unknown) => {
