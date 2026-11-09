@@ -12,6 +12,7 @@ import {
   describeTool,
   oneLine,
   unwrapShell,
+  type UsageWindow,
 } from "./model";
 
 export type TurnAdapter = {
@@ -141,6 +142,17 @@ export function claudeAdapter(): TurnAdapter {
             });
           }
           return out;
+        }
+        case "rate_limit_event": {
+          const windows = obj(obj(o.rate_limit_info).unifiedWindows);
+          const out: UsageWindow[] = [];
+          for (const id of ["five_hour", "seven_day"] as const) {
+            const w = obj(windows[id]);
+            const utilization = num(w.utilization);
+            if (utilization === undefined) continue;
+            out.push({ id, utilization, resetsAt: num(w.resetsAt) });
+          }
+          return out.length ? [{ type: "limits", windows: out }] : [];
         }
         case "result": {
           ended = true;

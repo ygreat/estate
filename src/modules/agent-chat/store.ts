@@ -14,6 +14,7 @@ import {
   ZERO_TOTALS,
   retryPrompt,
   type Transcript,
+  type UsageWindow,
 } from "./model";
 
 /** Mirrors `ChatStreamEvent` in src-tauri/src/modules/agent_chat.rs. */
@@ -33,8 +34,12 @@ export type ChatSession = {
   loaded: boolean;
 };
 
+/** Latest account usage limits an agent reported (shared by its chats). */
+export type AgentLimits = { windows: UsageWindow[]; at: number };
+
 type State = {
   chats: Record<string, ChatSession>;
+  limits: Partial<Record<ChatAgentId, AgentLimits>>;
   /** Creates the chat in memory (if new) and loads its saved transcript. */
   open: (id: string, init: { agent: ChatAgentId; cwd: string }) => void;
   send: (id: string, text: string) => Promise<void>;
@@ -100,8 +105,41 @@ function updateChat(id: string, fn: (c: ChatSession) => ChatSession) {
   });
 }
 
+const LIMITS_KEY = "__limits__";
+let limitsLoaded = false;
+
+/** Loads saved limits once, so a new chat shows them before its first reply. */
+function loadLimits() {
+  if (limitsLoaded) return;
+  limitsLoaded = true;
+  void disk
+    .get<State["limits"]>(LIMITS_KEY)
+    .catch(() => undefined)
+    .then((saved) => {
+      if (!saved || typeof saved !== "object") return;
+      useAgentChatStore.setState((s) => ({
+        limits: { ...saved, ...s.limits },
+      }));
+    });
+}
+
+function recordLimits(agent: ChatAgentId, events: ChatEvent[]) {
+  let windows: UsageWindow[] | undefined;
+  for (const e of events) if (e.type === "limits") windows = e.windows;
+  if (!windows) return;
+  const entry: AgentLimits = { windows, at: Date.now() };
+  useAgentChatStore.setState((s) => ({
+    limits: { ...s.limits, [agent]: entry },
+  }));
+  void disk
+    .set(LIMITS_KEY, useAgentChatStore.getState().limits)
+    .catch(() => {});
+}
+
 function applyEvents(id: string, events: ChatEvent[]) {
   if (events.length === 0) return;
+  const agent = useAgentChatStore.getState().chats[id]?.agent;
+  if (agent) recordLimits(agent, events);
   updateChat(id, (c) => ({
     ...c,
     transcript: events.reduce(applyChatEvent, c.transcript),
@@ -141,8 +179,10 @@ function stderrSummary(stderr: string): string {
 
 export const useAgentChatStore = create<State>((set, get) => ({
   chats: {},
+  limits: {},
 
   open(id, init) {
+    loadLimits();
     if (get().chats[id]) return;
     set((s) => ({
       chats: {

@@ -42,6 +42,8 @@ export type ChatEvent =
   | { type: "session"; id: string; model?: string }
   /** Tokens currently in the model's context (Claude Code reports this). */
   | { type: "context"; tokens: number }
+  /** Account usage windows (Claude Code's 5-hour and 7-day limits). */
+  | { type: "limits"; windows: UsageWindow[] }
   /** Assistant text: `final` replaces the streamed text for the same id. */
   | { type: "text"; id: string; text: string; final: boolean }
   | {
@@ -91,6 +93,15 @@ export type TurnStats = {
   costUsd?: number;
   inputTokens?: number;
   outputTokens?: number;
+};
+
+/** One rolling usage limit: how much is used, and when it resets. */
+export type UsageWindow = {
+  id: "five_hour" | "seven_day";
+  /** 0..1 of the window used. */
+  utilization: number;
+  /** Unix seconds. */
+  resetsAt?: number;
 };
 
 /** Running totals for the whole chat. */

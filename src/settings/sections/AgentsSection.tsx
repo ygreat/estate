@@ -579,6 +579,10 @@ const CHAT_STATUS_LABELS: Record<ChatStatusItem, [string, string]> = {
   context: ["Context", "Tokens in the model's context (Claude Code)."],
   tokens: ["Tokens", "Input and output tokens used in this chat."],
   cost: ["Cost", "What this chat has cost so far, when the agent reports it."],
+  limits: [
+    "Usage limits",
+    "How much of your 5-hour and 7-day limits is left (Claude Code), as gauges.",
+  ],
 };
 
 /** Estate: which items the agent chat status line shows. */
