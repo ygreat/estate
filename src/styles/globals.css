@@ -73,7 +73,7 @@
     --card-foreground: #111111;
     --popover: #ffffff;
     --popover-foreground: #111111;
-    --primary: #111111;
+    --primary: #166534;
     --primary-foreground: #ffffff;
     --secondary: #ededed;
     --secondary-foreground: #111111;
@@ -84,21 +84,24 @@
     --destructive: #c0392f;
     --border: rgba(0, 0, 0, 0.09);
     --input: rgba(0, 0, 0, 0.13);
-    --ring: #8a8a8a;
-    --chart-1: #111111;
-    --chart-2: #4a4a4a;
-    --chart-3: #656565;
-    --chart-4: #8a8a8a;
-    --chart-5: #b4b4b4;
+    --ring: #65a30d;
+    --chart-1: #166534;
+    --chart-2: #15803d;
+    --chart-3: #4d7c0f;
+    --chart-4: #65a30d;
+    --chart-5: #a3e635;
     --radius: 0.625rem;
     --sidebar: #f3f3f3;
     --sidebar-foreground: #111111;
-    --sidebar-primary: #111111;
+    --sidebar-primary: #166534;
     --sidebar-primary-foreground: #ffffff;
     --sidebar-accent: #e5e5e5;
     --sidebar-accent-foreground: #111111;
     --sidebar-border: rgba(0, 0, 0, 0.09);
-    --sidebar-ring: #8a8a8a;
+    --sidebar-ring: #65a30d;
+    /* Estate: the brand accent, dark green to lime (welcome page, CTAs). */
+    --brand-from: #166534;
+    --brand-to: #84cc16;
 }
 
 .dark {
@@ -108,8 +111,8 @@
     --card-foreground: #f7f7f7;
     --popover: #1d1d1d;
     --popover-foreground: #f7f7f7;
-    --primary: #f7f7f7;
-    --primary-foreground: #141414;
+    --primary: #a3e635;
+    --primary-foreground: #0b1a0f;
     --secondary: #2a2a2a;
     --secondary-foreground: #f7f7f7;
     --muted: #1d1d1d;
@@ -119,20 +122,22 @@
     --destructive: #e35d5d;
     --border: rgba(255, 255, 255, 0.09);
     --input: rgba(255, 255, 255, 0.13);
-    --ring: #8a8a8a;
-    --chart-1: #f7f7f7;
-    --chart-2: #b4b4b4;
-    --chart-3: #8a8a8a;
-    --chart-4: #656565;
-    --chart-5: #4a4a4a;
+    --ring: #4ade80;
+    --chart-1: #a3e635;
+    --chart-2: #84cc16;
+    --chart-3: #4ade80;
+    --chart-4: #22c55e;
+    --chart-5: #166534;
     --sidebar: #1d1d1d;
     --sidebar-foreground: #f7f7f7;
-    --sidebar-primary: #f7f7f7;
-    --sidebar-primary-foreground: #141414;
+    --sidebar-primary: #a3e635;
+    --sidebar-primary-foreground: #0b1a0f;
     --sidebar-accent: #2a2a2a;
     --sidebar-accent-foreground: #f7f7f7;
     --sidebar-border: rgba(255, 255, 255, 0.09);
-    --sidebar-ring: #8a8a8a;
+    --sidebar-ring: #4ade80;
+    --brand-from: #15803d;
+    --brand-to: #a3e635;
 }
 
 @layer base {

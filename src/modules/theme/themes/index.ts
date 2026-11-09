@@ -13,12 +13,14 @@ import { rosePine } from "./rose-pine";
 import { sage } from "./sage";
 import { solarized } from "./solarized";
 import { estateDefault } from "./estate-default";
+import { estateOled } from "./estate-oled";
 import { tide } from "./tide";
 import { tokyoNight } from "./tokyo-night";
 import { xcode } from "./xcode";
 
 const BUILTIN: Theme[] = [
   estateDefault,
+  estateOled,
   xcode,
   claude,
   kanagawa,
