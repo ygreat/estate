@@ -170,6 +170,8 @@ export type Preferences = {
   terminalRenderer: TerminalRendererSetting;
   /** Which side of the window the files and git sidebar sits on. */
   sidebarSide: SidebarSide;
+  /** Items in the agent chat status line, in display order. */
+  agentChatStatusItems: ChatStatusItem[];
   terminalScreenReader: boolean;
   terminalCursorBlink: boolean;
   terminalCursorStyle: TerminalCursorStyle;
@@ -269,6 +271,7 @@ const LEGACY_KEY_SHOW_HIDDEN_DIRS = "showHiddenDirectories";
 const KEY_EXPLORER_GIT_DECORATIONS = "explorerGitDecorations";
 const KEY_TERMINAL_RENDERER = "terminalRenderer";
 const KEY_SIDEBAR_SIDE = "sidebarSide";
+const KEY_AGENT_CHAT_STATUS = "agentChatStatusItems";
 const KEY_TERMINAL_SCREEN_READER = "terminalScreenReader";
 const KEY_TERMINAL_CURSOR_BLINK = "terminalCursorBlink";
 const KEY_TERMINAL_CURSOR_STYLE = "terminalCursorStyle";
@@ -323,6 +326,32 @@ export const TERMINAL_SCROLLBACK_PRESETS = [
   500, 1000, 2000, 5000, 10_000, 25_000,
 ] as const;
 
+/** Estate: what the agent chat status line can show. */
+export const CHAT_STATUS_ITEMS = [
+  "folder",
+  "branch",
+  "model",
+  "access",
+  "context",
+  "tokens",
+  "cost",
+] as const;
+export type ChatStatusItem = (typeof CHAT_STATUS_ITEMS)[number];
+export const DEFAULT_CHAT_STATUS_ITEMS: readonly ChatStatusItem[] = [
+  "folder",
+  "branch",
+  "model",
+  "context",
+  "cost",
+];
+
+/** Keeps known items, in the canonical order; anything else gives the default. */
+export function coerceChatStatusItems(value: unknown): ChatStatusItem[] {
+  if (!Array.isArray(value)) return [...DEFAULT_CHAT_STATUS_ITEMS];
+  const set = new Set(value);
+  return CHAT_STATUS_ITEMS.filter((item) => set.has(item));
+}
+
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
   themeId: DEFAULT_THEME_ID,
@@ -367,6 +396,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   explorerGitDecorations: true,
   terminalRenderer: "auto",
   sidebarSide: "right",
+  agentChatStatusItems: [...DEFAULT_CHAT_STATUS_ITEMS],
   terminalScreenReader: false,
   terminalCursorBlink: false,
   terminalCursorStyle: "bar",
@@ -529,6 +559,9 @@ export async function loadPreferences(): Promise<Preferences> {
       get<string>(KEY_TERMINAL_RENDERER),
     ),
     sidebarSide: coerceSidebarSide(get<unknown>(KEY_SIDEBAR_SIDE)),
+    agentChatStatusItems: coerceChatStatusItems(
+      get<unknown>(KEY_AGENT_CHAT_STATUS),
+    ),
     terminalScreenReader: get<boolean>(KEY_TERMINAL_SCREEN_READER) === true,
     terminalCursorBlink:
       get<boolean>(KEY_TERMINAL_CURSOR_BLINK) ??
@@ -833,6 +866,12 @@ export async function setTerminalRenderer(
   await writePref(KEY_TERMINAL_RENDERER, coerceTerminalRenderer(value));
 }
 
+export async function setAgentChatStatusItems(
+  value: ChatStatusItem[],
+): Promise<void> {
+  await writePref(KEY_AGENT_CHAT_STATUS, coerceChatStatusItems(value));
+}
+
 export async function setSidebarSide(value: SidebarSide): Promise<void> {
   await writePref(KEY_SIDEBAR_SIDE, coerceSidebarSide(value));
 }
@@ -1058,6 +1097,7 @@ export async function onPreferencesChange(
     [KEY_EXPLORER_GIT_DECORATIONS]: "explorerGitDecorations",
     [KEY_TERMINAL_RENDERER]: "terminalRenderer",
     [KEY_SIDEBAR_SIDE]: "sidebarSide",
+    [KEY_AGENT_CHAT_STATUS]: "agentChatStatusItems",
     [KEY_TERMINAL_SCREEN_READER]: "terminalScreenReader",
     [KEY_TERMINAL_CURSOR_BLINK]: "terminalCursorBlink",
     [KEY_TERMINAL_CURSOR_STYLE]: "terminalCursorStyle",

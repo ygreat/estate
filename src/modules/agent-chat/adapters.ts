@@ -62,7 +62,9 @@ export function claudeAdapter(): TurnAdapter {
       switch (o.type) {
         case "system": {
           const id = str(o.session_id);
-          return o.subtype === "init" && id ? [{ type: "session", id }] : [];
+          return o.subtype === "init" && id
+            ? [{ type: "session", id, model: str(o.model) }]
+            : [];
         }
         case "stream_event": {
           const e = obj(o.event);
@@ -94,6 +96,13 @@ export function claudeAdapter(): TurnAdapter {
           const m = obj(o.message);
           const msgId = str(m.id) ?? "msg";
           const out: ChatEvent[] = [];
+          // Input plus cached input is what the model holds in context.
+          const u = obj(m.usage);
+          const context =
+            (num(u.input_tokens) ?? 0) +
+            (num(u.cache_read_input_tokens) ?? 0) +
+            (num(u.cache_creation_input_tokens) ?? 0);
+          if (context > 0) out.push({ type: "context", tokens: context });
           for (const raw of arr(m.content)) {
             const b = obj(raw);
             if (b.type === "text") {
@@ -148,7 +157,13 @@ export function claudeAdapter(): TurnAdapter {
             };
           });
           if (denials.length) out.push({ type: "denied", tools: denials });
-          out.push({ type: "usage", costUsd: num(o.total_cost_usd) });
+          const usage = obj(o.usage);
+          out.push({
+            type: "usage",
+            costUsd: num(o.total_cost_usd),
+            inputTokens: num(usage.input_tokens),
+            outputTokens: num(usage.output_tokens),
+          });
           const failed =
             o.is_error === true || (o.subtype && o.subtype !== "success");
           if (failed) {
@@ -336,7 +351,7 @@ export function geminiAdapter(): TurnAdapter {
       switch (o.type) {
         case "init": {
           const id = str(o.session_id);
-          return id ? [{ type: "session", id }] : [];
+          return id ? [{ type: "session", id, model: str(o.model) }] : [];
         }
         case "message": {
           if (o.role !== "assistant") return [];

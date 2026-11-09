@@ -155,3 +155,23 @@ describe("robustness", () => {
     expect(a.finish()).toEqual([{ type: "done", ok: false }]);
   });
 });
+
+describe("status line data", () => {
+  it("records the model, totals across turns, and Claude's context", () => {
+    const first = replay("claude", "claude-read.jsonl");
+    expect(first.model).toBe("claude-haiku-5-5");
+    expect(first.totals.turns).toBe(1);
+    const second = replay("claude", "claude-denied.jsonl", first);
+    expect(second.totals.turns).toBe(2);
+    expect(second.totals.costUsd).toBeGreaterThan(first.totals.costUsd);
+  });
+
+  it("adds Codex tokens across turns", () => {
+    const first = replay("codex", "codex-read.jsonl");
+    const second = replay("codex", "codex-write.jsonl", first);
+    expect(second.totals.outputTokens).toBeGreaterThan(
+      first.totals.outputTokens,
+    );
+    expect(second.totals.turns).toBe(2);
+  });
+});

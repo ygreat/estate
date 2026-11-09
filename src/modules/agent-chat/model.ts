@@ -39,7 +39,9 @@ export type ToolStatus = "running" | "done" | "error";
 
 /** What adapters emit. */
 export type ChatEvent =
-  | { type: "session"; id: string }
+  | { type: "session"; id: string; model?: string }
+  /** Tokens currently in the model's context (Claude Code reports this). */
+  | { type: "context"; tokens: number }
   /** Assistant text: `final` replaces the streamed text for the same id. */
   | { type: "text"; id: string; text: string; final: boolean }
   | {
@@ -91,16 +93,40 @@ export type TurnStats = {
   outputTokens?: number;
 };
 
+/** Running totals for the whole chat. */
+export type ChatTotals = {
+  costUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  turns: number;
+};
+
+export const ZERO_TOTALS: ChatTotals = {
+  costUsd: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  turns: 0,
+};
+
 export type Transcript = {
   items: ChatItem[];
   sessionId?: string;
+  /** Model the agent reported using. */
+  model?: string;
+  /** Tokens in the model's context after the latest reply, when known. */
+  contextTokens?: number;
+  totals: ChatTotals;
   /** Usage of the latest turn. */
   stats?: TurnStats;
   /** The latest turn had refused tool calls. */
   denied: boolean;
 };
 
-export const EMPTY_TRANSCRIPT: Transcript = { items: [], denied: false };
+export const EMPTY_TRANSCRIPT: Transcript = {
+  items: [],
+  denied: false,
+  totals: ZERO_TOTALS,
+};
 
 /** Tool output kept per call: enough to read, bounded for long sessions. */
 export const MAX_TOOL_OUTPUT = 8 * 1024;
@@ -130,7 +156,13 @@ function cap(items: ChatItem[]): ChatItem[] {
 export function applyChatEvent(t: Transcript, e: ChatEvent): Transcript {
   switch (e.type) {
     case "session":
-      return t.sessionId === e.id ? t : { ...t, sessionId: e.id };
+      return t.sessionId === e.id && (!e.model || t.model === e.model)
+        ? t
+        : { ...t, sessionId: e.id, model: e.model ?? t.model };
+    case "context":
+      return t.contextTokens === e.tokens
+        ? t
+        : { ...t, contextTokens: e.tokens };
     case "text": {
       if (!e.text && !e.final) return t;
       const prev = t.items.find(
@@ -200,6 +232,12 @@ export function applyChatEvent(t: Transcript, e: ChatEvent): Transcript {
           inputTokens: e.inputTokens,
           outputTokens: e.outputTokens,
         },
+        totals: {
+          ...t.totals,
+          costUsd: t.totals.costUsd + (e.costUsd ?? 0),
+          inputTokens: t.totals.inputTokens + (e.inputTokens ?? 0),
+          outputTokens: t.totals.outputTokens + (e.outputTokens ?? 0),
+        },
       };
     case "info":
       return {
@@ -231,6 +269,7 @@ export function applyChatEvent(t: Transcript, e: ChatEvent): Transcript {
       // A turn ends: nothing is streaming any more, and unfinished tools stop.
       return {
         ...t,
+        totals: { ...t.totals, turns: t.totals.turns + 1 },
         items: t.items.map((x) =>
           x.kind === "assistant" && x.streaming
             ? { ...x, streaming: false }

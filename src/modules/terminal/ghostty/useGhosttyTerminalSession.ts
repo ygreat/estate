@@ -273,6 +273,15 @@ export function useGhosttyTerminalSession({
     },
     [leafId],
   );
+  const busyReason = useCallback(async () => {
+    const session = sessions.get(leafId);
+    if (!session) return "closed" as const;
+    const { explainShellRefusal } = await import("../lib/promptInjection");
+    return explainShellRefusal(
+      session,
+      () => !!session.pty && isAgentActivePty(session.pty.id),
+    );
+  }, [leafId]);
   const focus = useCallback(() => focusGhosttySession(leafId), [leafId]);
   const getBuffer = useCallback(
     (maxLines = 200) => sessions.get(leafId)?.model?.readText(maxLines) ?? null,
@@ -305,6 +314,7 @@ export function useGhosttyTerminalSession({
       retry,
       write,
       writeAtPrompt,
+      busyReason,
       focus,
       getBuffer,
       getSelection,
@@ -313,6 +323,7 @@ export function useGhosttyTerminalSession({
     [
       write,
       writeAtPrompt,
+      busyReason,
       focus,
       getBuffer,
       getSelection,

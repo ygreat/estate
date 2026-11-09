@@ -11,6 +11,7 @@ import {
   type ChatEvent,
   CHAT_AGENT_LABEL,
   EMPTY_TRANSCRIPT,
+  ZERO_TOTALS,
   retryPrompt,
   type Transcript,
 } from "./model";
@@ -50,7 +51,7 @@ const disk = new LazyStore("estate-agent-chats.json", {
   autoSave: 1000,
 });
 type Saved = Pick<ChatSession, "agent" | "cwd" | "access" | "model"> & {
-  transcript: Pick<Transcript, "items" | "sessionId">;
+  transcript: Pick<Transcript, "items" | "sessionId" | "model" | "totals">;
 };
 
 const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -71,6 +72,8 @@ function scheduleSave(id: string) {
         transcript: {
           items: c.transcript.items,
           sessionId: c.transcript.sessionId,
+          model: c.transcript.model,
+          totals: c.transcript.totals,
         },
       };
       void disk.set(id, saved).catch(() => {});
@@ -170,6 +173,8 @@ export const useAgentChatStore = create<State>((set, get) => ({
                     ? saved.transcript.items
                     : [],
                   sessionId: saved.transcript?.sessionId,
+                  model: saved.transcript?.model,
+                  totals: { ...ZERO_TOTALS, ...saved.transcript?.totals },
                 },
                 loaded: true,
               }
