@@ -57,6 +57,15 @@ import { AgentsPanel } from "@/modules/agents/components/AgentsPanelLazy";
 import { useAgentStore } from "@/modules/agents/store/agentStore";
 import { newChatId } from "@/modules/agent-chat/ids";
 import {
+  folderName,
+  markOpened,
+  projectForFolder,
+  readOpenedAt,
+  recentProjects,
+} from "@/modules/spaces/lib/projects";
+import { ProjectButton } from "@/modules/statusbar/ProjectButton";
+import type { FolderAction } from "@/modules/statusbar/CwdBreadcrumb";
+import {
   LOGIN_COMMANDS,
   RUN_IN_TERMINAL_EVENT,
   type RunInTerminalDetail,
@@ -1363,6 +1372,66 @@ export default function App() {
     return meta.id;
   }, [activeCwd, home, workspaceEnv, newTab, setActiveSpaceForNewTabs]);
 
+  // Estate: projects (spaces with a folder) from the status bar.
+  const spacesForProjects = useSpaces((s) => s.spaces);
+  // Re-read recents whenever the project changes (opening marks it).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeSpaceId triggers the re-read
+  const recent = useMemo(
+    () => recentProjects(spacesForProjects, readOpenedAt()),
+    [spacesForProjects, activeSpaceId],
+  );
+  const switchProject = useCallback((spaceId: string) => {
+    markOpened(spaceId);
+    useSpaces.getState().setActive(spaceId);
+  }, []);
+  const openProjectFolder = useCallback(
+    async (folder: string) => {
+      try {
+        await native.workspaceAuthorize(folder);
+      } catch (error) {
+        toast.error("Could not open this folder", {
+          description: String(error),
+        });
+        return;
+      }
+      const { spaces, create, setActive } = useSpaces.getState();
+      const existing = projectForFolder(spaces, folder);
+      if (existing) {
+        switchProject(existing.id);
+        return;
+      }
+      const meta = create({
+        name: folderName(folder),
+        root: folder,
+        env: workspaceEnv,
+      });
+      markOpened(meta.id);
+      setActiveSpaceForNewTabs(meta.id);
+      newTab(folder);
+      setActive(meta.id);
+    },
+    [switchProject, workspaceEnv, setActiveSpaceForNewTabs, newTab],
+  );
+  const pickProjectFolder = useCallback(async () => {
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const picked = await open({
+      directory: true,
+      multiple: false,
+      title: "Open a project folder",
+    });
+    if (typeof picked === "string") await openProjectFolder(picked);
+  }, [openProjectFolder]);
+  const folderActions = useCallback(
+    (path: string): FolderAction[] => [
+      { label: "Open as project", run: () => void openProjectFolder(path) },
+      { label: "New terminal here", run: () => cdInNewTab(path) },
+      ...(activeTab?.kind === "terminal"
+        ? [{ label: "cd in this terminal", run: () => sendCd(path) }]
+        : []),
+    ],
+    [openProjectFolder, cdInNewTab, sendCd, activeTab],
+  );
+
   const handleDeleteSpace = useCallback(
     (id: string) => {
       const nextSpaceId = useSpaces.getState().remove(id);
@@ -1793,7 +1862,22 @@ export default function App() {
               cwd={activeCwd}
               filePath={activeFilePath}
               home={home}
-              onCd={activeTab?.kind === "agent-chat" ? cdInNewTab : sendCd}
+              // Estate: a plain click opens a new terminal; the menu offers more.
+              onCd={cdInNewTab}
+              folderActions={folderActions}
+              project={
+                <ProjectButton
+                  projects={recent}
+                  activeSpaceId={activeSpaceId}
+                  activeName={
+                    spacesForProjects.find((sp) => sp.id === activeSpaceId)
+                      ?.name ?? "Project"
+                  }
+                  home={home}
+                  onSwitch={switchProject}
+                  onOpenFolder={() => void pickProjectFolder()}
+                />
+              }
               onWorkspaceChange={handleWorkspaceChange}
               onOpenMini={openMini}
               onOpenAi={togglePanelAndFocus}

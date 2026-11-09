@@ -13,7 +13,8 @@ import { LspStatusPill } from "@/modules/lsp";
 import type { WorkspaceEnv } from "@/modules/workspace";
 import { IncognitoIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CwdBreadcrumb } from "./CwdBreadcrumb";
+import type { ReactNode } from "react";
+import { CwdBreadcrumb, type FolderAction } from "./CwdBreadcrumb";
 import { DiagnosticsBadge } from "./DiagnosticsBadge";
 import { WorkspaceEnvSelector } from "./WorkspaceEnvSelector";
 
@@ -29,6 +30,10 @@ type Props = {
   /** Only rendered when the AI panel is open and a key is loaded. */
   hasComposer: boolean;
   privateActive: boolean;
+  /** Estate: the project button, at the far left. */
+  project?: ReactNode;
+  /** Estate: actions for a clicked folder in the breadcrumb. */
+  folderActions?: (path: string) => FolderAction[];
 };
 
 export function StatusBar({
@@ -41,14 +46,23 @@ export function StatusBar({
   onOpenAi,
   hasComposer,
   privateActive,
+  project,
+  folderActions,
 }: Props) {
   const panelOpen = useChatStore((s) => s.panelOpen);
 
   return (
     <footer className="flex h-8 shrink-0 items-center justify-between gap-3 pl-3 pr-4 text-[11px]">
       <div className="flex min-w-0 flex-1 items-center gap-2">
+        {project}
         <WorkspaceEnvSelector onSelect={onWorkspaceChange} />
-        <CwdBreadcrumb cwd={cwd} filePath={filePath} home={home} onCd={onCd} />
+        <CwdBreadcrumb
+          cwd={cwd}
+          filePath={filePath}
+          home={home}
+          onCd={onCd}
+          folderActions={folderActions}
+        />
         <LspStatusPill filePath={filePath ?? null} />
         <DiagnosticsBadge filePath={filePath ?? null} />
         {privateActive ? (
