@@ -30,9 +30,25 @@ import { usePreferencesStore } from "@/modules/settings/preferences";
 import {
   CHAT_STATUS_ITEMS,
   type ChatStatusItem,
+  coerceDelegate,
   setAgentChatStatusItems,
   setCustomInstructions,
+  setOrchestratorAgent,
+  setOrchestratorInstructions,
+  setOrchestratorWorktrees,
 } from "@/modules/settings/store";
+import {
+  DEFAULT_ORCHESTRATOR_INSTRUCTIONS,
+  type OrchestratorDelegate,
+  resolveInstructions,
+} from "@/modules/orchestrator/instructions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SettingRow } from "../components/SettingRow";
 import {
@@ -84,9 +100,9 @@ export function AgentsSection() {
         description="Personas and snippets the AI uses. Switch agents from the input bar."
       />
 
-      <CustomInstructionsBlock value={customInstructions} />
+      <OrchestratorBlock />
 
-      <ChatStatusLineBlock />
+      <CustomInstructionsBlock value={customInstructions} />
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
@@ -230,6 +246,8 @@ export function AgentsSection() {
           setEditingSnippet(null);
         }}
       />
+
+      <ChatStatusLineBlock />
     </div>
   );
 }
@@ -586,6 +604,99 @@ const CHAT_STATUS_LABELS: Record<ChatStatusItem, [string, string]> = {
 };
 
 /** Estate: which items the agent chat status line shows. */
+const DELEGATE_LABEL: Record<OrchestratorDelegate, string> = {
+  ask: "Ask me each time",
+  claude: "Claude Code",
+  codex: "Codex",
+  gemini: "Gemini CLI",
+  opencode: "OpenCode",
+};
+
+/** Estate: the global Orchestrator agent. */
+function OrchestratorBlock() {
+  const instructions = usePreferencesStore((s) => s.orchestratorInstructions);
+  const delegate = usePreferencesStore((s) => s.orchestratorAgent);
+  const worktrees = usePreferencesStore((s) => s.orchestratorWorktrees);
+  const [draft, setDraft] = useState(() => resolveInstructions(instructions));
+  useEffect(() => {
+    setDraft(resolveInstructions(instructions));
+  }, [instructions]);
+  const isDefault = draft.trim() === DEFAULT_ORCHESTRATOR_INSTRUCTIONS.trim();
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex flex-col">
+        <Label>Orchestrator</Label>
+        <span className="text-[10.5px] text-muted-foreground">
+          Plans a goal, splits it into tasks, and hands them to coding agents in
+          parallel. Start it from the welcome screen's Plan button.
+        </span>
+      </div>
+      <SettingRow
+        title="Plans and delegates with"
+        description="The coding agent that writes the plan and runs each task. You can still change the agent for each task in the plan."
+      >
+        <Select
+          value={delegate}
+          onValueChange={(v) => void setOrchestratorAgent(coerceDelegate(v))}
+        >
+          <SelectTrigger className="h-8 w-40 text-[12px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(DELEGATE_LABEL) as OrchestratorDelegate[]).map(
+              (d) => (
+                <SelectItem key={d} value={d} className="text-[12px]">
+                  {DELEGATE_LABEL[d]}
+                </SelectItem>
+              ),
+            )}
+          </SelectContent>
+        </Select>
+      </SettingRow>
+      <SettingRow
+        title="Give editing tasks their own worktree"
+        description="Each task that edits code works on its own git branch in a separate folder, so tasks never overwrite each other. Needs a git repository."
+      >
+        <Switch
+          checked={worktrees}
+          onCheckedChange={(v) => void setOrchestratorWorktrees(v)}
+        />
+      </SettingRow>
+      <div className="flex items-center justify-between">
+        <span className="text-[11.5px] text-muted-foreground">
+          Instructions
+        </span>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-[11px]"
+          disabled={isDefault}
+          onClick={() => {
+            setDraft(DEFAULT_ORCHESTRATOR_INSTRUCTIONS);
+            void setOrchestratorInstructions("");
+          }}
+        >
+          Reset to default
+        </Button>
+      </div>
+      <Textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() =>
+          void setOrchestratorInstructions(
+            draft.trim() === DEFAULT_ORCHESTRATOR_INSTRUCTIONS.trim()
+              ? ""
+              : draft,
+          )
+        }
+        rows={10}
+        spellCheck={false}
+        className="font-mono text-[11.5px] leading-5"
+      />
+    </section>
+  );
+}
+
 function ChatStatusLineBlock() {
   const items = usePreferencesStore((s) => s.agentChatStatusItems);
   const toggle = (item: ChatStatusItem, on: boolean) => {

@@ -1,4 +1,5 @@
 // Modified by ygreat for Estate, 2026. Originally part of Terax.
+import type { OrchestratorDelegate } from "@/modules/orchestrator/instructions";
 import {
   type AutocompleteProviderId,
   type CustomEndpoint,
@@ -144,6 +145,12 @@ export type Preferences = {
   restoreWindowState: boolean;
   /** Estate: show the welcome screen when Estate opens. */
   showWelcome: boolean;
+  /** Estate: Orchestrator instructions; empty uses the default. */
+  orchestratorInstructions: string;
+  /** Estate: which coding agent the Orchestrator plans and delegates with. */
+  orchestratorAgent: OrchestratorDelegate;
+  /** Estate: run each editing task in its own git worktree. */
+  orchestratorWorktrees: boolean;
   autocompleteEnabled: boolean;
   autocompleteTrigger: AutocompleteTrigger;
   autocompleteProvider: AutocompleteProviderId;
@@ -244,6 +251,9 @@ const KEY_CUSTOM_INSTRUCTIONS = "customInstructions";
 const KEY_AUTOSTART = "autostart";
 const KEY_RESTORE_WINDOW = "restoreWindowState";
 const KEY_SHOW_WELCOME = "showWelcome";
+const KEY_ORCH_INSTRUCTIONS = "orchestratorInstructions";
+const KEY_ORCH_AGENT = "orchestratorAgent";
+const KEY_ORCH_WORKTREES = "orchestratorWorktrees";
 export type AutocompleteTrigger = "auto" | "manual";
 
 const KEY_AUTOCOMPLETE_ENABLED = "autocompleteEnabled";
@@ -375,6 +385,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
   windowVibrancy: false,
   restoreWindowState: true,
   showWelcome: true,
+  orchestratorInstructions: "",
+  orchestratorAgent: "ask",
+  orchestratorWorktrees: true,
   autocompleteEnabled: false,
   autocompleteTrigger: "auto",
   autocompleteProvider: "cerebras",
@@ -490,6 +503,11 @@ export async function loadPreferences(): Promise<Preferences> {
       DEFAULT_PREFERENCES.restoreWindowState,
     showWelcome:
       get<boolean>(KEY_SHOW_WELCOME) ?? DEFAULT_PREFERENCES.showWelcome,
+    orchestratorInstructions: get<string>(KEY_ORCH_INSTRUCTIONS) ?? "",
+    orchestratorAgent: coerceDelegate(get<unknown>(KEY_ORCH_AGENT)),
+    orchestratorWorktrees:
+      get<boolean>(KEY_ORCH_WORKTREES) ??
+      DEFAULT_PREFERENCES.orchestratorWorktrees,
     windowVibrancy:
       get<boolean>(KEY_WINDOW_VIBRANCY) ?? DEFAULT_PREFERENCES.windowVibrancy,
     autocompleteEnabled:
@@ -744,6 +762,35 @@ export async function setRestoreWindowState(value: boolean): Promise<void> {
 
 export async function setShowWelcome(value: boolean): Promise<void> {
   await writePref(KEY_SHOW_WELCOME, value);
+}
+
+const DELEGATES: readonly OrchestratorDelegate[] = [
+  "ask",
+  "claude",
+  "codex",
+  "gemini",
+  "opencode",
+];
+export function coerceDelegate(value: unknown): OrchestratorDelegate {
+  return DELEGATES.includes(value as OrchestratorDelegate)
+    ? (value as OrchestratorDelegate)
+    : "ask";
+}
+
+export async function setOrchestratorInstructions(
+  value: string,
+): Promise<void> {
+  await writePref(KEY_ORCH_INSTRUCTIONS, value);
+}
+
+export async function setOrchestratorAgent(
+  value: OrchestratorDelegate,
+): Promise<void> {
+  await writePref(KEY_ORCH_AGENT, coerceDelegate(value));
+}
+
+export async function setOrchestratorWorktrees(value: boolean): Promise<void> {
+  await writePref(KEY_ORCH_WORKTREES, value);
 }
 
 export async function setWindowVibrancy(value: boolean): Promise<void> {
@@ -1083,6 +1130,9 @@ export async function onPreferencesChange(
     [KEY_AUTOSTART]: "autostart",
     [KEY_RESTORE_WINDOW]: "restoreWindowState",
     [KEY_SHOW_WELCOME]: "showWelcome",
+    [KEY_ORCH_INSTRUCTIONS]: "orchestratorInstructions",
+    [KEY_ORCH_AGENT]: "orchestratorAgent",
+    [KEY_ORCH_WORKTREES]: "orchestratorWorktrees",
     [KEY_AUTOCOMPLETE_ENABLED]: "autocompleteEnabled",
     [KEY_AUTOCOMPLETE_TRIGGER]: "autocompleteTrigger",
     [KEY_AUTOCOMPLETE_PROVIDER]: "autocompleteProvider",
