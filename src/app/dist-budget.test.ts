@@ -279,7 +279,10 @@ describe("built startup graph", () => {
     expect([...sources]).toHaveLength(1);
   });
 
-  it("refuses to build the app-lab driver without its own identifier, and under the product one", () => {
+  // Estate: two refused Vite builds take over 5 s on CI's Intel runner.
+  it("refuses to build the app-lab driver without its own identifier, and under the product one", {
+    timeout: 120_000,
+  }, () => {
     const build = (extra: Record<string, string>) =>
       execFileSync(
         process.execPath,
@@ -314,9 +317,9 @@ describe("built startup graph", () => {
     expect(failure({ ESTATE_BENCH_IDENTIFIER: "" })).toContain(
       "ESTATE_BENCH_IDENTIFIER",
     );
-    expect(failure({ ESTATE_BENCH_IDENTIFIER: "io.github.ygreat.estate" })).toContain(
-      "not the product identifier",
-    );
+    expect(
+      failure({ ESTATE_BENCH_IDENTIFIER: "io.github.ygreat.estate" }),
+    ).toContain("not the product identifier");
     // Nothing was emitted by either attempt.
     expect(existsSync(join(outDir, "guarded"))).toBe(false);
   });
