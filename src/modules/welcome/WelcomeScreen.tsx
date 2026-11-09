@@ -132,7 +132,13 @@ export function WelcomeScreen({
   const others = recent.filter((p) => p.id !== current?.id).slice(0, 5);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+    // Clicking anywhere outside the content skips straight to the editor.
+    // biome-ignore lint/a11y/noStaticElementInteractions: Esc and the "Go to editor" button do the same from the keyboard.
+    // biome-ignore lint/a11y/useKeyWithClickEvents: as above.
+    <div
+      onClick={onClose}
+      className="fade-in-0 fixed inset-0 z-50 flex animate-in flex-col bg-background/60 backdrop-blur-xl duration-200"
+    >
       <div
         data-tauri-drag-region
         className="flex h-10 shrink-0 items-center justify-end px-3"
@@ -151,7 +157,12 @@ export function WelcomeScreen({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex min-h-full items-center justify-center px-8 py-12">
-          <div className="flex w-full max-w-[460px] flex-col items-center gap-10">
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: only stops clicks inside from skipping. */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: as above. */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex w-full max-w-[460px] flex-col items-center gap-10"
+          >
             <div className="flex flex-col items-center gap-5 text-center">
               <img
                 src="/logo.png"
@@ -325,18 +336,32 @@ export function WelcomeScreen({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center justify-center gap-2 pb-6">
-        <Checkbox
-          id="welcome-on-startup"
-          checked={showOnStartup}
-          onCheckedChange={(v) => onShowOnStartupChange(v === true)}
-        />
-        <Label
-          htmlFor="welcome-on-startup"
-          className="text-[11.5px] font-normal text-muted-foreground"
-        >
-          Show this when Estate opens
-        </Label>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: only stops clicks inside from skipping. */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: as above. */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="mx-auto flex shrink-0 flex-col items-center gap-4 pb-6"
+      >
+        <Button variant="ghost" size="sm" onClick={onClose} className="gap-2">
+          Go to editor
+          <Kbd>Esc</Kbd>
+        </Button>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="welcome-on-startup"
+            checked={showOnStartup}
+            onCheckedChange={(v) => onShowOnStartupChange(v === true)}
+          />
+          <Label
+            htmlFor="welcome-on-startup"
+            className="text-[11.5px] font-normal text-muted-foreground"
+          >
+            Show this when Estate opens
+          </Label>
+        </div>
+        <span className="text-[10.5px] text-muted-foreground/60">
+          Or click anywhere outside to skip
+        </span>
       </div>
     </div>
   );

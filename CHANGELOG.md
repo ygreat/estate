@@ -37,7 +37,7 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 - Settings > Agents: the Orchestrator's instructions (editable, with Reset to default), which agent plans (or ask each time, with "remember my choice"), and whether editing tasks get worktrees.
 
 **Welcome screen**
-- Opens on launch (Settings > General can turn it off). First pick a project: the open one, a recent one or a new folder.
+- Opens on launch over the editor, which shows blurred behind it (Settings > General can turn it off). Go to editor, Esc or a click anywhere outside skips it. First pick a project: the open one, a recent one or a new folder.
 - Then: "What are we building today?" Pick an agent (each shows whether it's installed and signed in), describe the idea, and start a chat or plan it with the Orchestrator. New terminal and Command palette sit below with their shortcuts.
 
 **Themes**
