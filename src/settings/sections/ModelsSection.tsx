@@ -6,6 +6,7 @@ import {
   useAgentStatuses,
 } from "@/modules/agent-chat/auth";
 import type { ChatAgentId } from "@/modules/agent-chat/model";
+import { AccountTradeoffs } from "@/modules/ai/components/AccountNotice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -1573,6 +1574,12 @@ function AccountsBlock({
             </div>
           );
         })}
+      </div>
+      <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
+        <span className="mb-1 block text-[11px] font-medium">
+          How account models differ from API keys
+        </span>
+        <AccountTradeoffs />
       </div>
     </div>
   );

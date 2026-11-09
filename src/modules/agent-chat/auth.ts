@@ -137,7 +137,10 @@ export const SIGN_IN_WITH: Record<ChatAgentId, string> = {
  * Sign-in state of every chat agent. Re-checks the ones not signed in when the
  * window regains focus (after a sign-in in the terminal or browser).
  */
-export function useAgentStatuses() {
+export function useAgentStatuses(
+  agents: readonly ChatAgentId[] = CHAT_AGENTS,
+  enabled = true,
+) {
   const [auth, setAuth] = useState<Partial<Record<ChatAgentId, AgentAuth>>>({});
   const authRef = useRef(auth);
   authRef.current = auth;
@@ -150,25 +153,30 @@ export function useAgentStatuses() {
     });
   }, []);
   useEffect(() => {
-    for (const a of CHAT_AGENTS) check(a, false);
-  }, [check]);
+    if (!enabled) return;
+    for (const a of agents) check(a, false);
+  }, [check, agents, enabled]);
   useEffect(() => {
+    if (!enabled) return;
     const onFocus = () => {
-      for (const a of CHAT_AGENTS) {
+      for (const a of agents) {
         if (authRef.current[a]?.state !== "signed-in") check(a, true);
       }
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [check]);
+  }, [check, agents, enabled]);
   const recheck = useCallback(
     (agent?: ChatAgentId) => {
-      for (const a of agent ? [agent] : CHAT_AGENTS) check(a, true);
+      for (const a of agent ? [agent] : agents) check(a, true);
     },
-    [check],
+    [check, agents],
   );
   return { auth, checking, recheck };
 }
+
+/** The agents whose accounts can power the Estate AI panel. */
+export const ACCOUNT_AGENTS: readonly ChatAgentId[] = ["claude", "codex"];
 
 /** Whether chat should wait for sign-in (unknown never blocks). */
 export function needsSignIn(auth: AgentAuth | null): boolean {
