@@ -1,10 +1,21 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import { expect, it } from "vitest";
 
 it("serves the development app with an enforced frame-ancestors header", async () => {
+  // Estate: its own dependency cache. Sharing node_modules/.vite rewrote the
+  // cache of a running `pnpm tauri dev`, so modules it hadn't loaded yet
+  // (the folder picker) answered 504 "Outdated Optimize Dep".
+  const cacheDir = mkdtempSync(join(tmpdir(), "estate-vite-test-"));
   const server = await createServer({
-    configFile: fileURLToPath(new URL("../../../vite.config.ts", import.meta.url)),
+    cacheDir,
+    configFile: fileURLToPath(
+      new URL("../../../vite.config.ts", import.meta.url),
+    ),
     logLevel: "silent",
     server: {
       host: "127.0.0.1",
@@ -18,11 +29,17 @@ it("serves the development app with an enforced frame-ancestors header", async (
   try {
     await server.listen();
     const address = server.httpServer?.address();
-    if (!address || typeof address === "string") throw new Error("missing HTTP address");
-    const response = await fetch(`http://127.0.0.1:${address.port}/`, { method: "HEAD" });
+    if (!address || typeof address === "string")
+      throw new Error("missing HTTP address");
+    const response = await fetch(`http://127.0.0.1:${address.port}/`, {
+      method: "HEAD",
+    });
     expect(response.status).toBe(200);
-    expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+    expect(response.headers.get("content-security-policy")).toContain(
+      "frame-ancestors 'none'",
+    );
   } finally {
     await server.close();
+    rmSync(cacheDir, { recursive: true, force: true });
   }
 });
