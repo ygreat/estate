@@ -10,6 +10,8 @@ import { useEffect, useState } from "react";
 import { SectionHeader } from "../components/SectionHeader";
 
 const REPO_URL = "https://github.com/ygreat/estate";
+// Estate's origin: credited here as Apache-2.0 attribution, not an update source.
+const TERAX_URL = "https://github.com/crynta/terax-ai";
 
 const PLATFORM_LABEL: Record<string, string> = {
   macos: "macOS",
@@ -75,7 +77,7 @@ export function AboutSection() {
             {name}
           </span>
           <span className="text-[11px] text-muted-foreground">
-            Open-source AI-native terminal emulator
+            Developer workspace for Intel Macs on macOS 12
           </span>
           <span className="mt-1 font-mono text-[11px] text-muted-foreground">
             v{version || "—"}
@@ -105,6 +107,21 @@ export function AboutSection() {
             <HugeiconsIcon icon={GithubIcon} size={12} strokeWidth={1.75} />
             ygreat/estate
           </button>
+        </dd>
+
+        <dt className="text-muted-foreground">Built on</dt>
+        <dd className="flex flex-col gap-0.5">
+          <button
+            type="button"
+            onClick={() => void openUrl(TERAX_URL)}
+            className="inline-flex w-fit items-center gap-1.5 rounded-md text-[12px] underline-offset-2 hover:text-foreground hover:underline"
+          >
+            <HugeiconsIcon icon={GithubIcon} size={12} strokeWidth={1.75} />
+            Terax 0.9.0
+          </button>
+          <span className="text-[11px] text-muted-foreground">
+            By Crynta, Apache 2.0. Estate is not affiliated with Terax.
+          </span>
         </dd>
       </dl>
 

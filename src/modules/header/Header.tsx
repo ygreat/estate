@@ -3,12 +3,14 @@ import { WindowControls } from "@/components/WindowControls";
 import { IS_MAC, USE_CUSTOM_WINDOW_CONTROLS } from "@/lib/platform";
 import { NotificationBell } from "@/modules/agents";
 import type { AgentLaunchRequest } from "@/modules/agents/lib/launcher";
+import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { Tab } from "@/modules/tabs";
 import { TabBar } from "@/modules/tabs";
 import {
   CommandIcon,
   Settings01Icon,
   SidebarLeftIcon,
+  SidebarRightIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -86,6 +88,7 @@ export function Header({
   searchTarget,
   searchRef,
 }: Props) {
+  const sidebarSide = usePreferencesStore((s) => s.sidebarSide);
   const rootRef = useRef<HTMLDivElement>(null);
   const [compact, setCompact] = useState(false);
 
@@ -128,7 +131,11 @@ export function Header({
           size="icon-sm"
           className="shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
-          <HugeiconsIcon icon={SidebarLeftIcon} size={18} strokeWidth={1.75} />
+          <HugeiconsIcon
+            icon={sidebarSide === "right" ? SidebarRightIcon : SidebarLeftIcon}
+            size={18}
+            strokeWidth={1.75}
+          />
         </Button>
 
         <Button

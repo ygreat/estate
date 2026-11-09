@@ -18,6 +18,8 @@ import {
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { ThemePref } from "@/modules/settings/store";
 import {
+  coerceSidebarSide,
+  coerceTerminalRenderer,
   setAgentNotificationSound,
   setAgentNotifications,
   setAutostart,
@@ -26,19 +28,19 @@ import {
   setExplorerGitDecorations,
   setRestoreWindowState,
   setShowHidden,
+  setSidebarSide,
   setTerminalCursorBlink,
   setTerminalCursorStyle,
   setTerminalFontFamily,
   setTerminalFontSize,
   setTerminalFontWeight,
   setTerminalLetterSpacing,
-  setTerminalScrollback,
   setTerminalMacOptionAsAlt,
-  setTerminalScrollSpeed,
-  setTerminalShell,
-  coerceTerminalRenderer,
   setTerminalRenderer,
   setTerminalScreenReader,
+  setTerminalScrollback,
+  setTerminalScrollSpeed,
+  setTerminalShell,
   setZoomLevel,
   TERMINAL_FONT_SIZES,
   TERMINAL_SCROLLBACK_PRESETS,
@@ -110,6 +112,7 @@ export function GeneralSection() {
     (s) => s.explorerGitDecorations,
   );
   const terminalRenderer = usePreferencesStore((s) => s.terminalRenderer);
+  const sidebarSide = usePreferencesStore((s) => s.sidebarSide);
   const terminalScreenReader = usePreferencesStore(
     (s) => s.terminalScreenReader,
   );
@@ -238,6 +241,29 @@ export function GeneralSection() {
             onValueChange={(v) => void setZoomLevel(v[0] ?? 1)}
           />
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Layout</Label>
+        <SettingRow
+          title="Sidebar position"
+          description="Side of the window for the files and source control sidebar."
+        >
+          <Select
+            value={sidebarSide}
+            onValueChange={(value) =>
+              void setSidebarSide(coerceSidebarSide(value))
+            }
+          >
+            <SelectTrigger className="h-8 w-36 text-[12px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="right">Right</SelectItem>
+              <SelectItem value="left">Left</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
       </div>
 
       <div className="flex flex-col gap-2">

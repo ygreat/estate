@@ -168,6 +168,8 @@ export type Preferences = {
   showHidden: boolean;
   explorerGitDecorations: boolean;
   terminalRenderer: TerminalRendererSetting;
+  /** Which side of the window the files and git sidebar sits on. */
+  sidebarSide: SidebarSide;
   terminalScreenReader: boolean;
   terminalCursorBlink: boolean;
   terminalCursorStyle: TerminalCursorStyle;
@@ -266,6 +268,7 @@ const KEY_SHOW_HIDDEN = "showHidden";
 const LEGACY_KEY_SHOW_HIDDEN_DIRS = "showHiddenDirectories";
 const KEY_EXPLORER_GIT_DECORATIONS = "explorerGitDecorations";
 const KEY_TERMINAL_RENDERER = "terminalRenderer";
+const KEY_SIDEBAR_SIDE = "sidebarSide";
 const KEY_TERMINAL_SCREEN_READER = "terminalScreenReader";
 const KEY_TERMINAL_CURSOR_BLINK = "terminalCursorBlink";
 const KEY_TERMINAL_CURSOR_STYLE = "terminalCursorStyle";
@@ -363,6 +366,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   showHidden: false,
   explorerGitDecorations: true,
   terminalRenderer: "auto",
+  sidebarSide: "right",
   terminalScreenReader: false,
   terminalCursorBlink: false,
   terminalCursorStyle: "bar",
@@ -521,7 +525,10 @@ export async function loadPreferences(): Promise<Preferences> {
     explorerGitDecorations:
       get<boolean>(KEY_EXPLORER_GIT_DECORATIONS) ??
       DEFAULT_PREFERENCES.explorerGitDecorations,
-    terminalRenderer: coerceTerminalRenderer(get<string>(KEY_TERMINAL_RENDERER)),
+    terminalRenderer: coerceTerminalRenderer(
+      get<string>(KEY_TERMINAL_RENDERER),
+    ),
+    sidebarSide: coerceSidebarSide(get<unknown>(KEY_SIDEBAR_SIDE)),
     terminalScreenReader: get<boolean>(KEY_TERMINAL_SCREEN_READER) === true,
     terminalCursorBlink:
       get<boolean>(KEY_TERMINAL_CURSOR_BLINK) ??
@@ -826,6 +833,10 @@ export async function setTerminalRenderer(
   await writePref(KEY_TERMINAL_RENDERER, coerceTerminalRenderer(value));
 }
 
+export async function setSidebarSide(value: SidebarSide): Promise<void> {
+  await writePref(KEY_SIDEBAR_SIDE, coerceSidebarSide(value));
+}
+
 export async function setTerminalScreenReader(value: boolean): Promise<void> {
   await writePref(KEY_TERMINAL_SCREEN_READER, value);
 }
@@ -850,10 +861,19 @@ export async function setTerminalFontFamily(value: string): Promise<void> {
 
 const TERMINAL_FONT_WEIGHT_VALUES = new Set(["normal", "500", "600", "bold"]);
 
+/** Side of the main window for the files and git sidebar. Estate defaults to the right. */
+export type SidebarSide = "left" | "right";
+
+export function coerceSidebarSide(value: unknown): SidebarSide {
+  return value === "left" ? "left" : "right";
+}
+
 /** Renderer for new terminals: WebGPU with WebGL fallback, WebGPU, or WebGL. */
 export type TerminalRendererSetting = "auto" | "webgpu" | "webgl";
 
-export function coerceTerminalRenderer(value: unknown): TerminalRendererSetting {
+export function coerceTerminalRenderer(
+  value: unknown,
+): TerminalRendererSetting {
   return value === "webgl" || value === "webgpu" ? value : "auto";
 }
 
@@ -1037,6 +1057,7 @@ export async function onPreferencesChange(
     [KEY_SHOW_HIDDEN]: "showHidden",
     [KEY_EXPLORER_GIT_DECORATIONS]: "explorerGitDecorations",
     [KEY_TERMINAL_RENDERER]: "terminalRenderer",
+    [KEY_SIDEBAR_SIDE]: "sidebarSide",
     [KEY_TERMINAL_SCREEN_READER]: "terminalScreenReader",
     [KEY_TERMINAL_CURSOR_BLINK]: "terminalCursorBlink",
     [KEY_TERMINAL_CURSOR_STYLE]: "terminalCursorStyle",
