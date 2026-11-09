@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -31,7 +32,12 @@ type Props = {
   filePath?: string | null;
   home: string | null;
   onCd: (path: string) => void;
+  /** Estate: when given, a segment opens a menu of these actions instead of
+   * running `onCd` (so nothing is typed into a busy terminal by surprise). */
+  folderActions?: (path: string) => FolderAction[];
 };
+
+export type FolderAction = { label: string; run: () => void };
 
 function dirname(path: string): string {
   const i = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
@@ -44,7 +50,13 @@ function basename(path: string): string {
   return i === -1 ? path : path.slice(i + 1);
 }
 
-export function CwdBreadcrumb({ cwd, filePath, home, onCd }: Props) {
+export function CwdBreadcrumb({
+  cwd,
+  filePath,
+  home,
+  onCd,
+  folderActions,
+}: Props) {
   // File mode: dir segments navigate; filename is the terminal leaf.
   if (filePath) {
     const dir = dirname(filePath);
@@ -60,6 +72,8 @@ export function CwdBreadcrumb({ cwd, filePath, home, onCd }: Props) {
               label={first.label}
               isHome={first.isHome}
               onClick={() => onCd(first.fullPath)}
+              path={first.fullPath}
+              folderActions={folderActions}
             />
           ) : null}
           {middle.length > 0 ? (
@@ -71,6 +85,8 @@ export function CwdBreadcrumb({ cwd, filePath, home, onCd }: Props) {
                 label={s.label}
                 isHome={s.isHome}
                 onClick={() => onCd(s.fullPath)}
+                path={s.fullPath}
+                folderActions={folderActions}
               />
             </span>
           ))}
@@ -102,6 +118,8 @@ export function CwdBreadcrumb({ cwd, filePath, home, onCd }: Props) {
             label={firstParent.label}
             isHome={firstParent.isHome}
             onClick={() => onCd(firstParent.fullPath)}
+            path={firstParent.fullPath}
+            folderActions={folderActions}
           />
         ) : null}
         {middleParents.length > 0 ? (
@@ -113,6 +131,8 @@ export function CwdBreadcrumb({ cwd, filePath, home, onCd }: Props) {
               label={s.label}
               isHome={s.isHome}
               onClick={() => onCd(s.fullPath)}
+              path={s.fullPath}
+              folderActions={folderActions}
             />
           </span>
         ))}
@@ -132,11 +152,58 @@ function BreadcrumbSegment({
   label,
   isHome,
   onClick,
+  path,
+  folderActions,
 }: {
   label: string;
   isHome: boolean;
   onClick: () => void;
+  path?: string;
+  folderActions?: (path: string) => FolderAction[];
 }) {
+  const actions = path && folderActions ? folderActions(path) : null;
+  const badge = (
+    <Badge
+      variant="outline"
+      className="gap-1 text-muted-foreground hover:text-foreground"
+    >
+      {isHome ? (
+        <HugeiconsIcon
+          icon={Home03Icon}
+          className="size-3"
+          strokeWidth={1.75}
+        />
+      ) : null}
+      {isHome ? "Home" : label}
+    </Badge>
+  );
+  if (actions && actions.length > 0) {
+    return (
+      <>
+        <BreadcrumbItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="cursor-pointer" title={path}>
+                {badge}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="min-w-44">
+              {actions.map((a) => (
+                <DropdownMenuItem
+                  key={a.label}
+                  onSelect={a.run}
+                  className="text-[12px]"
+                >
+                  {a.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator className="[&>svg]:size-3" />
+      </>
+    );
+  }
   return (
     <>
       <BreadcrumbItem>
