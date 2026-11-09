@@ -1,4 +1,16 @@
-import { highlightingFor, syntaxTree } from "@codemirror/language";
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+import {
+  ensureSyntaxTree,
+  highlightingFor,
+  syntaxTree,
+} from "@codemirror/language";
+
+// Estate: parse the whole document before asserting. `syntaxTree` returns only
+// what the parser finished within its time slice, which on a loaded machine
+// (CI's Intel runner) can be less than the short test documents.
+function fullTree(state: EditorState) {
+  return ensureSyntaxTree(state, state.doc.length, 10_000) ?? syntaxTree(state);
+}
 import { EditorState } from "@codemirror/state";
 import { highlightTree } from "@lezer/highlight";
 import { describe, expect, it } from "vitest";
@@ -20,7 +32,7 @@ describe("resolveDisplayName", () => {
       });
       const highlighted: string[] = [];
       highlightTree(
-        syntaxTree(state),
+        fullTree(state),
         { style: (tags) => highlightingFor(state, tags) },
         (from, to) => highlighted.push(code.slice(from, to)),
       );
@@ -81,7 +93,7 @@ describe("resolveDisplayName", () => {
       doc: "{#if ready}<button on:click={run}>{label}</button>{/if}",
       extensions: [result.ext],
     });
-    const tree = syntaxTree(state).toString();
+    const tree = fullTree(state).toString();
     expect(tree).toContain("IfBlock");
     expect(tree).toContain("DirectiveOn");
   });
@@ -133,7 +145,7 @@ describe("JavaScript and TypeScript highlighting", () => {
         });
         const spans: { from: number; to: number; classes: string }[] = [];
         highlightTree(
-          syntaxTree(state),
+          fullTree(state),
           { style: (tags) => highlightingFor(state, tags) },
           (from, to, classes) => spans.push({ from, to, classes }),
         );
@@ -149,7 +161,7 @@ describe("JavaScript and TypeScript highlighting", () => {
         expect(styleAt("const")).not.toBe(styleAt('"hello"'));
         if (ext.endsWith("x")) expect(styleAt("div")).toBeTruthy();
         if (code.includes(": string")) {
-          expect(syntaxTree(state).toString()).toContain("TypeAnnotation");
+          expect(fullTree(state).toString()).toContain("TypeAnnotation");
         }
       },
     );
