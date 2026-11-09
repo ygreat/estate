@@ -1,0 +1,28 @@
+Estate
+Copyright 2026 ygreat
+
+This product is derived from Terax (https://github.com/crynta/terax-ai),
+licensed under the Apache License, Version 2.0.
+Copyright 2026 Crynta
+
+Estate is an independent project. It is not affiliated with or endorsed
+by the Terax project or Crynta. Files modified from Terax are marked with
+"Modified by ygreat for Estate" or listed in MODIFICATIONS.md.
+
+This product also includes third-party components under their own
+licenses. Their license files are kept in the source tree and shipped
+with the application:
+
+- Ghostty, Copyright (c) 2024 Mitchell Hashimoto, Ghostty contributors.
+  MIT License. packages/ghostty-core/adapted/LICENSE.ghostty
+- ghostty-web, Copyright (c) 2025 Coder.
+  MIT License. packages/ghostty-core/LICENSE
+- restty, Copyright (c) 2026 Wiedy Mi.
+  MIT License. packages/ghostty-core/adapted/LICENSE.restty
+- xterm.js, Copyright (c) 2017-2019 The xterm.js authors, and others.
+  MIT License. src/modules/terminal/ghostty/webgl/LICENSE.xterm-js
+- Terminal symbol fonts, subset from Nerd Fonts (Copyright (c) 2014
+  Ryan L McIntyre) and JetBrains Mono (Copyright 2020 The JetBrains Mono
+  Project Authors). SIL Open Font License 1.1, MIT and others.
+  src/assets/fonts/LICENSE.nerd-fonts, src/assets/fonts/OFL.txt,
+  public/licenses/terminal-symbols.txt

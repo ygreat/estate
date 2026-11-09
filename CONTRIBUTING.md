@@ -1,17 +1,24 @@
-# Contributing to Terax
+<!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
+# Contributing to Estate
 
-Terax is a solo-maintained project with a strong product direction. Contributions are welcome, but **alignment matters more than volume**.
+Estate is a solo-maintained hard fork of Terax with a narrow goal: a seven-tool developer workspace that runs on Intel Macs with macOS 12 Monterey and sends no telemetry. Contributions are welcome, but **fit with that goal matters more than volume**.
 
-This document helps you decide *whether* and *how* to contribute in a way that's likely to get merged, so neither of us wastes time.
+This document helps you decide *whether* and *how* to contribute so the work is likely to be merged.
 
 ## How this project is run
 
-- Terax has one active maintainer ([@crynta](https://github.com/crynta)).
-- Review bandwidth is limited.
-- Not every contribution can be accepted, even if it's technically correct. Alignment with project direction matters as much as code quality.
-- For scope and direction, see [ROADMAP.md](ROADMAP.md). Read it before opening anything non-trivial.
+- Estate has one maintainer ([@ygreat](https://github.com/ygreat)).
+- Review time is limited.
+- A technically correct change can still be declined if it does not serve the goal. A "no" on a PR is not personal.
+- For scope and direction, read [ROADMAP.md](ROADMAP.md) before opening anything non-trivial.
 
-This is normal for a solo project. A "no" on a PR is not personal.
+## Estate and Terax
+
+Estate is an independent project derived from [Terax](https://github.com/crynta/terax-ai). It is not affiliated with or endorsed by the Terax project.
+
+- Estate does not track Terax. There is no upstream remote, and Terax changes are ported by hand when they matter to Estate.
+- Report Estate bugs here, not to Terax. If a bug also exists in Terax, you may report it there too, but don't ask Terax maintainers to support Estate.
+- If you port a Terax fix, link the upstream commit or PR in your PR description and confirm it still works on macOS 12, since Terax targets macOS 13 and later.
 
 ## Quick start
 
@@ -20,61 +27,76 @@ pnpm install
 pnpm tauri dev
 ```
 
-Prereqs: Rust (stable), Node 22+, pnpm, plus your platform's [Tauri prerequisites](https://tauri.app/start/prerequisites/).
+Prerequisites: Rust (the version pinned in `rust-toolchain.toml`), Node 22, pnpm, and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for macOS. Use Node 22, not 24: Node 24 requires macOS 13.5.
 
-For the architecture and how to contribute safely, see [TERAX.md](TERAX.md) and the [docs/ index](docs/README.md).
+To build the release target on an Intel Mac:
+
+```bash
+export MACOSX_DEPLOYMENT_TARGET=12.0
+pnpm install --frozen-lockfile
+pnpm tauri build --target x86_64-apple-darwin
+```
+
+For the architecture, read [TERAX.md](TERAX.md) (the living architecture doc; the file keeps its upstream name because the app loads it as agent memory) and the [docs index](docs/README.md).
 
 ## Where to discuss
 
-Discord: [Crynta OS](https://discord.gg/tyveTUyEp7)
-
-Use Discord for design discussion, scope questions, "should I work on X?", quick feedback. Use GitHub Issues for tracking concrete bugs and features.
+Use [GitHub Issues](https://github.com/ygreat/estate/issues) for bugs, feature proposals and "should I work on X?" questions.
 
 ## What makes a good contribution
 
-These get merged fast:
+These get merged fastest:
 
-- **Bug fixes** with clear reproduction steps.
-- **Docs / typos / small UX fixes** - open a PR directly.
-- **Pre-discussed features** - alignment in an issue or Discord first.
-- **Small, focused changes** - easy to review, low risk.
+- **Bug fixes** with clear reproduction steps, especially Monterey or Intel-specific ones.
+- **Compatibility fixes** that remove a dependency on macOS 13 or a web API newer than Safari 16.4.
+- **Docs, typos and small UX fixes**. Open a PR directly.
+- **Pre-discussed features** that were agreed in an issue first.
+- **Small, focused changes** that are easy to review.
 
-If your change is small and obvious (typo, narrow bugfix, small docs change), open a PR directly. No issue required.
+If your change is small and obvious, open a PR directly. No issue required.
 
 ## Keep changes focused
 
-**Only change what's needed to accomplish your stated goal.**
+**Only change what is needed for your stated goal.**
 
-If you're fixing a bug in `terminal.tsx`, don't also:
+If you're fixing a bug in one file, don't also:
 
 - Reformat other files
 - Clean up unrelated code
 - Fix lint issues in files you didn't need to touch
-- Combine multiple unrelated fixes in one PR
-
-Even when these changes are "improvements", they make review harder and slow everything down. If you want to clean things up, open a separate PR after discussion.
+- Combine several unrelated fixes in one PR
 
 **One PR = one logical change.** Multi-concern PRs will be asked to split.
 
 ## Discuss first (required for larger changes)
 
-For anything beyond a small fix, **discussion is required before opening a PR**. This includes:
+Open an issue and agree on the approach before writing a PR for:
 
-- New features
+- New features, including work on the SSH/SFTP and database tools
 - UI/UX changes or changes to default behavior
 - Refactors or "cleanup" work
-- Performance rewrites
-- Architectural changes
-- Anything touching many files or systems
+- Performance rewrites or architectural changes
+- New dependencies, Rust or npm
 - New AI providers
+- Anything touching many files or systems
 
-Pull requests with significant unsolicited changes will be closed without detailed review. This isn't meant to discourage contribution. It ensures alignment before significant work goes in.
+Large unsolicited PRs will be closed without detailed review.
 
-A 10-minute conversation saves a 500-line PR that doesn't fit the roadmap.
+## Compatibility rules
+
+Compatibility comes first: a change that breaks launch on Monterey does not ship.
+
+- **Binary floor:** every executable and bundled library must declare macOS 12.0 or lower and reference no newer system symbols. A declared minimum is not proof; the build has to launch on macOS 12.
+- **Web floor:** Safari 16.4. A newer web API needs a polyfill or a feature check.
+- **Terminal renderer:** on Monterey the terminal runs on the WebGL2 fallback. Treat that path as primary, not as an afterthought.
+- **No telemetry:** no analytics, crash upload or usage ping. Network calls happen only for user-started actions.
+- **Secrets** (API keys, SSH passphrases, database passwords) stay in the Keychain, never in files or `localStorage`.
+
+If you can't test on macOS 12 Intel, say so in the PR. The maintainer will test it on the reference Mac.
 
 ## Quality bar
 
-Terax positions itself as **lightweight, fast, production-grade**. Every PR is reviewed against:
+Every PR is reviewed against:
 
 - `pnpm lint` clean
 - `pnpm check-types` clean
@@ -82,174 +104,131 @@ Terax positions itself as **lightweight, fast, production-grade**. Every PR is r
 - `cargo clippy --all-targets --locked -- -D warnings` clean
 - `cargo nextest run --locked` clean (or `cargo test --locked`)
 - `cargo fmt` applied before pushing
-- No perf regressions in known hot paths: terminal renderer, PTY stream, AI streaming, source control, file explorer
-- No new heavy dependencies (>50KB gzip in client bundle, >5MB compiled on Rust side) without justification
-- Platform parity preserved (macOS / Linux / Windows / WSL still work)
-- Security review for changes to AI tool surface, file system access, network paths, IPC commands
-
-If you're not sure how to measure perf or what counts as a hot path, ask in Discord or an issue. Better to confirm than get bounced.
+- No performance regressions in hot paths: terminal renderer, PTY stream, AI streaming, source control, file explorer
+- No continuous redraw or polling while idle or in hidden panels; the reference machine is a 2015 laptop on battery
+- No new heavy dependencies (over 50 KB gzip in the client bundle, over 5 MB compiled on the Rust side) without justification
+- Security review for changes to the AI tool surface, file system access, network paths, IPC commands and the in-app browser
 
 ## Changes to core subsystems require a test
 
-The most common way a PR breaks Terax is a **local fix with global blast radius**: the diff solves one reported case, reads fine, passes type-check and clippy, and silently breaks the same subsystem in every other case. Review alone does not catch these. A test does.
+The most common way a PR breaks this codebase is a **local fix with global blast radius**: the diff solves one case, reads fine, passes type-check and clippy, and silently breaks the same subsystem in every other case. Review alone does not catch these. A test does.
 
-So if your change touches behavior in any of these load-bearing paths, the PR must add or extend a test that locks the invariant you're relying on:
+If your change touches behavior in any of these paths, the PR must add or extend a test that locks the invariant you rely on:
 
-- **Shell/terminal spawn**: what shell launches, with which cwd, env, and login flags. A "fix" here can stop terminals from starting entirely.
-- **Workspace authorization**: which directories spawns, git, and AI tools may operate in. Both the allow and the deny side.
+- **Shell/terminal spawn**: which shell launches, with which cwd, env and login flags.
+- **Workspace authorization**: which directories spawns, git and AI tools may operate in. Both the allow and the deny side.
 - **Git command layer**: repo-root resolution, pathspec/argument guards, status parsing.
-- **Filesystem mutation**: atomic writes, symlink handling, no-data-loss on partial failure.
+- **Filesystem mutation**: atomic writes, symlink handling, no data loss on partial failure.
 - **IPC command surface and AI tool surface**: anything the webview or the agent can invoke.
+- **SSH and database connections**: host key checks, credential handling, destructive-statement guards.
 - **Pure logic with wide reach**: cwd inheritance, tab/split tree transforms, OSC/prompt parsing, the command guard.
 
-The bar for the test is real coverage of the contract, not a placeholder. Test the case that would actually break: the edge, the deny path, the "what happens one level above home". If you can't see how to test it, ask in Discord before opening the PR. That conversation is usually shorter than the revert.
+The test must cover the contract, not be a placeholder. Test the case that would actually break: the edge, the deny path, the "one level above home". See [docs/contributing/testing.md](docs/contributing/testing.md).
 
-UI rendering, themes, syntax-highlight tables, and anything the type-checker already guarantees do not need tests.
+UI rendering, themes, syntax-highlight tables and anything the type-checker already guarantees do not need tests.
 
-## What Terax is not
+## What Estate is not
 
-To set expectations:
-
-- Terax is terminal-first, not an IDE clone. Focused capabilities such as LSP, AI autocomplete, formatting, source control, and previews belong when they stay fast, lazy, and resource-bounded.
-- Not building: Jupyter-style workspaces, integrated debugger and profiler suites, package manager UIs, a full web browser, unbounded background indexing, or an IDE-scale extension host.
-- This is not a curated "first open-source contribution" project. Beginners are welcome but expect normal review.
-- Mechanical refactors, broad style changes, drive-by rewrites are not helpful.
-- AI-assisted contributions are welcome, but the PR must reflect understanding of the existing patterns. Low-effort AI-generated code that wasn't read by the author will be closed.
+- Not a general IDE. Estate ships seven tools: terminal, SSH/SFTP, database browser, editor, AI agent, in-app browser and Git.
+- Not for Apple Silicon. Terax already serves those Macs.
+- Not targeting macOS below 12, and not changing Windows or Linux packaging.
+- Not bundling Chromium or any other browser engine.
+- Not running local model inference on the Intel Mac. Remote or LAN endpoints are supported.
+- Not adding features outside the seven tools, such as voice input or custom backgrounds.
+- Mechanical refactors, broad style changes and drive-by rewrites are not helpful.
+- AI-assisted contributions are welcome, but the PR must show you understand the existing patterns. Generated code the author clearly didn't read will be closed.
 
 ## Branches
 
-Branch off `main`. Use these prefixes (kebab-case):
+Branch off `main` in your fork. Use these prefixes (kebab-case):
 
-| Prefix       | Use for                                  |
-| ------------ | ---------------------------------------- |
-| `feat/`      | New feature                              |
-| `fix/`       | Bug fix                                  |
-| `chore/`     | Refactor, tooling, config, dependencies  |
-| `docs/`      | Docs-only changes                        |
-| `perf/`      | Performance work                         |
-| `security/`  | Security fix or hardening                |
+| Prefix      | Use for                                 |
+| ----------- | --------------------------------------- |
+| `feat/`     | New feature                             |
+| `fix/`      | Bug fix                                 |
+| `chore/`    | Refactor, tooling, config, dependencies |
+| `docs/`     | Docs-only changes                       |
+| `perf/`     | Performance work                        |
+| `security/` | Security fix or hardening               |
 
-Examples: `feat/split-panes`, `fix/explorer-focus`, `security/path-guard`.
+Examples: `feat/sftp-upload`, `fix/webgl-context-loss`, `security/browser-isolation`.
 
-Don't open PRs from your fork's `main` branch. Work on a feature branch.
+Don't open PRs from your fork's `main` branch.
 
-## Commits & PRs
+## Commits and PRs
 
-The **PR title becomes the squash commit** for most PRs. Multi-commit PRs with well-crafted atomic commits may be merged with a merge commit at the maintainer's discretion (security audits, multi-step refactors). Title must follow [Conventional Commits](https://www.conventionalcommits.org/):
+The **PR title becomes the squash commit**. It must follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-feat(terminal): add split panes
-fix(explorer): prevent input from disappearing on create
-chore(deps): bump tauri to 2.x
-security(ai): tighten path guard
+feat(ssh): import hosts from ~/.ssh/config
+fix(terminal): recover from WebGL context loss
+chore(deps): pin russh
+security(browser): deny Tauri commands in the browser webview
 ```
 
 Types: `feat`, `fix`, `chore`, `docs`, `perf`, `refactor`, `test`, `build`, `ci`, `security`.
 
-Common scopes: `terminal`, `editor`, `explorer`, `pty`, `ai`, `agents`, `settings`, `tabs`, `shortcuts`, `ui`, `git`, `preview`, `windows`, `linux`, `macos`, `wsl`.
+Common scopes: `terminal`, `ssh`, `sftp`, `db`, `editor`, `explorer`, `pty`, `ai`, `agents`, `browser`, `git`, `settings`, `tabs`, `ui`, `macos`, `updater`.
 
-Within a PR, individual commit messages can be free-form (they get squashed or grouped).
+Commit messages inside a PR can be free-form; they get squashed.
 
-**Fill out the PR template.** Include: what changed, why, how you tested. Screenshots/GIFs for UI changes. "Tested manually by ..." is the bare minimum.
+**Fill out the PR template**: what changed, why, how you tested. Screenshots or GIFs for UI changes. Say which macOS version and Mac you tested on.
 
-**Open a draft PR early** if you want feedback mid-flight. Mark "Ready for review" when done.
-
-### What gets merged faster
-
-- Clear problem statement
-- Small, focused diff
-- Follows existing patterns (read 2-3 nearby files before writing yours)
-- All type-checks / lints / tests pass
-- Manual testing notes describing the steps you took
+**Open a draft PR early** if you want feedback mid-flight.
 
 ### What gets bounced back
 
 - Mixed-concern PRs
 - Large architectural PRs without prior discussion
 - New dependencies without justification
+- Anything that raises the macOS or Safari floor
 - Breaking changes without migration notes
 - Incidental reformatting unrelated to the change
-- AI-generated code that obviously wasn't read by the author
 
 ## Code style
 
-- Follow existing patterns. Read 2-3 adjacent files before adding new ones.
-- TypeScript: no `any` unless you really mean it. Strict mode is on.
-- Rust: `cargo fmt` + `clippy` clean.
-- Comments: only for *why*, not *what*. Code should explain itself. No multi-paragraph docstrings.
+- Follow existing patterns. Read two or three nearby files before adding new ones.
+- TypeScript: no `any` unless you mean it. Strict mode is on.
+- Rust: `cargo fmt` and `clippy` clean.
+- Comments explain *why*, not *what*. No multi-paragraph docstrings.
 - No emojis in code or commit messages.
 - American English in user-facing strings.
+- Put new tools (SSH/SFTP, database) in their own modules rather than spreading them through existing ones.
 
-## Project layout
+## Licensing of changes to upstream files
 
-```
-src-tauri/                  Rust backend
-  src/
-    lib.rs                  Tauri command registration
-    modules/
-      agent.rs              Terminal coding-agent hook installer/status
-      fs/                   File system commands (read/write/search/grep)
-      git/                  Source control commands
-      history/              Shell history integration
-      mod.rs                Module exports
-      net.rs                AI HTTP proxy with SSRF guard
-      proc.rs               Process utilities
-      pty/                  Terminal sessions, shell integration, DA filter
-      secrets.rs            OS keychain access
-      shell/                Oneshot/session/background shell commands
-      workspace.rs          WSL bridge, workspace env, authorization registry
+Estate keeps Terax's Apache-2.0 license and notices. When you change a file that came from Terax:
 
-src/                        React frontend
-  App.tsx                   Top-level coordinator
-  components/               shadcn/ui + AI Elements
-  modules/
-    agents/                 Agent notifications and management
-    ai/                     Agents, sessions, tools, providers, composer
-    command-palette/        Modal command palette and actions
-    editor/                 CodeMirror stack, AI autocomplete
-    explorer/               File tree
-    git-history/            Git graph and history pane
-    header/                 Top bar, search, window controls
-    markdown/               Markdown preview renderer
-    preview/                Dev server, image, and web preview
-    settings/               Settings UI and preferences store
-    shortcuts/              Keymap registry
-    sidebar/                Activity bar and side panels
-    source-control/         Source control panel
-    spaces/                 Workspace spaces/projects with per-space tab persistence
-    statusbar/              Bottom bar and cwd breadcrumb
-    tabs/                   Tab/split model
-    terminal/               xterm.js sessions, OSC handlers, renderer pool
-    theme/                  Custom theme engine and presets
-    updater/                Auto-updater UI
-    workspace/              Workspace environment switching
-```
+- Don't remove existing copyright, license or attribution notices.
+- Add this one-line notice near the top, in the file's comment style, if it isn't already there:
+
+  ```
+  Modified by ygreat for Estate, 2026. Originally part of Terax.
+  ```
+
+- For files that can't hold comments, such as JSON, add the path to `MODIFICATIONS.md`.
+
+Code copied from another project must keep that project's license and notices.
 
 ## FAQ
 
-**Q: Should I ask before fixing a typo or obvious bug?**
-A: No, open a PR directly.
+**Should I ask before fixing a typo or obvious bug?**
+No, open a PR directly.
 
-**Q: I have an idea for a new feature.**
-A: Open a GitHub issue or bring it to Discord. Don't open a PR without prior discussion.
+**I have an idea for a new feature.**
+Open an issue first. Check it against "What Estate is not" above.
 
-**Q: My PR was closed without detailed feedback.**
-A: Usually means it didn't align with project direction, or scope was too large to review responsibly. This is normal for a solo project. Reopen is welcome if you want to take another pass at a smaller scope.
+**My PR was closed without detailed feedback.**
+Usually it didn't fit the project's direction, or the scope was too large to review. You're welcome to reopen with a smaller scope.
 
-**Q: Can I work on an open issue?**
-A: Comment first to confirm it's still relevant and nobody else is on it. For anything non-trivial, discuss approach before implementing.
+**Can I work on an open issue?**
+Comment first to confirm it's still relevant and nobody else is on it.
 
-**Q: I noticed cleaner code I could write while working on my fix.**
-A: Focus on your stated goal. Submit cleanup as a separate PR after discussion if it matters.
+**I don't have a Monterey Mac. Can I still contribute?**
+Yes. Say what you tested on, and the maintainer will check it on the reference Mac.
 
-**Q: How long does review take?**
-A: Depends. Small bug fix or docs: usually within a few days. Larger feature: maybe a week or two. Pre-discussed work moves faster.
-
-**Q: Why did my PR for a new AI provider get closed?**
-A: Most provider requests are now covered by the `openai-compatible` provider (point it at any OpenAI-compatible base URL) or OpenRouter. New built-in providers must justify unique value beyond what those cover.
-
-**Q: My PR conflicts after main moved. Should I rebase?**
-A: If the change is still relevant and reasonably small, yes. If it's a large stale PR, expect it to be closed with an offer to reopen after rebase. Rotting velocity is real, not personal.
+**Why did my PR for a new AI provider get closed?**
+The `openai-compatible` provider and OpenRouter cover most providers. A new built-in provider needs to add something they can't.
 
 ## Security issues
 

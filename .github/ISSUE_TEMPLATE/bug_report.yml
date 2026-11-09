@@ -1,3 +1,4 @@
+# Modified by ygreat for Estate, 2026. Originally part of Terax.
 name: Bug report
 description: Something is broken or behaving unexpectedly
 labels: ["bug"]
@@ -7,14 +8,14 @@ body:
       value: |
         Thanks for taking the time to report a bug. Please fill in the fields below — it makes triage much faster.
 
-        For **security issues**, do NOT open an issue. See [SECURITY.md](https://github.com/crynta/Terax-AI/blob/main/SECURITY.md).
+        For **security issues**, do NOT open an issue. See [SECURITY.md](https://github.com/ygreat/estate/blob/main/SECURITY.md).
 
   - type: input
     id: version
     attributes:
-      label: Terax version
+      label: Estate version
       description: From Settings → About, or the title bar.
-      placeholder: "0.5.9"
+      placeholder: "0.9.0"
     validations:
       required: true
 
@@ -23,18 +24,17 @@ body:
     attributes:
       label: Operating system
       options:
-        - macOS (Apple Silicon)
-        - macOS (Intel)
-        - Linux
-        - Windows
+        - macOS 12 Monterey (Intel)
+        - macOS 13 or later (Intel)
+        - Other (unsupported)
     validations:
       required: true
 
   - type: input
     id: os-version
     attributes:
-      label: OS version
-      placeholder: "macOS 15.2 / Ubuntu 24.04 / Windows 11 23H2"
+      label: macOS version, Mac model and Safari version
+      placeholder: "macOS 12.7.6, MacBook Pro 15-inch 2015, Safari 17.6"
     validations:
       required: true
 
@@ -59,7 +59,7 @@ body:
       label: Steps to reproduce
       description: Numbered list of exact steps. The more specific, the faster we can help.
       placeholder: |
-        1. Open Terax
+        1. Open Estate
         2. Click ...
         3. ...
     validations:
