@@ -49,7 +49,9 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 - A notice explains the trade-offs (read only, no Estate tools, slower start, uses your plan's limits): a strip in the AI chat while an account model is selected (collapsible), in the picker, and in Settings > Models.
 
 **Welcome screen**
-- Opens on launch over the editor, which shows blurred behind it (Settings > General can turn it off). Go to editor, Esc or a click anywhere outside skips it. First pick a project: the open one, a recent one or a new folder.
+- Opens on launch over the editor, which shows blurred behind it (Settings > General can turn it off). Go to editor, Esc or a click anywhere outside skips it.
+- Two clear choices: Create New Project and Open Project, with recent projects below (the open one marked "Open now").
+- Create New Project asks for a Project Name and a Root Directory (defaults to ~/Projects, remembers your last choice, with Choose… to pick another), shows the folder it will make, creates it and opens it.
 - Then: "What are we building today?" Pick an agent (each shows whether it's installed and signed in), describe the idea, and start a chat or plan it with the Orchestrator. New terminal and Command palette sit below with their shortcuts.
 
 **Themes**

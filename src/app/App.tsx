@@ -150,6 +150,7 @@ import {
 } from "@/modules/theme";
 import { UpdaterDialog } from "@/modules/updater";
 import {
+  currentWorkspaceEnv,
   useWorkspaceEnvStore,
   type WorkspaceEnv,
   workspaceScopeKey,
@@ -1453,12 +1454,33 @@ export default function App() {
     const picked = await open({
       directory: true,
       multiple: false,
-      title: "Open a project folder",
+      title: "Open Project",
     });
     if (typeof picked !== "string") return false;
     await openProjectFolder(picked);
     return true;
   }, [openProjectFolder]);
+
+  // Estate: Create New Project makes root/name and opens it.
+  const createProject = useCallback(
+    async (name: string, root: string): Promise<string | null> => {
+      const path = `${root.replace(/\/+$/, "")}/${name}`;
+      try {
+        await invoke("fs_create_dir", {
+          path,
+          workspace: currentWorkspaceEnv(),
+        });
+      } catch (error) {
+        const why = String(error);
+        return why.includes("already exists")
+          ? `${name} already exists there. Choose another name, or use Open Project.`
+          : `Couldn't create the folder: ${why}`;
+      }
+      await openProjectFolder(path);
+      return null;
+    },
+    [openProjectFolder],
+  );
 
   // Estate: the welcome screen, once per launch (Settings > General > Startup).
   const [welcomeOpen, setWelcomeOpen] = useState(false);
@@ -1912,6 +1934,7 @@ export default function App() {
             showOnStartup={showWelcomePref}
             onShowOnStartupChange={(v) => void setShowWelcome(v)}
             onOpenFolder={pickProjectFolder}
+            onCreateProject={createProject}
             onSwitchProject={switchProject}
             onStartChat={startChatFromWelcome}
             planAgent={orchestratorAgentPref}
