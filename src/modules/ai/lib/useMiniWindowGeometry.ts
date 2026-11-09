@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { useCallback, useLayoutEffect, useRef } from "react";
 import {
   applyDrag,
@@ -9,7 +10,7 @@ import {
   type Viewport,
 } from "./miniWindowGeometry";
 
-const STORE_KEY = "terax-ui-mini-window-geom";
+const STORE_KEY = "estate-ui-mini-window-geom";
 
 const viewport = (): Viewport => ({
   vw: window.innerWidth,

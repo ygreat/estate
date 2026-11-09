@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 

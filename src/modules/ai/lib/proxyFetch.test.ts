@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createProxyFetch, proxyFetch } from "@/modules/ai/lib/proxyFetch";
 
@@ -61,13 +62,13 @@ describe("native AI fetch transport", () => {
     const [, body, options] = calls("ai_http_stream")[0];
     expect(body).toBeInstanceOf(Uint8Array);
     expect(new TextDecoder().decode(body)).toBe("hello 日本語");
-    expect(JSON.parse(options.headers["x-terax-ai-request"])).toMatchObject({
+    expect(JSON.parse(options.headers["x-estate-ai-request"])).toMatchObject({
       method: "POST",
       headers: { "x-test": "yes" },
       allowPrivateNetwork: true,
       onEvent: "__CHANNEL__:1",
     });
-    expect(options.headers["x-terax-ai-request"]).not.toMatch(/[^\x20-\x7e]/);
+    expect(options.headers["x-estate-ai-request"]).not.toMatch(/[^\x20-\x7e]/);
     headers();
     const response = await pending;
     packet(1, "a");

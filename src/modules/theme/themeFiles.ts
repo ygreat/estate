@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -5,8 +6,8 @@ import { appConfigDir, join } from "@tauri-apps/api/path";
 import type { Theme } from "./types";
 import { validateTheme, type ValidationResult } from "./validateTheme";
 
-const THEME_FILE_EXT = ".terax-theme";
-const THEME_EDIT_EVENT = "terax://theme-edit";
+const THEME_FILE_EXT = ".estate-theme";
+const THEME_EDIT_EVENT = "estate://theme-edit";
 
 export type ThemeEditRequest =
   | { action: "create" }
@@ -130,13 +131,13 @@ export async function handOffThemeEdit(
   try {
     await emitRequest(req);
   } catch (error) {
-    console.error("[terax] theme edit request failed:", error);
+    console.error("[estate] theme edit request failed:", error);
     return false;
   }
   try {
     await closeWindow();
   } catch (error) {
-    console.error("[terax] could not close settings window:", error);
+    console.error("[estate] could not close settings window:", error);
   }
   return true;
 }

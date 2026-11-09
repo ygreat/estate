@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 pub mod modules;
 
 #[cfg(target_os = "macos")]
@@ -100,7 +101,7 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
         if let Some(t) = tab.as_deref().filter(|s| !s.is_empty()) {
             // emit() serializes via JSON — no string-escape footgun, unlike
             // eval() with format!(). Frontend listens via Tauri event API.
-            let _ = window.emit("terax:settings-tab", t);
+            let _ = window.emit("estate:settings-tab", t);
         }
         return Ok(());
     }
@@ -113,7 +114,7 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
         .visible(false)
         .always_on_top(settings_always_on_top(cfg!(target_os = "macos")));
 
-    // A normal-level child stays above Terax but recedes with the app on macOS.
+    // A normal-level child stays above Estate but recedes with the app on macOS.
     // Never combine the macOS parent with always_on_top; that breaks WebView
     // compositing and can hide Settings behind the main window (#33, #957).
     let builder = if let Some(main) = app.get_webview_window("main") {
@@ -167,7 +168,7 @@ pub fn run() {
     #[cfg(windows)]
     {
         let args: Vec<String> = std::env::args().collect();
-        if args.get(1).map(String::as_str) == Some("__terax_notify") {
+        if args.get(1).map(String::as_str) == Some("__estate_notify") {
             if let (Some(agent), Some(event)) = (args.get(2), args.get(3)) {
                 agent::emit_conout_marker(agent, event);
             }
@@ -215,7 +216,7 @@ pub fn run() {
         )
         .plugin(tauri_plugin_opener::init())
         // One async scheme multiplexes every terminal's output; see pty/hub.rs.
-        .register_asynchronous_uri_scheme_protocol("terax-pty", pty::stream_protocol)
+        .register_asynchronous_uri_scheme_protocol("estate-pty", pty::stream_protocol)
         .register_asynchronous_uri_scheme_protocol("asset", fs::assets::serve)
         .on_page_load(|webview, payload| {
             if matches!(payload.event(), tauri::webview::PageLoadEvent::Started) {
@@ -241,7 +242,7 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             modules::window_presentation::macos::install(_app.handle());
             if let Err(error) = control::start(_app.handle().clone(), control_for_setup.clone()) {
-                log::warn!("could not start Terax control server: {error}");
+                log::warn!("could not start Estate control server: {error}");
             }
             #[cfg(target_os = "macos")]
             if let Some(main) = _app.get_webview_window("main") {
@@ -483,7 +484,7 @@ pub fn run() {
                     if let Some(state) = app.try_state::<LaunchFiles>() {
                         *state.0.lock().expect("LaunchFiles mutex poisoned") = target.files.clone();
                     }
-                    let _ = app.emit("terax:open-file", target.files);
+                    let _ = app.emit("estate:open-file", target.files);
                 }
                 _ => {}
             }

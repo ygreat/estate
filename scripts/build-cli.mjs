@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { cpSync, chmodSync, mkdirSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
@@ -47,7 +48,7 @@ function requireArtifact(path, label) {
 }
 
 const target =
-  process.env.TERAX_CLI_TARGET?.trim() ||
+  process.env.ESTATE_CLI_TARGET?.trim() ||
   process.env.CARGO_BUILD_TARGET?.trim() ||
   hostTriple();
 const cargoArgs = [
@@ -56,9 +57,9 @@ const cargoArgs = [
   "--manifest-path",
   join(tauriDir, "Cargo.toml"),
   "--package",
-  "terax-cli",
+  "estate-cli",
   "--bin",
-  "terax-cli",
+  "estate-cli",
   "--target",
   target,
 ];
@@ -73,12 +74,12 @@ const source = join(
   "target",
   target,
   profile,
-  `terax-cli${extension}`,
+  `estate-cli${extension}`,
 );
 const destination = join(
   tauriDir,
   "binaries",
-  `terax-cli-${target}${extension}`,
+  `estate-cli-${target}${extension}`,
 );
 requireArtifact(source, "Built CLI artifact");
 mkdirSync(dirname(destination), { recursive: true });

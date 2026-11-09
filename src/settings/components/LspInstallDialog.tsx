@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -65,7 +66,7 @@ export function LspInstallDialog({ server, onClose }: Props) {
         <DialogHeader>
           <DialogTitle>Install {server.name} language server</DialogTitle>
           <DialogDescription>
-            Terax could not find{" "}
+            Estate could not find{" "}
             <code className="font-mono text-foreground">{server.command}</code>{" "}
             on your PATH. Install it, then check again to enable this language
             server.

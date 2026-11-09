@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { LazyStore } from "@tauri-apps/plugin-store";
 
 export type AgentIconId =
@@ -79,7 +80,7 @@ export const BUILTIN_AGENTS: readonly Agent[] = [
   },
 ] as const;
 
-const STORE_PATH = "terax-ai-agents.json";
+const STORE_PATH = "estate-ai-agents.json";
 const KEY_CUSTOM = "customAgents";
 const KEY_ACTIVE = "activeAgentId";
 

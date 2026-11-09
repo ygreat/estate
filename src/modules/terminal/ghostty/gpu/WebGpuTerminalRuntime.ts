@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { smoothHooks } from "@/bench/smoothHooks";
 import { subscribeTerminalResizeInteraction } from "@/modules/terminal/lib/terminalResizeInteraction";
 import { SurfaceFramePacer } from "@/modules/terminal/ghostty/SurfaceFramePacer";
@@ -665,7 +666,7 @@ export class WebGpuTerminalRuntime {
   }
 
   private flushFrame(frameAt = performance.now()): void {
-    const benchStart = __TERAX_BENCH__ ? performance.now() : 0;
+    const benchStart = __ESTATE_BENCH__ ? performance.now() : 0;
     this.animationFrame = null;
     this.pacer.frameStarted(frameAt);
     this.animationFrames += 1;
@@ -759,7 +760,7 @@ export class WebGpuTerminalRuntime {
           continue;
         target.consumeDirty();
         encoder ??= resources.device.createCommandEncoder({
-          label: "Terax terminal window frame",
+          label: "Estate terminal window frame",
         });
         const result = target.encode(encoder, resources);
         if (result.drawn > 0) rendered = true;
@@ -770,7 +771,7 @@ export class WebGpuTerminalRuntime {
       if (encoder && rendered) {
         resources.device.queue.submit([encoder.finish()]);
         this.submittedFrames += 1;
-        if (__TERAX_BENCH__) {
+        if (__ESTATE_BENCH__) {
           const now = performance.now();
           smoothHooks()?.frame(now, now - benchStart);
         }
@@ -918,7 +919,7 @@ export class WebGpuTerminalRuntime {
     this.assertLive();
     if (!adapter) throw new Error("No compatible WebGPU adapter was found");
     const device = await adapter.requestDevice({
-      label: "Terax shared terminal renderer",
+      label: "Estate shared terminal renderer",
     });
     if (this.disposed || this.fatalError) {
       device.destroy();
@@ -981,7 +982,7 @@ export class WebGpuTerminalRuntime {
       texture: { sampleType: "unfilterable-float" },
     });
     this.bindGroupLayout = device.createBindGroupLayout({
-      label: "Terax terminal bindings",
+      label: "Estate terminal bindings",
       entries: [
         { binding: 0, visibility, buffer: { type: "uniform" } },
         storage(1),
@@ -997,16 +998,16 @@ export class WebGpuTerminalRuntime {
     });
 
     const backgroundModule = device.createShaderModule({
-      label: "Terax terminal background shader",
+      label: "Estate terminal background shader",
       code: BACKGROUND_SHADER,
     });
     const glyphModule = device.createShaderModule({
-      label: "Terax terminal glyph shader",
+      label: "Estate terminal glyph shader",
       code: GLYPH_SHADER,
     });
     const [backgroundPipeline, glyphPipeline] = await Promise.all([
       device.createRenderPipelineAsync({
-        label: "Terax terminal background pipeline",
+        label: "Estate terminal background pipeline",
         layout,
         vertex: { module: backgroundModule, entryPoint: "vertex_main" },
         fragment: {
@@ -1017,7 +1018,7 @@ export class WebGpuTerminalRuntime {
         primitive: { topology: "triangle-list" },
       }),
       device.createRenderPipelineAsync({
-        label: "Terax terminal glyph pipeline",
+        label: "Estate terminal glyph pipeline",
         layout,
         vertex: { module: glyphModule, entryPoint: "vertex_main" },
         fragment: {
@@ -1047,7 +1048,7 @@ export class WebGpuTerminalRuntime {
     this.backgroundPipeline = backgroundPipeline;
     this.glyphPipeline = glyphPipeline;
     this.emptyStorage = device.createBuffer({
-      label: "Terax terminal empty storage",
+      label: "Estate terminal empty storage",
       size: 16,
       usage: GPUBufferUsage.STORAGE,
     });

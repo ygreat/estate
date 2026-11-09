@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { emit, listen } from "@tauri-apps/api/event";
 import { create } from "zustand";
 import {
@@ -9,7 +10,7 @@ import {
   type Agent,
 } from "../lib/agents";
 
-const CHANGED_EVENT = "terax://ai-agents-changed";
+const CHANGED_EVENT = "estate://ai-agents-changed";
 
 type AgentsState = {
   hydrated: boolean;

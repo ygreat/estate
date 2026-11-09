@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -377,7 +378,7 @@ export function ModelsSection() {
     <div className="flex flex-col gap-7">
       <SectionHeader
         title="Models"
-        description="Connect the providers you use. Keys live in your OS keychain and are used only by Terax."
+        description="Connect the providers you use. Keys live in your OS keychain and are used only by Estate."
       />
 
       <DefaultsBlock

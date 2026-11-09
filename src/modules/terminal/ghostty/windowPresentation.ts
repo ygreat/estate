@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { setNativeLiveResize } from "@/modules/terminal/lib/terminalResizeGesture";
@@ -89,7 +90,7 @@ function connect(): void {
   sync();
   if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
     void getCurrentWindow()
-      .listen<NativePresentation>("terax:window-presentation", ({ payload }) =>
+      .listen<NativePresentation>("estate:window-presentation", ({ payload }) =>
         accept(payload),
       )
       .then(async (stop) => {
@@ -103,7 +104,7 @@ function connect(): void {
       .catch((error: unknown) => {
         if (!disposed)
           console.warn(
-            "[terax] Native window presentation tracking unavailable:",
+            "[estate] Native window presentation tracking unavailable:",
             error,
           );
       });

@@ -1,3 +1,4 @@
+<!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 # Terminal symbols
 
 Two private-use symbol faces back every terminal font. Both are subsets of the
@@ -8,8 +9,8 @@ platform fallback.
 
 | Face | File | Codepoints | Glyphs | Size |
 | --- | --- | --- | --- | --- |
-| Terax Terminal Symbols | `terax-terminal-symbols.woff2` | U+E000-F8FF | 3,175 | 365,080 B |
-| Terax Terminal Symbols MDI | `terax-terminal-symbols-mdi.woff2` | U+F0000-FFFFD | 6,896 | 349,072 B |
+| Estate Terminal Symbols | `estate-terminal-symbols.woff2` | U+E000-F8FF | 3,175 | 365,080 B |
+| Estate Terminal Symbols MDI | `estate-terminal-symbols-mdi.woff2` | U+F0000-FFFFD | 6,896 | 349,072 B |
 
 The first face loads with the first terminal. The MDI face (about 350 kB) loads
 only when a glyph in U+F0000-FFFFD is first drawn, and the terminal rebuilds its
@@ -27,9 +28,9 @@ JetBrains Mono. One face serves regular, bold and italic; the webview
 synthesizes styles. The rasterizer fits each icon to the terminal's cell
 (`gpu/GlyphPlacement.ts`).
 
-- `terax-terminal-symbols.woff2` SHA-256:
+- `estate-terminal-symbols.woff2` SHA-256:
   `08107a419bbbc0d24ea11fdbae136bc7fa1943a0fc2b3495975a8b3082428081`
-- `terax-terminal-symbols-mdi.woff2` SHA-256:
+- `estate-terminal-symbols-mdi.woff2` SHA-256:
   `987533dfb02fd9f769dc199ffbf5f2bea02b9a102883eaa795fbebfacc10f4ac`
 
 The SIL Open Font License and Nerd Fonts notices accompany the source here and

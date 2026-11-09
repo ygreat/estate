@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { describe, expect, it } from "vitest";
 import { segmentsFromCwd } from "./pathUtils";
 
@@ -11,10 +12,10 @@ function shape(cwd: string, home: string | null) {
 
 describe("segmentsFromCwd", () => {
   it("renders a path under home with a ~ root and accumulated paths", () => {
-    expect(shape("/Users/me/projects/terax", "/Users/me")).toEqual([
+    expect(shape("/Users/me/projects/estate", "/Users/me")).toEqual([
       { label: "~", fullPath: "/Users/me", isHome: true },
       { label: "projects", fullPath: "/Users/me/projects", isHome: false },
-      { label: "terax", fullPath: "/Users/me/projects/terax", isHome: false },
+      { label: "estate", fullPath: "/Users/me/projects/estate", isHome: false },
     ]);
   });
 

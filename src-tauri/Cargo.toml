@@ -1,16 +1,16 @@
 # Modified by ygreat for Estate, 2026. Originally part of Terax.
 [package]
-name = "terax"
+name = "estate"
 version = "0.1.0"
-description = "Terax — an open-source AI-native terminal emulator"
+description = "Estate — an open-source AI-native terminal emulator"
 authors = ["crynta"]
 license = "Apache-2.0"
 edition = "2021"
-default-run = "terax"
+default-run = "estate"
 
 [workspace]
-members = ["crates/terax-cli", "crates/terax-control-protocol"]
-default-members = [".", "crates/terax-cli", "crates/terax-control-protocol"]
+members = ["crates/estate-cli", "crates/estate-control-protocol"]
+default-members = [".", "crates/estate-cli", "crates/estate-control-protocol"]
 resolver = "2"
 
 [workspace.package]
@@ -29,7 +29,7 @@ bench = []
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "terax_lib"
+name = "estate_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -48,7 +48,7 @@ getrandom = "0.4"
 percent-encoding = "2"
 http-range = "0.1"
 memchr = "2"
-terax-control-protocol = { path = "crates/terax-control-protocol" }
+estate-control-protocol = { path = "crates/estate-control-protocol" }
 portable-pty = "0.9"
 dirs = "7"
 log = "0.4"
@@ -80,7 +80,7 @@ tempfile = "3"
 which = "8.0.4"
 
 [dev-dependencies]
-terax-cli = { path = "crates/terax-cli" }
+estate-cli = { path = "crates/estate-cli" }
 proptest = "1"
 tokio = { version = "1", features = ["macros", "rt", "test-util", "time"] }
 tempfile = "3"

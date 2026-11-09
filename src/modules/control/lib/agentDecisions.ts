@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { AgentModelEvent } from "@/modules/agents/model";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -64,7 +65,7 @@ export function connectAgentEvents(
         return decisionConnections === 1 ? setDecisionsReady(true) : undefined;
       })
       .catch((error) => {
-        console.error("[terax] could not enable agent decisions:", error);
+        console.error("[estate] could not enable agent decisions:", error);
       });
   }
   return () => {
@@ -75,7 +76,7 @@ export function connectAgentEvents(
     decisionConnections -= 1;
     if (decisionConnections > 0) return;
     void setDecisionsReady(false).catch((error) => {
-      console.error("[terax] could not withdraw agent decisions:", error);
+      console.error("[estate] could not withdraw agent decisions:", error);
     });
   };
 }

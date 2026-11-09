@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { UIMessage } from "@ai-sdk/react";
 import type { CustomEndpoint } from "../config";
 import { runAgentStream, type AgentUsageDelta } from "./agent";
@@ -8,12 +9,12 @@ import { native } from "./native";
 import { checkReadable } from "./security";
 import type { ToolContext } from "../tools/tools";
 
-async function readTeraxMd(
+async function readEstateMd(
   workspaceRoot: string | null,
 ): Promise<string | null> {
   if (!workspaceRoot) return null;
   const workspace = { ...currentWorkspaceEnv() };
-  const path = `${workspaceRoot.replace(/\/$/, "")}/TERAX.md`;
+  const path = `${workspaceRoot.replace(/\/$/, "")}/ESTATE.md`;
   try {
     const canonical = await native.canonicalize(path, workspace);
     if (!checkReadable(canonical).ok || !checkReadable(path).ok) return null;
@@ -65,7 +66,7 @@ type SendOptions = {
 export function createContextAwareTransport(deps: Deps) {
   const run = async (options: SendOptions) => {
     const live = deps.getLive();
-    const projectMemory = await readTeraxMd(live.workspaceRoot);
+    const projectMemory = await readEstateMd(live.workspaceRoot);
     const envBlock = formatEnvBlock(live);
     const messagesForRun = envBlock
       ? injectEnvIntoLastUser(options.messages, envBlock)

@@ -1,13 +1,14 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { readFile } from "node:fs/promises";
 import { beforeAll, describe, expect, it } from "vitest";
-import { TeraxGhostty } from "@terax/ghostty-core/adapted";
+import { EstateGhostty } from "@estate/ghostty-core/adapted";
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 
 describe.each(["ghostty-vt", "ghostty-vt-scalar"])(
   "parser-time prompt markers (%s)",
   (artifact) => {
-    let core: TeraxGhostty;
+    let core: EstateGhostty;
     beforeAll(async () => {
       const file = await readFile(
         new URL(
@@ -15,7 +16,7 @@ describe.each(["ghostty-vt", "ghostty-vt-scalar"])(
           import.meta.url,
         ),
       );
-      core = await TeraxGhostty.loadBytes(Uint8Array.from(file).buffer);
+      core = await EstateGhostty.loadBytes(Uint8Array.from(file).buffer);
     });
 
     function markers(chunks: string[]) {

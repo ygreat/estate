@@ -1,7 +1,8 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { readFile } from "node:fs/promises";
 import type { GhosttyTerminalModelApi } from "@/modules/terminal/ghostty/GhosttyTerminalModel";
-import { TeraxGhostty } from "@terax/ghostty-core/adapted";
-import type { KeyEvent } from "@terax/ghostty-core/protocol";
+import { EstateGhostty } from "@estate/ghostty-core/adapted";
+import type { KeyEvent } from "@estate/ghostty-core/protocol";
 import { describe, expect, it, vi } from "vitest";
 import { FakeElement, FakeTextArea } from "./fakeTextArea";
 import { GhosttyInputController } from "./GhosttyInputController";
@@ -705,7 +706,7 @@ const ARTIFACTS = ["ghostty-vt.wasm", "ghostty-vt-scalar.wasm"] as const;
 
 const cores = new Map<
   string,
-  Awaited<ReturnType<typeof TeraxGhostty.loadBytes>>
+  Awaited<ReturnType<typeof EstateGhostty.loadBytes>>
 >();
 
 async function loadCore(artifact: string) {
@@ -717,7 +718,7 @@ async function loadCore(artifact: string) {
       import.meta.url,
     ),
   );
-  const core = await TeraxGhostty.loadBytes(Uint8Array.from(bytes).buffer);
+  const core = await EstateGhostty.loadBytes(Uint8Array.from(bytes).buffer);
   cores.set(artifact, core);
   return core;
 }
@@ -804,7 +805,7 @@ function keyEvent(row: Row, type: "keydown" | "keyup"): KeyboardEvent {
 
 function terminalModel(
   terminal: ReturnType<
-    Awaited<ReturnType<typeof TeraxGhostty.loadBytes>>["createTerminal"]
+    Awaited<ReturnType<typeof EstateGhostty.loadBytes>>["createTerminal"]
   >,
 ): GhosttyTerminalModelApi {
   return {

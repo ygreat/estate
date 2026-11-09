@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -148,7 +149,7 @@ export function AiStatusBarControls() {
           )}
         >
           {c.voice.recording ? (
-            <span className="size-2 terax-blink rounded-full bg-destructive" />
+            <span className="size-2 estate-blink rounded-full bg-destructive" />
           ) : c.voice.transcribing ? (
             <Spinner className="size-3" />
           ) : (

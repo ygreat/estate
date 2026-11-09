@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 /**
  * Makes JavaScriptCore see the native cost of the WebGPU wrappers a presented frame creates.
  *
@@ -144,11 +145,11 @@ export class GcPressureMirror {
 }
 
 /**
- * `localStorage["terax:terminal-gc-mirror"]`: `off`, or
+ * `localStorage["estate:terminal-gc-mirror"]`: `off`, or
  * `<bytesPerFrame>[:<batchBytes>]`, for experiments;
  * unset means the defaults above.
  */
-const GC_MIRROR_STORAGE_KEY = "terax:terminal-gc-mirror";
+const GC_MIRROR_STORAGE_KEY = "estate:terminal-gc-mirror";
 export function gcPressureOptionsFromStorage(): GcPressureOptions {
   try {
     const value =

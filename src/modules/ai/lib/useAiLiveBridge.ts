@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { type RefObject, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useManagedAgentsStore } from "@/modules/agents/store/managedAgentsStore";
@@ -145,7 +146,7 @@ export function useAiLiveBridge(params: Params) {
           if (result !== "ready") {
             if (result === "timeout") {
               console.warn(
-                "[terax] Claude TUI did not appear in time; aborting prompt send",
+                "[estate] Claude TUI did not appear in time; aborting prompt send",
               );
             }
             useManagedAgentsStore.getState().remove(leafId);

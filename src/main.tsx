@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import "./styles/globals.css";
 
 import { invoke } from "@tauri-apps/api/core";
@@ -20,8 +21,8 @@ if (import.meta.env.DEV && import.meta.env.VITE_REACT_SCAN === "true") {
 }
 
 // Real-application benchmark (scripts/app-lab): scenario flags must be in force before any
-// terminal module reads them. Removed entirely unless the build sets TERAX_BENCH=1.
-if (__TERAX_BENCH__) {
+// terminal module reads them. Removed entirely unless the build sets ESTATE_BENCH=1.
+if (__ESTATE_BENCH__) {
   const { installBenchEarly } = await import("@/bench/early");
   await installBenchEarly();
 }

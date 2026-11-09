@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
@@ -321,7 +322,7 @@ mod tests {
 
     #[test]
     fn resolve_within_repo_handles_deleted_directory() {
-        let base = std::env::temp_dir().join("terax_git_deleted_dir_test");
+        let base = std::env::temp_dir().join("estate_git_deleted_dir_test");
         let _ = std::fs::remove_dir_all(&base);
         std::fs::create_dir_all(base.join("envs/__pycache__")).unwrap();
         let repo_root = std::fs::canonicalize(&base).unwrap();

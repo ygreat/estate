@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 "use client";
 
 import {
@@ -200,7 +201,7 @@ const ToolImpl = ({
 
       {hasDetails && (
         <CollapsibleContent
-          className={cn("terax-collapsible-content")}
+          className={cn("estate-collapsible-content")}
         >
           <div className="ml-3 mt-1 space-y-2 border-l border-border/60 pl-3 pb-1">
             {showInputBody ? (

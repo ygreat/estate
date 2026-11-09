@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,11 +18,11 @@ type DistroKey = "arch" | "debian" | "fedora";
 function distroCommand(key: DistroKey, version: string): string {
   switch (key) {
     case "arch":
-      return "yay -S terax-bin";
+      return "yay -S estate-bin";
     case "debian":
-      return `sudo apt install ./Terax_${version}_amd64.deb`;
+      return `sudo apt install ./Estate_${version}_amd64.deb`;
     case "fedora":
-      return `sudo dnf install ./Terax-${version}-1.x86_64.rpm`;
+      return `sudo dnf install ./Estate-${version}-1.x86_64.rpm`;
   }
 }
 
@@ -92,12 +93,12 @@ export function UpdaterDialog() {
               : downloading
                 ? "Downloading update…"
                 : manual
-                  ? `Terax v${manual.version} is available`
-                  : `Terax v${update?.version} is available`}
+                  ? `Estate v${manual.version} is available`
+                  : `Estate v${update?.version} is available`}
           </DialogTitle>
           <DialogDescription>
             {ready
-              ? "Restart Terax to finish installing."
+              ? "Restart Estate to finish installing."
               : downloading
                 ? progress !== null
                   ? `${progress.toFixed(0)}% — ${formatBytes(status.downloaded)}`

@@ -1,5 +1,6 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { smoothHooks } from "@/bench/smoothHooks";
-import type { GhosttyTerminalEvent } from "@terax/ghostty-core/protocol";
+import type { GhosttyTerminalEvent } from "@estate/ghostty-core/protocol";
 
 /**
  * How long a pane keeps showing its previous frame after a resize cleared the prompt, waiting
@@ -54,7 +55,7 @@ export class ResizePromptHold {
   resized(alternateScreen: boolean): void {
     if (this.holding || !this.atPrompt || alternateScreen) return;
     this.erasedPrompt = true;
-    if (__TERAX_BENCH__) {
+    if (__ESTATE_BENCH__) {
       smoothHooks()?.cleared(this.benchId, true, performance.now());
       smoothHooks()?.hold(this.benchId, true, performance.now());
     }
@@ -97,12 +98,12 @@ export class ResizePromptHold {
     this.clearTimer();
     if (redrawn && this.erasedPrompt) {
       this.erasedPrompt = false;
-      if (__TERAX_BENCH__)
+      if (__ESTATE_BENCH__)
         smoothHooks()?.cleared(this.benchId, false, performance.now());
     }
     if (!this.holding) return;
     this.holding = false;
-    if (__TERAX_BENCH__) smoothHooks()?.hold(this.benchId, false, performance.now());
+    if (__ESTATE_BENCH__) smoothHooks()?.hold(this.benchId, false, performance.now());
     this.release();
   }
 

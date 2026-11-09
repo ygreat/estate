@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderKeys } from "./keyring";
 import type { ToolContext } from "../tools/tools";
@@ -59,12 +60,12 @@ describe("automatic project memory", () => {
   });
 
   it("passes ordinary memory bytes and rechecks the next turn", async () => {
-    native.canonicalize.mockResolvedValue("/repo-normal/TERAX.md");
+    native.canonicalize.mockResolvedValue("/repo-normal/ESTATE.md");
     native.readProjectMemory.mockResolvedValue("project instructions");
     expect(await send("/repo-normal")).toBe("project instructions");
     expect(native.readProjectMemory).toHaveBeenCalledWith(
       "/repo-normal",
-      "/repo-normal/TERAX.md",
+      "/repo-normal/ESTATE.md",
       { kind: "local" },
     );
     native.canonicalize.mockResolvedValue("/repo-normal/.env");
@@ -84,13 +85,13 @@ it("keeps the captured workspace when it changes during canonicalization", async
   currentWorkspaceEnv.mockReturnValue({ kind: "local" });
   native.canonicalize.mockImplementation(async () => {
     currentWorkspaceEnv.mockReturnValue({ kind: "wsl" });
-    return "/repo-switch/TERAX.md";
+    return "/repo-switch/ESTATE.md";
   });
   native.readProjectMemory.mockResolvedValue("original workspace");
   expect(await send("/repo-switch")).toBe("original workspace");
   expect(native.readProjectMemory).toHaveBeenLastCalledWith(
     "/repo-switch",
-    "/repo-switch/TERAX.md",
+    "/repo-switch/ESTATE.md",
     { kind: "local" },
   );
 });

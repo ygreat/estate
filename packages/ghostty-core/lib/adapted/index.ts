@@ -1,13 +1,14 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 export {
   ADAPTED_GHOSTTY_COMMIT,
   ADAPTED_GHOSTTY_WASM_SHA256,
   ADAPTED_GHOSTTY_SCALAR_WASM_SHA256,
   supportsWasmSimd,
   ADAPTED_RESTTY_COMMIT,
-  TeraxGhostty,
-  TeraxGhosttyInstance,
-  TeraxGhosttyTerminal,
-} from "./TeraxGhostty";
+  EstateGhostty,
+  EstateGhosttyInstance,
+  EstateGhosttyTerminal,
+} from "./EstateGhostty";
 export {
   GPU_ATTR_BLINK,
   GPU_ATTR_OVERLINE,
@@ -22,24 +23,24 @@ export {
   GPU_GLYPH_ITALIC,
   decodeGpuCell,
 } from "./gpuCells";
-export type { TeraxGhosttyGpuCell } from "./gpuCells";
+export type { EstateGhosttyGpuCell } from "./gpuCells";
 export { GpuGlyphBatch } from "./gpuGlyphs";
 export type {
-  TeraxGhosttyCursor,
-  TeraxGhosttyGpuGlyph,
-  TeraxGhosttyGpuGlyphBatch,
-  TeraxGhosttyGpuRenderState,
-  TeraxGhosttyLine,
-  TeraxGhosttyRenderBase,
-  TeraxGhosttyRenderFormat,
-  TeraxGhosttyInstantiate,
-  TeraxGhosttyLoadOptions,
-  TeraxGhosttyMemoryStats,
-  TeraxGhosttyKeyEvent,
-  TeraxGhosttyRenderState,
-  TeraxGhosttySearchStatus,
-  TeraxGhosttySearchViewportSpan,
-  TeraxGhosttySelection,
-  TeraxGhosttyTerminalOptions,
-  TeraxGhosttyTerminalResourceStats,
+  EstateGhosttyCursor,
+  EstateGhosttyGpuGlyph,
+  EstateGhosttyGpuGlyphBatch,
+  EstateGhosttyGpuRenderState,
+  EstateGhosttyLine,
+  EstateGhosttyRenderBase,
+  EstateGhosttyRenderFormat,
+  EstateGhosttyInstantiate,
+  EstateGhosttyLoadOptions,
+  EstateGhosttyMemoryStats,
+  EstateGhosttyKeyEvent,
+  EstateGhosttyRenderState,
+  EstateGhosttySearchStatus,
+  EstateGhosttySearchViewportSpan,
+  EstateGhosttySelection,
+  EstateGhosttyTerminalOptions,
+  EstateGhosttyTerminalResourceStats,
 } from "./types";

@@ -1,9 +1,10 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use memchr::memchr2;
-use terax_control_protocol::hook::clean_text;
+use estate_control_protocol::hook::clean_text;
 
 const ESC: u8 = 0x1b;
 const BEL: u8 = 0x07;
@@ -30,9 +31,9 @@ const DEFAULT_AGENTS: &[&str] = &["claude", "codex", "gemini", "pi", "opencode",
 /// Extensions a launcher shim or native binary carries on Windows.
 const LAUNCHER_EXTENSIONS: &[&str] = &[".exe", ".cmd", ".bat", ".ps1", ".com"];
 
-// OSC 777 marker older agent hooks emit. Legacy 3-field `notify;Terax;<event>`
-// (Claude) or 4-field `notify;Terax;<agent>;<event>` (Codex/Gemini/Pi).
-const TERAX_MARKER: &[u8] = b"notify;Terax;";
+// OSC 777 marker older agent hooks emit. Legacy 3-field `notify;Estate;<event>`
+// (Claude) or 4-field `notify;Estate;<agent>;<event>` (Codex/Gemini/Pi).
+const ESTATE_MARKER: &[u8] = b"notify;Estate;";
 
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -418,7 +419,7 @@ impl AgentDetector {
     }
 
     fn handle_osc777<F: FnMut(Signal)>(&mut self, pt: &[u8], emit: &mut F) {
-        if let Some(tail) = pt.strip_prefix(TERAX_MARKER) {
+        if let Some(tail) = pt.strip_prefix(ESTATE_MARKER) {
             // PTY output is untrusted: only self-arm for known agents.
             let (agent, event) = match tail.iter().position(|&c| c == b';') {
                 Some(i) => {
@@ -779,20 +780,20 @@ mod tests {
     }
 
     #[test]
-    fn terax_marker_drives_status() {
+    fn estate_marker_drives_status() {
         let mut d = AgentDetector::new();
         run(&mut d, &osc("133;C;claude"));
-        assert_eq!(run(&mut d, &osc("777;notify;Terax;attention")), vec![Transition::Attention]);
-        assert_eq!(run(&mut d, &osc("777;notify;Terax;working")), vec![Transition::Working]);
-        assert!(run(&mut d, &osc("777;notify;Terax;working")).is_empty());
-        assert_eq!(run(&mut d, &osc("777;notify;Terax;finished")), vec![Transition::Finished]);
+        assert_eq!(run(&mut d, &osc("777;notify;Estate;attention")), vec![Transition::Attention]);
+        assert_eq!(run(&mut d, &osc("777;notify;Estate;working")), vec![Transition::Working]);
+        assert!(run(&mut d, &osc("777;notify;Estate;working")).is_empty());
+        assert_eq!(run(&mut d, &osc("777;notify;Estate;finished")), vec![Transition::Finished]);
     }
 
     #[test]
-    fn terax_marker_auto_arms_without_preexec() {
+    fn estate_marker_auto_arms_without_preexec() {
         let mut d = AgentDetector::new();
         assert_eq!(
-            run(&mut d, &osc("777;notify;Terax;attention")),
+            run(&mut d, &osc("777;notify;Estate;attention")),
             vec![started("claude"), Transition::Attention]
         );
     }
@@ -801,10 +802,10 @@ mod tests {
     fn four_field_marker_self_arms_named_agent() {
         // Fresh arm already implies Working, so `working` emits only Started.
         let mut d = AgentDetector::new();
-        assert_eq!(run(&mut d, &osc("777;notify;Terax;codex;working")), vec![started("codex")]);
+        assert_eq!(run(&mut d, &osc("777;notify;Estate;codex;working")), vec![started("codex")]);
         let mut g = AgentDetector::new();
         assert_eq!(
-            run(&mut g, &osc("777;notify;Terax;gemini;finished")),
+            run(&mut g, &osc("777;notify;Estate;gemini;finished")),
             vec![started("gemini"), Transition::Finished]
         );
     }
@@ -813,11 +814,11 @@ mod tests {
     fn pi_marker_self_arms_and_drives_status() {
         let mut d = AgentDetector::new();
         assert_eq!(
-            run(&mut d, &osc("777;notify;Terax;pi;working")),
+            run(&mut d, &osc("777;notify;Estate;pi;working")),
             vec![started("pi")]
         );
         assert_eq!(
-            run(&mut d, &osc("777;notify;Terax;pi;finished")),
+            run(&mut d, &osc("777;notify;Estate;pi;finished")),
             vec![Transition::Finished]
         );
     }
@@ -825,10 +826,10 @@ mod tests {
     #[test]
     fn four_field_marker_ignores_unknown_agent() {
         let mut d = AgentDetector::new();
-        assert!(run(&mut d, &osc("777;notify;Terax;evil;attention")).is_empty());
+        assert!(run(&mut d, &osc("777;notify;Estate;evil;attention")).is_empty());
         // A known agent in the same chunk still works.
         assert_eq!(
-            run(&mut d, &osc("777;notify;Terax;codex;attention")),
+            run(&mut d, &osc("777;notify;Estate;codex;attention")),
             vec![started("codex"), Transition::Attention]
         );
     }
@@ -837,9 +838,9 @@ mod tests {
     fn four_field_marker_drives_status_after_preexec() {
         let mut d = AgentDetector::new();
         run(&mut d, &osc("133;C;gemini"));
-        assert_eq!(run(&mut d, &osc("777;notify;Terax;gemini;attention")), vec![Transition::Attention]);
-        assert_eq!(run(&mut d, &osc("777;notify;Terax;gemini;working")), vec![Transition::Working]);
-        assert_eq!(run(&mut d, &osc("777;notify;Terax;gemini;finished")), vec![Transition::Finished]);
+        assert_eq!(run(&mut d, &osc("777;notify;Estate;gemini;attention")), vec![Transition::Attention]);
+        assert_eq!(run(&mut d, &osc("777;notify;Estate;gemini;working")), vec![Transition::Working]);
+        assert_eq!(run(&mut d, &osc("777;notify;Estate;gemini;finished")), vec![Transition::Finished]);
     }
 
     thread_local! {
@@ -898,7 +899,7 @@ mod tests {
         let mut d = timed();
         run(&mut d, &osc("133;C;claude"));
         assert_eq!(run(&mut d, &osc("9;done")), vec![Transition::Attention]);
-        assert_eq!(run(&mut d, &osc("777;notify;Terax;working")), vec![Transition::Working]);
+        assert_eq!(run(&mut d, &osc("777;notify;Estate;working")), vec![Transition::Working]);
         assert_eq!(run(&mut d, &osc("9;done again")), vec![Transition::Attention]);
     }
 
@@ -906,7 +907,7 @@ mod tests {
     fn a_hook_marker_and_its_generic_twin_are_one_attention() {
         let mut d = timed();
         run(&mut d, &osc("133;C;codex"));
-        assert_eq!(run(&mut d, &osc("777;notify;Terax;codex;finished")), vec![Transition::Finished]);
+        assert_eq!(run(&mut d, &osc("777;notify;Estate;codex;finished")), vec![Transition::Finished]);
         assert!(run(&mut d, &osc("9;Agent turn complete")).is_empty());
         advance(ATTENTION_REPEAT);
         assert_eq!(run(&mut d, &osc("9;Agent turn complete")), vec![Transition::Attention]);
@@ -928,7 +929,7 @@ mod tests {
         run(&mut d, &osc("133;C;claude"));
         let big = vec![b'a'; 1024 * 1024];
         assert!(run(&mut d, &big).is_empty());
-        let marker = osc("777;notify;Terax;attention");
+        let marker = osc("777;notify;Estate;attention");
         // Every split point of the marker, embedded in plain text.
         for split in 1..marker.len() {
             let mut d = AgentDetector::new();
@@ -949,7 +950,7 @@ mod tests {
         let too_long = format!("9;{}", "x".repeat(OSC_MAX - 1));
         assert!(run(&mut d, &osc(&too_long)).is_empty());
         // The decoder resynchronises on the next sequence.
-        assert_eq!(run(&mut d, &osc("777;notify;Terax;attention")), vec![Transition::Attention]);
+        assert_eq!(run(&mut d, &osc("777;notify;Estate;attention")), vec![Transition::Attention]);
     }
 
     #[test]
@@ -1000,7 +1001,7 @@ mod tests {
         seq.extend(std::iter::repeat_n(b'x', OSC_MAX + 100));
         seq.extend_from_slice(&[ESC, ST_FINAL]);
         assert!(run(&mut d, &seq).is_empty());
-        assert_eq!(run(&mut d, &osc("777;notify;Terax;attention")), vec![Transition::Attention]);
+        assert_eq!(run(&mut d, &osc("777;notify;Estate;attention")), vec![Transition::Attention]);
     }
 
     fn note(kind: NotificationKind, title: Option<&str>, body: &str) -> TerminalNotification {
@@ -1112,7 +1113,7 @@ mod tests {
         );
         advance(NOTIFY_DUPLICATE);
         assert!(notifications(&mut d, &osc("777;precmd")).is_empty());
-        assert!(notifications(&mut d, &osc("777;notify;Terax;codex;finished")).is_empty());
+        assert!(notifications(&mut d, &osc("777;notify;Estate;codex;finished")).is_empty());
     }
 
     #[test]
@@ -1251,7 +1252,7 @@ mod tests {
         run(&mut d, &osc("133;C;codex"));
         hooked(&link, HookIntent::Working);
         assert!(run_all(&mut d, &osc("9;Agent turn complete")).is_empty());
-        assert!(run_all(&mut d, &osc("777;notify;Terax;codex;finished")).is_empty());
+        assert!(run_all(&mut d, &osc("777;notify;Estate;codex;finished")).is_empty());
         assert!(run_all(&mut d, b"\x07").is_empty());
         // Process lifecycle still comes from OSC 133.
         assert_eq!(run(&mut d, &osc("133;D;0")), vec![Transition::Exited]);

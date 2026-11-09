@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { DEFAULT_SPACE_ID, type Tab } from "@/modules/tabs/lib/useTabs";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -92,7 +93,7 @@ async function respond(
     response,
   });
   if (!delivered) {
-    console.warn(`[terax] control response expired: ${requestId}`);
+    console.warn(`[estate] control response expired: ${requestId}`);
   }
 }
 
@@ -130,14 +131,14 @@ export function useControlBridge({
               await window.setFocus();
               focused = true;
             } catch (error) {
-              console.warn("[terax] could not focus control target:", error);
+              console.warn("[estate] could not focus control target:", error);
             }
           }
           const tabId = onOpen({ ...open, spaceId: context.space_id });
           if (tabId === null) {
             throw new RequestError(
               "open_failed",
-              "Terax could not create an editor tab",
+              "Estate could not create an editor tab",
             );
           }
           await new Promise<void>((resolve) =>
@@ -167,13 +168,13 @@ export function useControlBridge({
             : { code: "frontend_error", message: String(error) };
         await respond(request.id, { ok: false, error: responseError }).catch(
           (responseError) => {
-            console.error("[terax] control response failed:", responseError);
+            console.error("[estate] control response failed:", responseError);
           },
         );
       }
     };
 
-    void listen<ControlRequest>("terax:control-request", (event) => {
+    void listen<ControlRequest>("estate:control-request", (event) => {
       void handleRequest(event.payload);
     })
       .then((stop) => {
@@ -185,14 +186,14 @@ export function useControlBridge({
         return setFrontendReady(true);
       })
       .catch((error) => {
-        console.error("[terax] control bridge setup failed:", error);
+        console.error("[estate] control bridge setup failed:", error);
       });
 
     return () => {
       disposed = true;
       unlisten?.();
       void setFrontendReady(false).catch((error) => {
-        console.error("[terax] control bridge cleanup failed:", error);
+        console.error("[estate] control bridge cleanup failed:", error);
       });
     };
   }, [ready, tabsRef, activeTabIdRef, activeSpaceIdRef, onOpen]);

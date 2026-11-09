@@ -1,7 +1,8 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { TerminalRendererSetting } from "@/modules/settings/store";
 import type { TerminalBackendKind } from "./contracts";
 
-const STORAGE_KEY = "terax.experimental.terminal-backend";
+const STORAGE_KEY = "estate.experimental.terminal-backend";
 const DEFAULT_BACKEND: TerminalBackendKind = "ghostty-webgpu";
 export type Platform = "windows" | "linux" | "mac" | "other";
 

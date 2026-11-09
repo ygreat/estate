@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { describe, expect, it } from "vitest";
 import { emptyRegistry, notificationEffect, reduceAgents } from "./reducer";
 import type {
@@ -278,7 +279,7 @@ describe("permission requests", () => {
     expect(agentOf(after).state).toBe("needs-approval");
   });
 
-  it("records a request Terax cannot answer without an id", () => {
+  it("records a request Estate cannot answer without an id", () => {
     const registry = run(
       hook("prompt"),
       hook("permission-request", { permission: permission() }),

@@ -1,15 +1,16 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type {
   TerminalBackendKind,
   TerminalDamage,
   TerminalModel,
   TerminalRowRange,
 } from "@/modules/terminal/backend/contracts";
-import type { TeraxGhosttyGpuGlyph } from "@terax/ghostty-core/adapted";
+import type { EstateGhosttyGpuGlyph } from "@estate/ghostty-core/adapted";
 import type {
   GhosttyTerminalConfig,
   GhosttyTerminalEvent,
   KeyEvent,
-} from "@terax/ghostty-core/protocol";
+} from "@estate/ghostty-core/protocol";
 import type { TerminalCellReader } from "@/modules/terminal/ghostty/core/packedCells";
 import type { ViewportLinkSource } from "@/modules/terminal/ghostty/core/ViewportLinkResolver";
 
@@ -54,7 +55,7 @@ export type GhosttySearchViewportSpan = {
 /** Per-cell representation the model is currently producing. */
 export type GhosttyRenderFormat = "soa" | "gpu";
 
-export type GhosttyGpuGlyph = TeraxGhosttyGpuGlyph;
+export type GhosttyGpuGlyph = EstateGhosttyGpuGlyph;
 
 export type GhosttyGpuFrameOptions = {
   /**
@@ -68,7 +69,7 @@ export type GhosttyGpuFrameOptions = {
 /**
  * Everything a GPU renderer needs for one frame, produced by
  * `GhosttyTerminalModelApi.consumeGpuFrame()`. Cell records are 16 bytes per
- * cell; see `@terax/ghostty-core/adapted` (`GPU_CELL_*`, `decodeGpuCell`) for
+ * cell; see `@estate/ghostty-core/adapted` (`GPU_CELL_*`, `decodeGpuCell`) for
  * the exact word layout. `cells` and `memory.buffer` are borrowed: use them
  * synchronously (for example `queue.writeBuffer`) before the next call into
  * the model, because any WASM allocation can replace `memory.buffer`.

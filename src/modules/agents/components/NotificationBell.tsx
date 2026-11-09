@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -293,7 +294,7 @@ export function NotificationBell({ onActivate, onActivateLocal }: Props) {
           <div className="border-t border-border/60 px-3 py-5 text-center text-xs leading-relaxed text-muted-foreground">
             No agent activity yet.
             <br />
-            Run the Terax agent or a coding agent to track it here.
+            Run the Estate agent or a coding agent to track it here.
           </div>
         ) : (
           <div className="max-h-80 overflow-y-auto border-t border-border/60 p-1">

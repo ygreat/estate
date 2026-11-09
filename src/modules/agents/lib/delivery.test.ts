@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { describe, expect, it } from "vitest";
 import { resolveAgentNotificationDelivery } from "./delivery";
 
@@ -12,7 +13,7 @@ describe("resolveAgentNotificationDelivery", () => {
     ).toBe("none");
   });
 
-  it("uses a native alert while Terax is unfocused", () => {
+  it("uses a native alert while Estate is unfocused", () => {
     expect(
       resolveAgentNotificationDelivery({
         focused: false,

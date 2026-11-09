@@ -1,4 +1,5 @@
-import { CellFlags } from "@terax/ghostty-core/protocol";
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+import { CellFlags } from "@estate/ghostty-core/protocol";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { hasIntrinsicColor, WebGlGlyphAtlas } from "./WebGlGlyphAtlas";
 

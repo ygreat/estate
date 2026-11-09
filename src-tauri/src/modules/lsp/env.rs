@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! GUI-launched apps get a bare PATH on macOS, and servers like
 //! typescript-language-server need the user's PATH themselves to find
 //! `node`. Capture the login shell env once, reuse for detect and spawn.
@@ -62,7 +63,7 @@ fn capture_login_env() -> Option<HashMap<String, String>> {
     let mut stdout = child.take_stdout()?;
     let (tx, rx) = mpsc::channel();
     std::thread::Builder::new()
-        .name("terax-lsp-env-capture".into())
+        .name("estate-lsp-env-capture".into())
         .spawn(move || {
             let mut buf = Vec::with_capacity(8 * 1024);
             let _ = stdout.read_to_end(&mut buf);
@@ -115,6 +116,6 @@ mod tests {
     fn resolve_binary_rejects_empty_and_missing() {
         assert!(resolve_binary("").is_none());
         assert!(resolve_binary("   ").is_none());
-        assert!(resolve_binary("terax-definitely-not-a-real-binary").is_none());
+        assert!(resolve_binary("estate-definitely-not-a-real-binary").is_none());
     }
 }

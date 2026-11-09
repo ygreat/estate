@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
@@ -19,19 +20,19 @@ it.skipIf(process.platform === "win32")(
         "-c",
         `
 source() { :; }
-export TERAX_BLOCKS=1
+export ESTATE_BLOCKS=1
 PS1='test> '
 . "$1" >/dev/null
 eval "$PROMPT_COMMAND" >/dev/null
 if (( BASH_VERSINFO[0] > 4 || BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 4 )); then
-  test "$TERAX_BLOCKS" = 1 || exit 10
+  test "$ESTATE_BLOCKS" = 1 || exit 10
   case "$PS0" in *'133;C'*) ;; *) exit 11 ;; esac
 else
-  test -z "$TERAX_BLOCKS" || exit 12
+  test -z "$ESTATE_BLOCKS" || exit 12
   case "$PS1" in *'test> '*'terax_blocks=0'*) ;; *) exit 13 ;; esac
 fi
 `,
-        "terax-test",
+        "estate-test",
         script,
       ],
       {

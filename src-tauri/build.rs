@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 fn main() {
     configure_sidecar();
     tauri_build::build()
@@ -12,7 +13,7 @@ fn configure_sidecar() {
     } else {
         ""
     };
-    let path = std::path::PathBuf::from("binaries").join(format!("terax-cli-{target}{extension}"));
+    let path = std::path::PathBuf::from("binaries").join(format!("estate-cli-{target}{extension}"));
     let valid =
         std::fs::metadata(&path).is_ok_and(|metadata| metadata.is_file() && metadata.len() > 0);
     if valid {

@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { shellDialect, type ShellDialect } from "@/lib/shellQuote";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
@@ -125,7 +126,7 @@ export function useTerminalFileDrop(): TerminalPathDropTarget {
         if (disposed) fn();
         else unlisten = fn;
       })
-      .catch((err) => console.error("[terax] drag-drop listen failed:", err));
+      .catch((err) => console.error("[estate] drag-drop listen failed:", err));
 
     return () => {
       disposed = true;

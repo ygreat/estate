@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 // Compare the browser-composited pixels with the untouched renderer texture. A texture-only
 // comparison cannot catch canvas resampling by CSS layout/transforms.
 import assert from "node:assert/strict";
@@ -9,8 +10,8 @@ import { chromium } from "playwright";
 import { PNG } from "pngjs";
 import { createServer } from "vite";
 
-const out = process.env.TERAX_VISUAL_OUT ?? await fs.mkdtemp(path.join(os.tmpdir(), "terax-scaling-"));
-process.env.TERAX_VISUAL_OUT = out;
+const out = process.env.ESTATE_VISUAL_OUT ?? await fs.mkdtemp(path.join(os.tmpdir(), "estate-scaling-"));
+process.env.ESTATE_VISUAL_OUT = out;
 const server = await createServer({
   configFile: fileURLToPath(new URL("./vite.config.ts", import.meta.url)),
   server: { host: "127.0.0.1", port: 0 },
@@ -50,7 +51,7 @@ try {
     const browser = await chromium.launch({
       executablePath: process.env.CHROME_PATH,
       channel: process.env.CHROME_CHANNEL ?? "chromium",
-      args: ["--enable-unsafe-webgpu", "--enable-unsafe-swiftshader", "--force-color-profile=srgb", `--force-device-scale-factor=${dpr}`, ...(process.platform === "linux" || process.env.TERAX_VISUAL_SOFTWARE === "1" ? ["--use-angle=swiftshader", "--use-webgpu-adapter=swiftshader"] : [])],
+      args: ["--enable-unsafe-webgpu", "--enable-unsafe-swiftshader", "--force-color-profile=srgb", `--force-device-scale-factor=${dpr}`, ...(process.platform === "linux" || process.env.ESTATE_VISUAL_SOFTWARE === "1" ? ["--use-angle=swiftshader", "--use-webgpu-adapter=swiftshader"] : [])],
     });
     // Also bounds page.evaluate if device loss prevents the pending texture readback.
     const deadline = setTimeout(() => void browser.close(), 60_000);

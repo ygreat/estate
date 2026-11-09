@@ -1,5 +1,6 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! Per-agent-turn checkpoints. A checkpoint is a commit object reachable only
-//! from `refs/terax/checkpoints/<task>/<turn>`, built from a private copy of
+//! from `refs/estate/checkpoints/<task>/<turn>`, built from a private copy of
 //! the index, so the user's index, HEAD, branches and working files are never
 //! touched by creating one. Restoring does write the working tree (and syncs the
 //! index entries of the files it changed), but only the paths that differ.
@@ -36,9 +37,9 @@ const SNAPSHOT_TIMEOUT_SECS: u64 = NETWORK_TIMEOUT_SECS;
 
 static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-const WORKTREE_ID_FILE: &str = "terax-worktree-id";
-const LAST_RESTORE_FILE: &str = "terax-last-restore";
-const NO_HOOKS_DIR: &str = "terax-no-hooks";
+const WORKTREE_ID_FILE: &str = "estate-worktree-id";
+const LAST_RESTORE_FILE: &str = "estate-last-restore";
+const NO_HOOKS_DIR: &str = "estate-no-hooks";
 
 static ID_LOCK: Mutex<()> = Mutex::new(());
 
@@ -185,7 +186,7 @@ impl TempIndex {
         std::fs::create_dir_all(&admin.hooks)?;
         let dir = admin.dir;
         let unique = format!(
-            "terax-snapshot-{}-{}-{}.index",
+            "estate-snapshot-{}-{}-{}.index",
             std::process::id(),
             TEMP_COUNTER.fetch_add(1, Ordering::Relaxed),
             SystemTime::now()
@@ -520,11 +521,11 @@ fn write_commit(
                     [
                         (
                             OsString::from(format!("GIT_{who}_NAME")),
-                            OsString::from("Terax"),
+                            OsString::from("Estate"),
                         ),
                         (
                             OsString::from(format!("GIT_{who}_EMAIL")),
-                            OsString::from("terax@localhost"),
+                            OsString::from("estate@localhost"),
                         ),
                     ]
                 })
@@ -636,7 +637,7 @@ pub(crate) fn task_snapshot(
     let mut random = [0u8; 16];
     getrandom::fill(&mut random).map_err(|e| GitError::command("task snapshot", e.to_string()))?;
     let suffix: String = random.iter().map(|b| format!("{b:02x}")).collect();
-    let reference = format!("refs/terax/tasks/{id}/archive/{suffix}");
+    let reference = format!("refs/estate/tasks/{id}/archive/{suffix}");
     run_ok(
         repo,
         admin.plumb(os_args(["update-ref", &reference, &commit, ""]))?,
@@ -682,7 +683,7 @@ pub fn create(
 
     let mut snapshot = snapshot_tree(&repo, true)?;
     let parent = head_commit_opt(&repo)?;
-    let message = format!("terax checkpoint {task_id}/{turn}{WORKTREE_MARK}{mine}");
+    let message = format!("estate checkpoint {task_id}/{turn}{WORKTREE_MARK}{mine}");
     let commit = write_commit(&repo, &admin, &snapshot.tree, parent.as_deref(), &message)?;
     run_ok(
         &repo,
@@ -978,7 +979,7 @@ fn now_millis() -> u64 {
 }
 
 /// Records `tree` (the working tree about to be overwritten) under a fresh
-/// `refs/terax/checkpoints/<task>/prerestore-<millis>` ref. An existing ref is
+/// `refs/estate/checkpoints/<task>/prerestore-<millis>` ref. An existing ref is
 /// never replaced.
 fn write_safety_snapshot(
     repo: &ResolvedGitDirectory,
@@ -988,7 +989,7 @@ fn write_safety_snapshot(
     parent: Option<&str>,
     worktree: &str,
 ) -> Result<SafetySnapshot> {
-    let message = format!("terax prerestore {task_id}{WORKTREE_MARK}{worktree}");
+    let message = format!("estate prerestore {task_id}{WORKTREE_MARK}{worktree}");
     let commit = write_commit(repo, admin, tree, parent, &message)?;
     for millis in (now_millis()..).take(50) {
         let name = refs::prerestore_ref(task_id, millis);
@@ -1341,7 +1342,7 @@ mod tests {
 
     #[test]
     fn parses_checkpoint_listing_in_turn_order() {
-        let listing = "refs/terax/checkpoints/t1/10\u{0}c10\u{0}tree10\u{0}p10\u{0}1700000010\nrefs/terax/checkpoints/t1/2\u{0}c2\u{0}tree2\u{0}\u{0}1700000002\nrefs/terax/checkpoints/t1/x\u{0}bad\u{0}\u{0}\u{0}0\n";
+        let listing = "refs/estate/checkpoints/t1/10\u{0}c10\u{0}tree10\u{0}p10\u{0}1700000010\nrefs/estate/checkpoints/t1/2\u{0}c2\u{0}tree2\u{0}\u{0}1700000002\nrefs/estate/checkpoints/t1/x\u{0}bad\u{0}\u{0}\u{0}0\n";
         let infos = parse_checkpoint_list(listing.as_bytes());
         assert_eq!(infos.len(), 2);
         assert_eq!(infos[0].turn, 2);
@@ -1541,7 +1542,7 @@ mod tests {
     #[test]
     fn checkpoint_info_serializes_the_ref_under_its_real_name() {
         let info = CheckpointInfo {
-            ref_name: "refs/terax/checkpoints/t/1".into(),
+            ref_name: "refs/estate/checkpoints/t/1".into(),
             task_id: "t".into(),
             turn: 1,
             commit: "c".into(),
@@ -1551,7 +1552,7 @@ mod tests {
             worktree_id: Some("abc".into()),
         };
         let json = serde_json::to_value(&info).unwrap();
-        assert_eq!(json["ref"], "refs/terax/checkpoints/t/1");
+        assert_eq!(json["ref"], "refs/estate/checkpoints/t/1");
         assert_eq!(json["createdAtSecs"], 5);
         assert!(
             json.get("worktreeId").is_none(),

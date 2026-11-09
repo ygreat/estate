@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import Cocoa
 import ObjectiveC
 import WebKit
@@ -29,7 +30,7 @@ final class Delegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler {
     window.contentView = web
     window.orderFrontRegardless()
     let html = try! String(contentsOfFile: CommandLine.arguments[1], encoding: .utf8)
-    web.loadHTMLString(html, baseURL: URL(string: "https://terax.test/"))
+    web.loadHTMLString(html, baseURL: URL(string: "https://estate.test/"))
   }
 
   func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {

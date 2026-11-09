@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! Regression tests for the second review round: user diff and discovery
 //! config, checkpoint identity and baselines, and worktree removal of files
 //! `include` copied in.
@@ -215,7 +216,7 @@ fn a_same_size_edit_made_right_after_indexing_is_still_snapshotted() {
 fn checkpoints_use_an_empty_real_directory_as_their_hooks_path() {
     let repo = TestRepo::new();
     checkpoint::create(&repo.registry, &repo.path(), "t", 1, &repo.ws).unwrap();
-    let hooks = repo.root.join(".git/terax-no-hooks");
+    let hooks = repo.root.join(".git/estate-no-hooks");
     assert!(hooks.is_dir());
     assert_eq!(
         std::fs::read_dir(&hooks).unwrap().count(),
@@ -235,7 +236,7 @@ fn renaming_the_repository_directory_does_not_orphan_its_checkpoints() {
     repo.write("a.txt", "two\n");
     checkpoint::create(&repo.registry, &repo.path(), "t", 2, &repo.ws).unwrap();
 
-    let id = std::fs::read_to_string(repo.root.join(".git/terax-worktree-id")).unwrap();
+    let id = std::fs::read_to_string(repo.root.join(".git/estate-worktree-id")).unwrap();
     assert_eq!(id.trim().len(), 32);
     assert!(id.trim().bytes().all(|b| b.is_ascii_hexdigit()));
 
@@ -268,7 +269,7 @@ fn renaming_the_repository_directory_does_not_orphan_its_checkpoints() {
     );
     checkpoint::create(&repo.registry, &moved_path, "t", 3, &repo.ws).unwrap();
     assert_eq!(
-        std::fs::read_to_string(moved.join(".git/terax-worktree-id")).unwrap(),
+        std::fs::read_to_string(moved.join(".git/estate-worktree-id")).unwrap(),
         id,
         "the id moved with the git directory"
     );
@@ -287,12 +288,12 @@ fn every_worktree_gets_its_own_random_id_and_listing_writes_nothing() {
         "no checkpoints yet"
     );
     assert!(
-        !a.root.join(".git/terax-worktree-id").exists(),
+        !a.root.join(".git/estate-worktree-id").exists(),
         "reading creates no id"
     );
     checkpoint::create(&a.registry, &a.path(), "t", 1, &a.ws).unwrap();
     checkpoint::create(&b.registry, &b.path(), "t", 1, &b.ws).unwrap();
-    let id = |r: &TestRepo| std::fs::read_to_string(r.root.join(".git/terax-worktree-id")).unwrap();
+    let id = |r: &TestRepo| std::fs::read_to_string(r.root.join(".git/estate-worktree-id")).unwrap();
     assert_ne!(id(&a), id(&b));
     checkpoint::create(&a.registry, &a.path(), "t", 2, &a.ws).unwrap();
     assert_eq!(id(&a).trim().len(), 32);
@@ -550,7 +551,7 @@ fn a_new_checkpoint_replaces_the_restore_as_the_baseline() {
 
     // Pruning forgets the marker with the checkpoints.
     checkpoint::prune(&repo.registry, &repo.path(), "t", &repo.ws).unwrap();
-    assert!(!repo.root.join(".git/terax-last-restore").exists());
+    assert!(!repo.root.join(".git/estate-last-restore").exists());
 }
 
 #[test]

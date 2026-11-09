@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! Tauri commands for the review view, tasks and worktrees. Thin on purpose:
 //! decode, hop to the blocking pool, call the operation, encode.
 
@@ -118,7 +119,7 @@ pub async fn git_worktree_add(
 ) -> Result<WorktreeAdded, String> {
     let workspace = WorkspaceEnv::from_option(workspace);
     let base = dirs::home_dir()
-        .map(|home| home.join(".terax").join("worktrees"))
+        .map(|home| home.join(".estate").join("worktrees"))
         .ok_or_else(|| "could not resolve the home directory".to_string())?;
     blocking(app, move |r| {
         worktree::add(r, &repo_root, &request, &base, &workspace).map_err(Into::into)

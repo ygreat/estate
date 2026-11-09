@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { SurfaceFramePacer } from "@/modules/terminal/ghostty/SurfaceFramePacer";
 import {
   subscribeWindowPresentation,
@@ -68,7 +69,7 @@ export type WebGlRuntimeStats = {
 /**
  * Window-scoped WebGL renderer pool. Ghostty models are never pooled here.
  * Hidden tabs release their GPU slot while their WASM terminal state remains
- * alive, matching Terax's existing xterm renderer-pool ownership model.
+ * alive, matching Estate's existing xterm renderer-pool ownership model.
  */
 export class WebGlTerminalRuntime {
   private readonly slots: RendererSlot[] = [];

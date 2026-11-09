@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use regex::RegexSetBuilder;
 use serde::Deserialize;
 use std::path::Path;
@@ -12,7 +13,7 @@ struct PathPolicy {
 
 pub(super) fn readable(path: &Path) -> Result<(), String> {
     if let Some(cache) = dirs::cache_dir() {
-        deny_runtime_directory(path, &cache.join("terax"))?;
+        deny_runtime_directory(path, &cache.join("estate"))?;
     }
     static POLICY: OnceLock<(regex::RegexSet, Vec<String>)> = OnceLock::new();
     let (patterns, directories) = POLICY.get_or_init(|| {
@@ -94,7 +95,7 @@ mod tests {
     #[test]
     fn relocated_runtime_credentials_are_protected() {
         let tmp = tempfile::tempdir().unwrap();
-        let relocated = tmp.path().join("custom-cache").join("terax");
+        let relocated = tmp.path().join("custom-cache").join("estate");
         std::fs::create_dir_all(&relocated).unwrap();
         let actual = std::fs::canonicalize(&relocated).unwrap();
         assert!(deny_runtime_directory(&actual.join("control.json"), &relocated).is_err());
@@ -142,7 +143,7 @@ mod tests {
             .path()
             .join("authorized-project")
             .join("application-state");
-        let alias = tmp.path().join("relocated-cache").join("terax");
+        let alias = tmp.path().join("relocated-cache").join("estate");
         std::fs::create_dir_all(&target).unwrap();
         std::fs::create_dir_all(alias.parent().unwrap()).unwrap();
         std::fs::write(target.join("control.json"), "SYNTHETIC_CREDENTIAL").unwrap();

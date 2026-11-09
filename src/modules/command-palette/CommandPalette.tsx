@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import {
   Command,
   CommandDialog,
@@ -175,7 +176,7 @@ export function CommandPalette({
     setBase(initialMode === "files" ? "files" : "commands");
     setPage("root");
     const handle = window.setTimeout(() => {
-      document.getElementById("terax-command-palette-input")?.focus();
+      document.getElementById("estate-command-palette-input")?.focus();
     }, 0);
     return () => window.clearTimeout(handle);
   }, [open, initialMode]);
@@ -303,7 +304,7 @@ export function CommandPalette({
         onKeyDown={onKeyDown}
       >
         <CommandInput
-          id="terax-command-palette-input"
+          id="estate-command-palette-input"
           value={query}
           onValueChange={setQuery}
           placeholder={placeholder}

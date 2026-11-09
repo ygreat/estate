@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { CloseManyPending } from "@/app/hooks/tabCloseGuards";
 import {
   type AppCloseBlocker,
@@ -288,7 +289,7 @@ export function CloseDialogs({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Quit Terax?</AlertDialogTitle>
+            <AlertDialogTitle>Quit Estate?</AlertDialogTitle>
             <AlertDialogDescription>
               {pendingAppClose ? appCloseMessage(pendingAppClose) : ""}
             </AlertDialogDescription>

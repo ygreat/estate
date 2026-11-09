@@ -1,4 +1,5 @@
-import type { GhosttyTerminalEvent } from "@terax/ghostty-core/protocol";
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+import type { GhosttyTerminalEvent } from "@estate/ghostty-core/protocol";
 import { parseOsc7, parseOsc52Clipboard } from "../../lib/osc-handlers";
 
 export type GhosttySemanticEventCallbacks = {
@@ -14,7 +15,7 @@ export type GhosttySemanticEventCallbacks = {
 };
 
 /**
- * Routes parser-owned semantic events into Terax product callbacks.
+ * Routes parser-owned semantic events into Estate product callbacks.
  *
  * OSC 7 is accepted only between commands. Output produced by a command is
  * untrusted and must not be allowed to change the workspace directory.

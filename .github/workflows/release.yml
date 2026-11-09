@@ -1,3 +1,4 @@
+# Modified by ygreat for Estate, 2026. Originally part of Terax.
 name: Release
 
 on:
@@ -80,7 +81,7 @@ jobs:
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TERAX_CLI_TARGET: ${{ matrix.rust-target }}
+          ESTATE_CLI_TARGET: ${{ matrix.rust-target }}
 
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -93,7 +94,7 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         with:
           tagName: ${{ github.event_name == 'push' && github.ref_name || '' }}
-          releaseName: ${{ github.event_name == 'push' && format('Terax {0}', github.ref_name) || '' }}
+          releaseName: ${{ github.event_name == 'push' && format('Estate {0}', github.ref_name) || '' }}
           releaseBody: "See the assets to download and install. Auto-update is built in."
           releaseDraft: true
           prerelease: false
@@ -129,8 +130,8 @@ jobs:
           chmod +x "./$BASENAME"
           "./$BASENAME" --appimage-extract >/dev/null
 
-          test -x squashfs-root/usr/bin/terax \
-            || { echo "terax binary missing from AppImage"; exit 1; }
+          test -x squashfs-root/usr/bin/estate \
+            || { echo "estate binary missing from AppImage"; exit 1; }
 
           # linuxdeploy may already exclude some of these libraries.
           find squashfs-root \( -type f -o -type l \) \
@@ -149,9 +150,9 @@ jobs:
             echo "Wayland library still present after repack"
             exit 1
           fi
-          test -x squashfs-root/usr/bin/terax \
-            || { echo "terax binary missing from repacked AppImage"; exit 1; }
-          squashfs-root/usr/bin/terax-cli --help
+          test -x squashfs-root/usr/bin/estate \
+            || { echo "estate binary missing from repacked AppImage"; exit 1; }
+          squashfs-root/usr/bin/estate-cli --help
           popd >/dev/null
 
           cp "$WORK/$BASENAME" "$APPIMAGE"
@@ -175,8 +176,8 @@ jobs:
           test "$(dpkg-deb -f linux-packages/*.deb Architecture)" = "$DEB_ARCH"
           test "$(rpm -qp --queryformat '%{ARCH}' linux-packages/*.rpm)" = "$APPIMAGE_ARCH"
           dpkg-deb -x linux-packages/*.deb unpacked-deb
-          unpacked-deb/usr/bin/terax-cli --help
-          file unpacked-deb/usr/bin/terax unpacked-deb/usr/bin/terax-cli
+          unpacked-deb/usr/bin/estate-cli --help
+          file unpacked-deb/usr/bin/estate unpacked-deb/usr/bin/estate-cli
           (cd linux-packages && sha256sum * > SHA256SUMS)
           stat --printf='%n %s bytes\n' linux-packages/* >> "$GITHUB_STEP_SUMMARY"
 
@@ -215,8 +216,8 @@ jobs:
           if (-not $exe) { throw "No NSIS .exe produced by Tauri" }
           if (-not $msi) { throw "No .msi produced by Tauri" }
           New-Item -ItemType Directory -Path signpath-staging -Force | Out-Null
-          Copy-Item $exe.FullName signpath-staging/terax-setup.exe
-          Copy-Item $msi.FullName signpath-staging/terax.msi
+          Copy-Item $exe.FullName signpath-staging/estate-setup.exe
+          Copy-Item $msi.FullName signpath-staging/estate.msi
           "EXE_REAL_PATH=$($exe.FullName)" | Out-File $env:GITHUB_ENV -Append
           "MSI_REAL_PATH=$($msi.FullName)" | Out-File $env:GITHUB_ENV -Append
 
@@ -238,7 +239,7 @@ jobs:
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: 'df665bf4-9b76-41ae-9596-1ba3a23010aa'
-          project-slug: 'terax-ai'
+          project-slug: 'estate-ai'
           signing-policy-slug: 'release-signing'
           artifact-configuration-slug: 'initial'
           github-artifact-id: ${{ steps.upload-windows.outputs.artifact-id }}
@@ -255,8 +256,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           $ErrorActionPreference = "Stop"
-          $signedExe = "signed/terax-setup.exe"
-          $signedMsi = "signed/terax.msi"
+          $signedExe = "signed/estate-setup.exe"
+          $signedMsi = "signed/estate.msi"
           foreach ($f in @($signedExe, $signedMsi)) {
             if (-not (Test-Path $f)) { throw "Signed artifact missing: $f" }
             $sig = Get-AuthenticodeSignature $f
@@ -333,7 +334,7 @@ jobs:
           for entry in x86_64:amd64 aarch64:aarch64; do
             ARCH=${entry%:*}
             SUFFIX=${entry#*:}
-            APP_FILE="Terax_${APP_VERSION}_${SUFFIX}.AppImage"
+            APP_FILE="Estate_${APP_VERSION}_${SUFFIX}.AppImage"
             APP_SIG=$(cat "$APP_FILE.sig")
             jq --arg key "linux-$ARCH" --arg sig "$APP_SIG" --arg url "$DL/$APP_FILE" '
               .platforms[$key] += {signature: $sig, url: $url}

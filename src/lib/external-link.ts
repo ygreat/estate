@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 export function isExternalUrl(href: string): boolean {
@@ -15,7 +16,7 @@ export function openExternalUrl(
 
   return openUrl(href)
     .catch((error) => {
-      console.error("[terax] failed to open external link:", error);
+      console.error("[estate] failed to open external link:", error);
     })
     .finally(() => onSettled?.());
 }

@@ -1,4 +1,5 @@
-//! The `terax-pty` custom URI scheme: the HTTP-shaped edge of the PTY hub.
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+//! The `estate-pty` custom URI scheme: the HTTP-shaped edge of the PTY hub.
 //!
 //! `POST /poll` is held open until output is due; `POST /ack` applies
 //! acknowledgements and returns at once. Both carry the stream token from
@@ -11,8 +12,8 @@
 //! the requesting webview. Only the page's own frame can invoke the command
 //! that issues the token. Responses name the allowed origin, never `*`.
 //!
-//! Frontend URL (see `convertFileSrc`): `terax-pty://localhost/poll` on
-//! macOS and Linux, `http://terax-pty.localhost/poll` on Windows.
+//! Frontend URL (see `convertFileSrc`): `estate-pty://localhost/poll` on
+//! macOS and Linux, `http://estate-pty.localhost/poll` on Windows.
 
 use std::sync::Arc;
 
@@ -84,7 +85,7 @@ impl Reply for TauriReply {
     }
 }
 
-/// Registered with `register_asynchronous_uri_scheme_protocol("terax-pty", ..)`.
+/// Registered with `register_asynchronous_uri_scheme_protocol("estate-pty", ..)`.
 /// Runs on the webview's main thread, so it only admits and enqueues; the
 /// hub thread does the work and answers through the responder.
 pub fn stream_protocol<R: Runtime>(

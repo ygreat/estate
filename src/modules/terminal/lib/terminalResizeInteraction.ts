@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 const MAX_RESIZE_INTERACTION_MS = 30_000;
 
 type InteractionToken = object;
@@ -11,7 +12,7 @@ type ResizeInteractionState = {
   readonly listeners: Set<InteractionListener>;
 };
 
-const GLOBAL_STATE_KEY = "__TERAX_TERMINAL_RESIZE_INTERACTION__";
+const GLOBAL_STATE_KEY = "__ESTATE_TERMINAL_RESIZE_INTERACTION__";
 const globalScope = globalThis as typeof globalThis & {
   [GLOBAL_STATE_KEY]?: ResizeInteractionState;
 };

@@ -1,4 +1,5 @@
-import type { GhosttyTerminalEvent } from "@terax/ghostty-core/protocol";
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+import type { GhosttyTerminalEvent } from "@estate/ghostty-core/protocol";
 import type {
   BlockContext,
   BlockMatch,

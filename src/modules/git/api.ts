@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import { invoke } from "@tauri-apps/api/core";
 import type {
@@ -279,7 +280,7 @@ export const git = {
       workspace: currentWorkspaceEnv(),
     }),
 
-  // ---- checkpoints (refs/terax/checkpoints/<task>/<turn>)
+  // ---- checkpoints (refs/estate/checkpoints/<task>/<turn>)
   checkpointCreate: (worktree: string, taskId: string, turn: number) =>
     invoke<CheckpointCreated>("git_checkpoint_create", {
       worktree,

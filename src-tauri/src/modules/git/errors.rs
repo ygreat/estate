@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 
@@ -50,7 +51,7 @@ impl Display for GitError {
             ),
             GitError::TooOld { found, required } => write!(
                 f,
-                "git {found} is too old; Terax needs git {required} or newer.",
+                "git {found} is too old; Estate needs git {required} or newer.",
             ),
             GitError::NotADirectory(p) => write!(f, "not a directory: {p}"),
             GitError::PathOutsideWorkspace(p) => write!(

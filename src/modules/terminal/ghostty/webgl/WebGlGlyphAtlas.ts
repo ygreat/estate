@@ -1,10 +1,11 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 /**
  * Adapted from xterm.js's TextureAtlas.
  * Copyright (c) 2017-2019 The xterm.js authors. MIT licensed.
  */
 
 import { extendedSymbolsPending } from "@/lib/fonts";
-import { CellFlags } from "@terax/ghostty-core/protocol";
+import { CellFlags } from "@estate/ghostty-core/protocol";
 import {
   BuiltinGlyphRenderer,
   builtinGlyphPending,

@@ -1,10 +1,11 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { terminalReadlineSequence } from "@/modules/terminal/lib/keymap";
 import {
   type Key,
   type KeyAction,
   type KeyEvent,
   Mods,
-} from "@terax/ghostty-core/protocol";
+} from "@estate/ghostty-core/protocol";
 import { baseTextForCode, KEY_MAP, unshiftedCodepoint } from "./keyTable";
 
 /** Kitty keyboard protocol flag bits (progressive enhancement). */

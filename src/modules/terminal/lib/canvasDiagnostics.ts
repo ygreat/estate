@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 type Size = { width: number; height: number };
 type Sample = { key: string; size: Size | null; pending: boolean };
 const samples = new WeakMap<HTMLCanvasElement, Sample>();
@@ -7,7 +8,7 @@ export function terminalCanvasDiagnostics() {
   const devicePixelRatio = window.devicePixelRatio;
   return Array.from(
     document.querySelectorAll<HTMLCanvasElement>(
-      "[data-terax-terminal-canvas]",
+      "[data-estate-terminal-canvas]",
     ),
     (canvas) => {
       const rect = canvas.getBoundingClientRect();

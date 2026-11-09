@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import {
   ResizableHandle,
   ResizablePanel,
@@ -151,9 +152,9 @@ import {
 import { useTabCloseGuards } from "./hooks/useTabCloseGuards";
 import { useWorkspaceSwitcher } from "./hooks/useWorkspaceSwitcher";
 
-// Real-application benchmark driver (scripts/app-lab). `__TERAX_BENCH__` is the literal `false`
+// Real-application benchmark driver (scripts/app-lab). `__ESTATE_BENCH__` is the literal `false`
 // in a normal build, so this is `null` and neither the import nor its chunk is emitted.
-const BenchBridge = __TERAX_BENCH__
+const BenchBridge = __ESTATE_BENCH__
   ? lazy(() => import("@/bench/BenchBridge"))
   : null;
 
@@ -572,7 +573,7 @@ export default function App() {
       // Dispatch a window event the composer listens for. Same pattern as
       // selections — keeps file-explorer decoupled from the AI module.
       window.dispatchEvent(
-        new CustomEvent<string>("terax:ai-attach-file", { detail: path }),
+        new CustomEvent<string>("estate:ai-attach-file", { detail: path }),
       );
       openPanel();
       focusInput(null);
@@ -638,7 +639,7 @@ export default function App() {
             agent: request.agent,
           }).catch((error) => {
             console.warn(
-              `[terax] could not enable ${request.agent} notifications:`,
+              `[estate] could not enable ${request.agent} notifications:`,
               error,
             );
           })
@@ -649,7 +650,7 @@ export default function App() {
           await Promise.all([whenSessionReady(leafId), hooksReady]);
           if (!writeToSession(leafId, `${command.command}\r`)) {
             console.error(
-              `[terax] agent terminal ${leafId} closed before launch`,
+              `[estate] agent terminal ${leafId} closed before launch`,
             );
           }
         })();
@@ -716,7 +717,7 @@ export default function App() {
     let unlisten: (() => void) | undefined;
     let disposed = false;
     (async () => {
-      const off = await listen<string[]>("terax:open-file", (e) => {
+      const off = await listen<string[]>("estate:open-file", (e) => {
         openLaunchFiles(e.payload);
       });
       if (disposed) off();
@@ -1497,10 +1498,10 @@ export default function App() {
                 }}
               >
                 <div className="h-full min-h-0 pl-2 pr-0.5">
-                  <div className="terax-pane flex h-full min-h-0 flex-col">
+                  <div className="estate-pane flex h-full min-h-0 flex-col">
                     <div
                       key={sidebarView}
-                      className="min-h-0 flex-1 terax-panel-in"
+                      className="min-h-0 flex-1 estate-panel-in"
                     >
                       {sidebarView === "explorer" ? (
                         <FileExplorer
@@ -1549,7 +1550,7 @@ export default function App() {
               <ResizableHandle className="w-1 rounded-full bg-transparent transition-colors duration-[var(--dur-fast)] after:w-4 hover:bg-border" />
               <ResizablePanel id="workspace" defaultSize="78%" minSize="30%">
                 <div className="h-full min-h-0 pl-0.5 pr-2">
-                  <div className="terax-pane flex h-full min-h-0 flex-col">
+                  <div className="estate-pane flex h-full min-h-0 flex-col">
                     <div className="relative min-h-0 flex-1">
                       <WorkspaceSurface
                         tabs={tabs}

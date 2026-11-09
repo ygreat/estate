@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { LazyStore } from "@tauri-apps/plugin-store";
 
 type TodoStatus = "pending" | "in_progress" | "completed";
@@ -9,7 +10,7 @@ export type Todo = {
   status: TodoStatus;
 };
 
-const STORE_PATH = "terax-ai-todos.json";
+const STORE_PATH = "estate-ai-todos.json";
 const todosKey = (sessionId: string) => `todos:${sessionId}`;
 
 const store = new LazyStore(STORE_PATH, { defaults: {}, autoSave: 200 });

@@ -1,8 +1,9 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { git } from "./api";
 import type { GitChangedEvent, GitChangeKind } from "./types";
 
-export const GIT_CHANGED_EVENT = "terax:git-changed";
+export const GIT_CHANGED_EVENT = "estate:git-changed";
 
 export type GitChangeHandler = (kinds: readonly GitChangeKind[]) => void;
 

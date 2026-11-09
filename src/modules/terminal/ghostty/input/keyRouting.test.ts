@@ -1,4 +1,5 @@
-import { Key, KeyAction, Mods } from "@terax/ghostty-core/protocol";
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+import { Key, KeyAction, Mods } from "@estate/ghostty-core/protocol";
 import { describe, expect, it } from "vitest";
 import {
   buildKeyEvent,

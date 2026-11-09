@@ -1,20 +1,21 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { Key, KeyAction, Mods } from "@terax/ghostty-core";
+import { Key, KeyAction, Mods } from "@estate/ghostty-core";
 import {
   ADAPTED_GHOSTTY_COMMIT,
   ADAPTED_GHOSTTY_WASM_SHA256,
   ADAPTED_GHOSTTY_SCALAR_WASM_SHA256,
   ADAPTED_RESTTY_COMMIT,
-  TeraxGhostty,
-} from "@terax/ghostty-core/adapted";
+  EstateGhostty,
+} from "@estate/ghostty-core/adapted";
 import { beforeAll, describe, expect, it } from "vitest";
 
 describe.each([
   ["SIMD", "ghostty-vt.wasm", ADAPTED_GHOSTTY_WASM_SHA256],
   ["scalar", "ghostty-vt-scalar.wasm", ADAPTED_GHOSTTY_SCALAR_WASM_SHA256],
 ])("%s Ghostty core", (_kind, artifact, checksum) => {
-  let ghostty: TeraxGhostty;
+  let ghostty: EstateGhostty;
   let wasmBytes: ArrayBuffer;
 
   beforeAll(async () => {
@@ -24,10 +25,10 @@ describe.each([
     );
     const file = await readFile(path);
     wasmBytes = Uint8Array.from(file).buffer;
-    ghostty = await TeraxGhostty.loadBytes(wasmBytes.slice(0));
+    ghostty = await EstateGhostty.loadBytes(wasmBytes.slice(0));
   });
 
-  describe("Terax Ghostty WASM adaptation", () => {
+  describe("Estate Ghostty WASM adaptation", () => {
     describe.each(["soa", "gpu"] as const)("%s cursor state", (format) => {
       it.each(["block", "underline", "bar"] as const)(
         "round-trips the configured %s cursor",
@@ -221,7 +222,7 @@ describe.each([
         palette.set([1, 2, 3], 3);
         terminal.setPalette(palette);
 
-        const uri = "https://terax.dev/docs";
+        const uri = "https://estate.dev/docs";
         terminal.write(
           new TextEncoder().encode(
             `\x1b[31mR\x1b[0m\x1b[1mB\x1b[0m e\u0301 \x1b]8;;${uri}\x1b\\L\x1b]8;;\x1b\\`,
@@ -391,8 +392,8 @@ describe.each([
       try {
         terminal.write(
           new TextEncoder().encode(
-            "\x1b]2;Terax title\x07" +
-              "\x1b]7;file://localhost/Users/terax\x1b\\" +
+            "\x1b]2;Estate title\x07" +
+              "\x1b]7;file://localhost/Users/estate\x1b\\" +
               "\x1b]133;A\x07" +
               "\x1b]133;B\x07" +
               "\x1b]133;C\x07" +
@@ -403,8 +404,8 @@ describe.each([
         );
 
         expect(terminal.drainEvents()).toEqual([
-          { type: "title", title: "Terax title" },
-          { type: "pwd", uri: "file://localhost/Users/terax" },
+          { type: "title", title: "Estate title" },
+          { type: "pwd", uri: "file://localhost/Users/estate" },
           { type: "prompt-start" },
           { type: "prompt-end" },
           { type: "end-of-input" },
@@ -672,7 +673,7 @@ describe.each([
 
     it("keeps clean-row grapheme and hyperlink storage valid across partial frames", () => {
       const terminal = ghostty.createTerminal(24, 4);
-      const uri = "https://terax.dev/agent";
+      const uri = "https://estate.dev/agent";
       try {
         terminal.write(
           new TextEncoder().encode(
@@ -697,7 +698,7 @@ describe.each([
     it("interns persistent hyperlinks across dirty-row updates and storage growth", () => {
       const terminal = ghostty.createTerminal(40, 4);
       const encoder = new TextEncoder();
-      const uri = "https://terax.dev/persistent";
+      const uri = "https://estate.dev/persistent";
       try {
         terminal.write(
           encoder.encode(`\x1b]8;;${uri}\x1b\\link\x1b]8;;\x1b\\`),
@@ -712,7 +713,7 @@ describe.each([
           expect(terminal.hyperlinkAt(state, 0)).toBe(uri);
         }
         for (let index = 0; index < 100; index += 1) {
-          const other = `https://terax.dev/${index}/${"path/".repeat(index)}`;
+          const other = `https://estate.dev/${index}/${"path/".repeat(index)}`;
           terminal.write(
             encoder.encode(`\x1b[3;1H\x1b]8;;${other}\x1b\\new\x1b]8;;\x1b\\`),
           );
@@ -780,7 +781,7 @@ describe.each([
     });
 
     it("keeps five fresh terminals within the per-instance page budget", async () => {
-      const isolated = await TeraxGhostty.loadBytes(wasmBytes.slice(0));
+      const isolated = await EstateGhostty.loadBytes(wasmBytes.slice(0));
       const baseline = isolated.getMemoryBytes();
       const terminals = Array.from({ length: 5 }, () =>
         isolated.createTerminal(80, 24, {
@@ -798,7 +799,7 @@ describe.each([
     });
 
     it("stabilizes render-buffer memory across adjacent resize cycles", async () => {
-      const isolated = await TeraxGhostty.loadBytes(wasmBytes.slice(0));
+      const isolated = await EstateGhostty.loadBytes(wasmBytes.slice(0));
       const terminal = isolated.createTerminal(80, 24);
       const sizes = [
         [120, 40],
@@ -849,7 +850,7 @@ describe.each([
     });
 
     it("reuses WASM allocations across repeated presentation release cycles", async () => {
-      const isolated = await TeraxGhostty.loadBytes(wasmBytes.slice(0));
+      const isolated = await EstateGhostty.loadBytes(wasmBytes.slice(0));
       const terminal = isolated.createTerminal(120, 40);
       try {
         terminal.write(
@@ -875,7 +876,7 @@ describe.each([
     });
 
     it("bounds linear-memory growth for three agent-sized scrollbacks", async () => {
-      const isolated = await TeraxGhostty.loadBytes(wasmBytes.slice(0));
+      const isolated = await EstateGhostty.loadBytes(wasmBytes.slice(0));
       const baseline = isolated.getMemoryBytes();
       const terminals = Array.from({ length: 3 }, () =>
         isolated.createTerminal(120, 40, {

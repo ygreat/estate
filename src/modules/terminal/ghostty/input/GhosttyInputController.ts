@@ -1,9 +1,10 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { ImeAnchor } from "@/modules/terminal/ghostty/input/ImeAnchor";
 import type { TerminalMouse } from "@/modules/terminal/ghostty/input/TerminalMouse";
 import { TerminalInputProxy } from "@/modules/terminal/ghostty/input/TerminalInputProxy";
 import { TerminalNativeSelection } from "@/modules/terminal/ghostty/input/TerminalNativeSelection";
 import { readTerminalClipboard } from "@/modules/terminal/lib/terminalClipboard";
-import { Key, KeyAction, type KeyEvent } from "@terax/ghostty-core/protocol";
+import { Key, KeyAction, type KeyEvent } from "@estate/ghostty-core/protocol";
 import type { GhosttyTerminalModelApi } from "../GhosttyTerminalModel";
 import {
   buildKeyEvent,
@@ -150,7 +151,7 @@ export class GhosttyInputController {
       (error: unknown) => {
         if (this.disposed) return;
         if (retry) this.loadCold(name, load, use, false);
-        else console.warn(`Terax: ${name} failed to load`, error);
+        else console.warn(`Estate: ${name} failed to load`, error);
       },
     );
   }

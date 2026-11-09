@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { GhosttyTerminalModelApi } from "../GhosttyTerminalModel";
 import type { LinkUnderlineGeometry } from "./LinkUnderlineOverlay";
 import type { TerminalLinkHit } from "./terminalLinks";
@@ -154,7 +155,7 @@ export class LazyTerminalLinks {
           links.ingest(event);
         }
       } catch (error) {
-        console.error("[terax] terminal link support failed to load:", error);
+        console.error("[estate] terminal link support failed to load:", error);
       } finally {
         queue = null;
         clickStamp = null;

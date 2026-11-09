@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { Tab } from "@/modules/tabs";
 
 /** What the scenario driver may do to the running application: the app's own tab actions. */
@@ -19,7 +20,7 @@ export type BenchAppApi = {
   readBuffer: (leafId: number, maxLines?: number) => string | null;
 };
 
-/** One scenario, as written by scripts/app-lab/run.py into TERAX_BENCH_SCENARIO. */
+/** One scenario, as written by scripts/app-lab/run.py into ESTATE_BENCH_SCENARIO. */
 export type BenchScenario = {
   name:
     | "tabs"

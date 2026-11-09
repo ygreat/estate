@@ -1,12 +1,13 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 mod common;
 
 use common::{git_available, GitRepoFixture};
 use tempfile::TempDir;
-use terax_lib::modules::fs::to_canon;
-use terax_lib::modules::git::errors::GitError;
-use terax_lib::modules::git::operations;
-use terax_lib::modules::git::types::DiscardEntry;
-use terax_lib::modules::workspace::{WorkspaceEnv, WorkspaceRegistry};
+use estate_lib::modules::fs::to_canon;
+use estate_lib::modules::git::errors::GitError;
+use estate_lib::modules::git::operations;
+use estate_lib::modules::git::types::DiscardEntry;
+use estate_lib::modules::workspace::{WorkspaceEnv, WorkspaceRegistry};
 
 fn skip_if_no_git() -> bool {
     if !git_available() {
@@ -714,17 +715,17 @@ fn discovery_preserves_derived_worktree_revocation() {
         let linked_display = to_canon(&linked);
         fx.run_git(&["worktree", "add", "--detach", &linked_display]);
         let linked_canonical = std::fs::canonicalize(&linked).unwrap();
-        terax_lib::modules::git::worktree::list(&fx.registry, &fx.repo_str(), &fx.workspace)
+        estate_lib::modules::git::worktree::list(&fx.registry, &fx.repo_str(), &fx.workspace)
             .unwrap();
         assert!(fx.registry.is_authorized(&linked_canonical));
         operations::resolve_repo(&fx.registry, &linked_display, &fx.workspace).unwrap();
         operations::panel_snapshot(&fx.registry, &linked_display, &fx.workspace).unwrap();
         if prune {
             std::fs::remove_dir_all(&linked).unwrap();
-            terax_lib::modules::git::worktree::prune(&fx.registry, &fx.repo_str(), &fx.workspace)
+            estate_lib::modules::git::worktree::prune(&fx.registry, &fx.repo_str(), &fx.workspace)
                 .unwrap();
         } else {
-            terax_lib::modules::git::worktree::remove(
+            estate_lib::modules::git::worktree::remove(
                 &fx.registry,
                 &fx.repo_str(),
                 &linked_display,

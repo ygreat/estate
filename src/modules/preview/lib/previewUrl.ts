@@ -1,8 +1,9 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 const RESERVED_HOSTS = new Set([
   "asset.localhost",
   "tauri.localhost",
   "ipc.localhost",
-  "terax-pty.localhost",
+  "estate-pty.localhost",
 ]);
 
 export function isAllowedPreviewUrl(

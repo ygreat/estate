@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { ViewportLinkSource } from "@/modules/terminal/ghostty/core/ViewportLinkResolver";
 import type {
   PackedTerminalViewport,
@@ -8,18 +9,18 @@ import type {
   TerminalRowRange,
 } from "@/modules/terminal/backend/contracts";
 import type {
-  TeraxGhostty,
-  TeraxGhosttyGpuRenderState,
-  TeraxGhosttyRenderBase,
-  TeraxGhosttyRenderState,
-  TeraxGhosttyTerminal,
-} from "@terax/ghostty-core/adapted";
+  EstateGhostty,
+  EstateGhosttyGpuRenderState,
+  EstateGhosttyRenderBase,
+  EstateGhosttyRenderState,
+  EstateGhosttyTerminal,
+} from "@estate/ghostty-core/adapted";
 import type {
   GhosttyTerminalConfig,
   GhosttyTerminalEvent,
   KeyEvent,
-} from "@terax/ghostty-core/protocol";
-import { CellFlags } from "@terax/ghostty-core/protocol";
+} from "@estate/ghostty-core/protocol";
+import { CellFlags } from "@estate/ghostty-core/protocol";
 import { PromptPresentationGate } from "./core/PromptPresentationGate";
 import { ResizePromptHold } from "./core/ResizePromptHold";
 import {
@@ -78,7 +79,7 @@ type AdaptedGhosttyTerminalModelOptions = GhosttyTerminalModelOptions & {
 };
 
 /**
- * Terax-owned model adapter for the current Ghostty terminal and render-state
+ * Estate-owned model adapter for the current Ghostty terminal and render-state
  * implementation. The terminal model is independent from GPU surfaces so it
  * survives RendererPool lease release and keeps parsing hidden-tab output.
  *
@@ -91,7 +92,7 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
   /** Scrollback bytes the configuration asks for, before the global budget. */
   readonly requestedScrollbackBytes: number;
 
-  private readonly terminal: TeraxGhosttyTerminal;
+  private readonly terminal: EstateGhosttyTerminal;
   private blockMatch: { line: number; col: number; len: number } | null = null;
   private readonly directCellReader = new GhosttyRenderCellView();
   private readonly damageListeners = new Set<() => void>();
@@ -99,8 +100,8 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
   private eventSink: ((event: GhosttyTerminalEvent) => void) | null;
   private onDispose: (() => void) | null;
   private pendingDamage: TerminalDamage = FULL_DAMAGE;
-  private renderState: TeraxGhosttyRenderState | null = null;
-  private gpuState: TeraxGhosttyGpuRenderState | null = null;
+  private renderState: EstateGhosttyRenderState | null = null;
+  private gpuState: EstateGhosttyGpuRenderState | null = null;
   private renderFormatValue: GhosttyRenderFormat = "soa";
   /** Record changes (GPU format) accumulated across updates since the last frame. */
   private pendingCellDamage: TerminalDamage = FULL_DAMAGE;
@@ -128,7 +129,7 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
   private disposed = false;
 
   constructor(
-    ghostty: TeraxGhostty,
+    ghostty: EstateGhostty,
     options: AdaptedGhosttyTerminalModelOptions,
   ) {
     validateDimensions(options.cols, options.rows);
@@ -846,13 +847,13 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
   }
 
   /** Render state in whichever format the model currently produces. */
-  private ensureCurrentState(): TeraxGhosttyRenderBase {
+  private ensureCurrentState(): EstateGhosttyRenderBase {
     return this.renderFormatValue === "gpu"
       ? this.ensureGpuState()
       : this.ensureRenderState();
   }
 
-  private ensureRenderState(): TeraxGhosttyRenderState {
+  private ensureRenderState(): EstateGhosttyRenderState {
     if (this.renderFormatValue !== "soa") this.switchRenderFormat("soa");
     const state = this.renderState;
     if (
@@ -879,7 +880,7 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
     return current;
   }
 
-  private ensureGpuState(): TeraxGhosttyGpuRenderState {
+  private ensureGpuState(): EstateGhosttyGpuRenderState {
     if (this.renderFormatValue !== "gpu") this.switchRenderFormat("gpu");
     const state = this.gpuState;
     if (!this.renderStateCurrent || !state) {
@@ -923,7 +924,7 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
     this.renderStateCurrent = false;
   }
 
-  private packRenderState(state: TeraxGhosttyRenderState): void {
+  private packRenderState(state: EstateGhosttyRenderState): void {
     const byteLength = state.cellCount * CELL_STRIDE;
     if (this.packedViewport.byteLength !== byteLength) {
       this.packedViewport = new Uint8Array(byteLength);
@@ -1032,13 +1033,13 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
 }
 
 class GhosttyRenderCellView implements TerminalCellReader {
-  private state: TeraxGhosttyRenderState | null = null;
+  private state: EstateGhosttyRenderState | null = null;
 
   get length(): number {
     return this.current().cellCount;
   }
 
-  update(state: TeraxGhosttyRenderState): void {
+  update(state: EstateGhosttyRenderState): void {
     this.state = state;
   }
 
@@ -1103,7 +1104,7 @@ class GhosttyRenderCellView implements TerminalCellReader {
     return packedRgb(this.current().backgroundRgba, index * 4);
   }
 
-  private current(): TeraxGhosttyRenderState {
+  private current(): EstateGhosttyRenderState {
     if (!this.state) throw new Error("Ghostty render cells are unavailable");
     return this.state;
   }
@@ -1149,7 +1150,7 @@ function encodePalette(palette: readonly number[]): Uint8Array {
   return colors;
 }
 
-function damageFromRenderState(state: TeraxGhosttyRenderBase): TerminalDamage {
+function damageFromRenderState(state: EstateGhosttyRenderBase): TerminalDamage {
   if (state.fullDamage) return FULL_DAMAGE;
   const ranges: TerminalRowRange[] = [];
   let first = -1;

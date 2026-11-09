@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { expect, it } from "vitest";
@@ -28,7 +29,7 @@ case "$1" in
   empty) PROMPT_COMMAND=() ;;
   single) PROMPT_COMMAND=('first') ;;
   sparse) PROMPT_COMMAND=([0]='first' [3]='second') ;;
-  registered) PROMPT_COMMAND=('first' '_terax_precmd' 'second') ;;
+  registered) PROMPT_COMMAND=('first' '_estate_precmd' 'second') ;;
 esac
 `;
     // From bash 5.1 every element of an array runs; before that only element 0.
@@ -42,23 +43,23 @@ case "$(declare -p PROMPT_COMMAND)" in
   'declare -a'*)
     if [ -n "$elements" ]; then
       actual=$(for hook in "\${PROMPT_COMMAND[@]}"; do eval "$hook"; done)
-      test "\${PROMPT_COMMAND[\${#PROMPT_COMMAND[@]}-1]}" = _terax_finish_prompt || exit 11
-      test "\${PROMPT_COMMAND[0]}" = _terax_precmd -o "$1" = registered || exit 12
+      test "\${PROMPT_COMMAND[\${#PROMPT_COMMAND[@]}-1]}" = _estate_finish_prompt || exit 11
+      test "\${PROMPT_COMMAND[0]}" = _estate_precmd -o "$1" = registered || exit 12
     else
       actual=$(eval "\${PROMPT_COMMAND[0]}")
     fi
     ;;
   *)
     test "$1" = scalar || exit 13
-    test "$PROMPT_COMMAND" = "_terax_precmd;first;second"$'\\n'"_terax_finish_prompt" || exit 14
+    test "$PROMPT_COMMAND" = "_estate_precmd;first;second"$'\\n'"_estate_finish_prompt" || exit 14
     actual=$(eval "$PROMPT_COMMAND")
     ;;
 esac
 all="\${PROMPT_COMMAND[*]}"
-stripped="\${all//_terax_precmd/}"
-want=13
+stripped="\${all//_estate_precmd/}"
+want=14  # length of _estate_precmd
 # Before 5.1 a hook parked in element 1 never ran, so element 0 gets its own.
-if [ "$1" = registered ] && [ -z "$elements" ]; then want=26; fi
+if [ "$1" = registered ] && [ -z "$elements" ]; then want=28; fi
 test "$(( \${#all} - \${#stripped} ))" = "$want" || exit 15
 case "$actual" in *']7;file://'*']133;A'*) ;; *) exit 16 ;; esac
 if [ "$1" != empty ]; then

@@ -1,9 +1,10 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-// Locks the compositing budget documented in TERAX.md. Every composited layer
+// Locks the compositing budget documented in ESTATE.md. Every composited layer
 // costs a backing store (and WebKit allocates a new one per resize step for
 // every layer whose size follows the window), so the shell must not create
 // layers by default. These constructs force or imply one; they may only appear

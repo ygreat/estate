@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -5,13 +6,13 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
-const source = process.env.TERAX_VISUAL_SOURCE_ROOT ?? path.resolve(root, "../..");
-const outDir = process.env.TERAX_VISUAL_OUT;
+const source = process.env.ESTATE_VISUAL_SOURCE_ROOT ?? path.resolve(root, "../..");
+const outDir = process.env.ESTATE_VISUAL_OUT;
 
 // Receives raw RGBA readbacks from the page so they can be compared offline.
 function saveEndpoint(): Plugin {
   return {
-    name: "terax-visual-save",
+    name: "estate-visual-save",
     configureServer(server) {
       server.middlewares.use("/__save", (request, response) => {
         if (!outDir || request.method !== "POST") {
@@ -36,11 +37,11 @@ export default defineConfig({
   root,
   cacheDir: path.join(
     os.tmpdir(),
-    `terax-visual-vite-${process.env.TERAX_VISUAL_PORT ?? 5199}`,
+    `estate-visual-vite-${process.env.ESTATE_VISUAL_PORT ?? 5199}`,
   ),
   plugins: [saveEndpoint()],
   server: {
-    port: Number(process.env.TERAX_VISUAL_PORT ?? 5199),
+    port: Number(process.env.ESTATE_VISUAL_PORT ?? 5199),
     strictPort: true,
     fs: { allow: [root, source, path.resolve(root, "../..")] },
   },
@@ -48,16 +49,16 @@ export default defineConfig({
     alias: [
       { find: "@", replacement: path.join(source, "src") },
       {
-        find: "@terax/ghostty-core/adapted",
+        find: "@estate/ghostty-core/adapted",
         replacement: path.join(source, "packages/ghostty-core/lib/adapted/index.ts"),
       },
       {
-        find: "@terax/ghostty-core/protocol",
+        find: "@estate/ghostty-core/protocol",
         replacement: path.join(source, "packages/ghostty-core/lib/protocol.ts"),
       },
     ],
   },
   // Product code gates app-lab hooks on this build-time constant (see the app's vite.config.ts).
-  define: { __TERAX_BENCH__: "false" },
+  define: { __ESTATE_BENCH__: "false" },
   build: { target: "es2022" },
 });

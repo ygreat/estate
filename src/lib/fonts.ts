@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 const NERD_FONT_CANDIDATES = [
   "JetBrainsMono Nerd Font",
   "JetBrainsMono Nerd Font Mono",
@@ -26,8 +27,8 @@ const NERD_FONT_CANDIDATES = [
   "Hasklug Nerd Font",
 ];
 
-const SYMBOLS_FAMILY = "Terax Terminal Symbols";
-const EXTENDED_SYMBOLS_FAMILY = "Terax Terminal Symbols MDI";
+const SYMBOLS_FAMILY = "Estate Terminal Symbols";
+const EXTENDED_SYMBOLS_FAMILY = "Estate Terminal Symbols MDI";
 
 /**
  * Per codepoint, the first face that has the glyph wins. The installed Symbols Nerd

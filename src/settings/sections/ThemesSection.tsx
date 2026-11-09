@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -207,13 +208,13 @@ export function ThemesSection() {
               className="h-7 px-2 text-[11px]"
               onClick={onPickThemeFile}
             >
-              Import .terax-theme
+              Import .estate-theme
             </Button>
           </div>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".terax-theme,.json,application/json"
+            accept=".estate-theme,.json,application/json"
             className="hidden"
             onChange={(e) => {
               void handleThemeFiles(e.target.files);

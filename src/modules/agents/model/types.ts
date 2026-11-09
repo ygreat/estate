@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 export const AGENT_STATES = [
   "starting",
   "working",
@@ -61,7 +62,7 @@ export type SubagentInfo = {
   state: "running" | "done";
 };
 
-/** Payload of the native `terax:agent-event` event. */
+/** Payload of the native `estate:agent-event` event. */
 export type AgentHookEvent = {
   paneId: number;
   ptyId: number;
@@ -86,7 +87,7 @@ export type AgentSignalKind =
   | "finished"
   | "exited";
 
-/** Payload of the native `terax:agent-signal` event (process and OSC state). */
+/** Payload of the native `estate:agent-signal` event (process and OSC state). */
 export type AgentSignalEvent = {
   id: number;
   kind: AgentSignalKind;
@@ -116,7 +117,7 @@ export type CurrentTool = {
 };
 
 export type PendingPermission = {
-  /** Present when Terax can answer; absent when only the agent's own prompt can. */
+  /** Present when Estate can answer; absent when only the agent's own prompt can. */
   requestId: string | null;
   tool: string;
   inputPreview: string;

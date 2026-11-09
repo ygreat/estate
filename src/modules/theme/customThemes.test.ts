@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const pluginStore = vi.hoisted(() => {
@@ -79,7 +80,7 @@ describe("custom theme store", () => {
     const stored = store.data.get("themes") as Theme[];
     expect(stored.map((t) => t.id)).toEqual(["b", "a"]);
     expect(store.save).toHaveBeenCalledTimes(3);
-    expect(events.emit).toHaveBeenCalledWith("terax://custom-themes-changed");
+    expect(events.emit).toHaveBeenCalledWith("estate://custom-themes-changed");
   });
 
   it("delete is a no-op when the id does not exist", async () => {
@@ -107,7 +108,7 @@ describe("custom theme store", () => {
     const store = pluginStore.instances[0];
     const stored = store.data.get("themes") as Theme[];
     expect(stored.map((t) => t.id)).toEqual(["b"]);
-    expect(events.emit).toHaveBeenCalledWith("terax://custom-themes-changed");
+    expect(events.emit).toHaveBeenCalledWith("estate://custom-themes-changed");
   });
 
   it("subscribes to store-key changes and cross-window events once", async () => {

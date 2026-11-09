@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 /**
  * Optional WebGPU/DOM lifecycle counters for the app lab (`scenario.instrument`). They patch
  * prototypes, so they are off unless asked for; a run with and without them tells whether the
@@ -149,7 +150,7 @@ function countIpc(): void {
       if (typeof body === "string") bump("ipc.bytes", body.length);
       else if (body instanceof ArrayBuffer || ArrayBuffer.isView(body))
         bump("ipc.bytes", body.byteLength);
-    } else if (url.includes("terax-pty")) {
+    } else if (url.includes("estate-pty")) {
       bump(url.endsWith("/poll") ? "pty.poll" : "pty.ack");
     }
     return realFetch(input, init);

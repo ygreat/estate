@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { invoke } from "@tauri-apps/api/core";
 import { setWindowVibrancy } from "@/modules/settings/store";
 import { whenSessionReady, writeToSession } from "@/modules/terminal";
@@ -1033,8 +1034,8 @@ let started = false;
 /** Starts the configured scenario once the application has mounted; no-op without one. */
 export async function startBenchDriver(app: () => BenchAppApi): Promise<void> {
   if (started) return;
-  const config = (window as unknown as { __teraxBenchConfig?: BenchConfig })
-    .__teraxBenchConfig;
+  const config = (window as unknown as { __estateBenchConfig?: BenchConfig })
+    .__estateBenchConfig;
   if (!config?.scenario || !config.reportUrl) return;
   started = true;
   const run = new ScenarioRun(config.reportUrl, config.scenario, app);

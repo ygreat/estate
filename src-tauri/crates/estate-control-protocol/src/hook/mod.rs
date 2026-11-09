@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 mod adapt;
 mod render;
 mod text;
@@ -170,7 +171,7 @@ impl HookFacts {
     }
 }
 
-/// Payload of the `terax:agent-event` Tauri event.
+/// Payload of the `estate:agent-event` Tauri event.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentEvent {

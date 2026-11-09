@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 /*
  * The `pattern=sprites` test pattern: borders, tables, progress bars, spinners
  * and a powerline prompt, written as colour runs so the same description feeds
@@ -182,7 +183,7 @@ function powerline(): SpriteRow[] {
     [
       segment(" user ", a, INK),
       sep(arrow, a, b),
-      segment(" ~/Dev/Terax ", b, WHITE),
+      segment(" ~/Dev/Estate ", b, WHITE),
       sep(arrow, b, c),
       segment(" main ", c, WHITE),
       sep(arrow, c, d),

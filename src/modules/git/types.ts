@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 export type GitRepoInfo = {
   repoRoot: string;
   branch: string;
@@ -270,7 +271,7 @@ type WorktreeBranch =
   | { mode: "detach" };
 
 export type WorktreeAddRequest = {
-  /** Absolute location; omitted: `~/.terax/worktrees/<project>/<task>`. */
+  /** Absolute location; omitted: `~/.estate/worktrees/<project>/<task>`. */
   path?: string | null;
   taskSlug?: string | null;
   branch: WorktreeBranch;

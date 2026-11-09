@@ -1,6 +1,7 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type {
-  TeraxGhosttyGpuGlyph,
-  TeraxGhosttyGpuGlyphBatch,
+  EstateGhosttyGpuGlyph,
+  EstateGhosttyGpuGlyphBatch,
 } from "./types";
 
 const MAX_GLYPH_CODEPOINTS = 1_024;
@@ -10,14 +11,14 @@ const MAX_GLYPH_CODEPOINTS = 1_024;
  * validated as they are decoded so a corrupted stream throws instead of
  * reading past the batch.
  */
-export class GpuGlyphBatch implements TeraxGhosttyGpuGlyphBatch {
+export class GpuGlyphBatch implements EstateGhosttyGpuGlyphBatch {
   constructor(readonly words: Uint32Array) {}
 
   get isEmpty(): boolean {
     return this.words.length === 0;
   }
 
-  *[Symbol.iterator](): Iterator<TeraxGhosttyGpuGlyph> {
+  *[Symbol.iterator](): Iterator<EstateGhosttyGpuGlyph> {
     const words = this.words;
     let offset = 0;
     while (offset < words.length) {
@@ -43,7 +44,7 @@ export class GpuGlyphBatch implements TeraxGhosttyGpuGlyphBatch {
     }
   }
 
-  toArray(): TeraxGhosttyGpuGlyph[] {
+  toArray(): EstateGhosttyGpuGlyph[] {
     return Array.from(this);
   }
 }

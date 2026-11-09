@@ -1,6 +1,7 @@
-"""Opt-in, isolated macOS WKWebView renderer lab. Never opens the user's Terax profile.
+# Modified by ygreat for Estate, 2026. Originally part of Terax.
+"""Opt-in, isolated macOS WKWebView renderer lab. Never opens the user's Estate profile.
 
-Builds the real Terax WebGPU renderer and the real Ghostty WASM models into a native WKWebView
+Builds the real Estate WebGPU renderer and the real Ghostty WASM models into a native WKWebView
 host, drives a synthetic workload through the model write API (no PTY), and samples physical
 footprint, CPU time and energy of the host plus its WebKit helpers.
 
@@ -8,7 +9,7 @@ Workloads (`--workload`):
   default    the original tab-switch / resize / repaint workload (footprint only)
   occlusion  repeated window occlusion (order out, cover window or miniaturize) with a longer
              hold than the 2 s reclaim delay; optional forced-GC probes
-  canvas     the same occlusion cycles on a raw WebGPU canvas (no Terax renderer) to compare
+  canvas     the same occlusion cycles on a raw WebGPU canvas (no Estate renderer) to compare
              canvas teardown strategies with --variant
   move       small-step and jump window moves while terminals trickle output
   tabs       alternate between a one-pane and a four-pane tab, dwelling longer than the old
@@ -43,7 +44,7 @@ import procstats  # noqa: E402
 LEGACY_PHASES = {"blank", "two-blank", "streamed", "switched", "resized", "repaint-start", "repainted", "hidden", "disposed", "done"}
 SCOPE = (
     "Synthetic renderer in an isolated native WKWebView fed through the Ghostty model write API; "
-    "not full Terax, a real PTY, React, AI streaming, IPC, packaged-app behaviour, or "
+    "not full Estate, a real PTY, React, AI streaming, IPC, packaged-app behaviour, or "
     "cross-platform qualification. WindowServer CPU is whole-system (all windows), from ps, without energy."
 )
 
@@ -127,11 +128,11 @@ if args.workload == "occlusion" and not expect_reclaim and hidden_ms >= 1900:
 
 root = Path(__file__).resolve().parent
 repo = root.parent.parent
-output = (args.output or Path(tempfile.mkdtemp(prefix="terax-renderer-profile-"))).resolve()
+output = (args.output or Path(tempfile.mkdtemp(prefix="estate-renderer-profile-"))).resolve()
 output.mkdir(parents=True, exist_ok=True)
 source = (args.source or repo).resolve()
 dist = output / "dist"
-bundle = output / "Terax Renderer Lab.app"
+bundle = output / "Estate Renderer Lab.app"
 executable = bundle / "Contents/MacOS/renderer-lab"
 executable.parent.mkdir(parents=True, exist_ok=True)
 vmmap_enabled = args.vmmap if args.vmmap is not None else args.workload in ("occlusion", "canvas", "move", "resize", "tabs")
@@ -185,7 +186,7 @@ if session_locked():
 # Build
 # ---------------------------------------------------------------------------------------------
 
-env = {**os.environ, "TERAX_PROFILE_SOURCE_ROOT": str(source), "TERAX_RENDERER_DIST": str(dist)}
+env = {**os.environ, "ESTATE_PROFILE_SOURCE_ROOT": str(source), "ESTATE_RENDERER_DIST": str(dist)}
 if args.reuse_build and (dist / "index.html").exists() and executable.exists():
     print(f"Reusing the build in {output} (artifact hashes are recorded in the report)", flush=True)
 else:
@@ -262,7 +263,7 @@ config = {
     "hostTimeoutS": host_timeout,
 }
 manifest = {
-    "schema": "terax-renderer-lab/2",
+    "schema": "estate-renderer-lab/2",
     "scope": SCOPE,
     "config": config,
     "sourceRevision": revision.stdout.strip() if has_git else args.revision,
@@ -295,7 +296,7 @@ if args.workload != "default":
     })
 url = f"http://127.0.0.1:{server.server_port}/?{urlencode(query)}" + ("&inspect=1" if args.inspect else "")
 with (bundle / "Contents/Info.plist").open("wb") as info:
-    plistlib.dump({"CFBundleIdentifier": "app.crynta.terax.renderer-lab", "CFBundleExecutable": "renderer-lab", "CFBundleName": "Terax Renderer Lab", "CFBundlePackageType": "APPL", "NSHighResolutionCapable": True, "TeraxLabURL": url}, info)
+    plistlib.dump({"CFBundleIdentifier": "io.github.ygreat.estate.renderer-lab", "CFBundleExecutable": "renderer-lab", "CFBundleName": "Estate Renderer Lab", "CFBundlePackageType": "APPL", "NSHighResolutionCapable": True, "EstateLabURL": url}, info)
 
 # ---------------------------------------------------------------------------------------------
 # Sampling
@@ -423,7 +424,7 @@ if args.inspect:
     command.append(str(output))
 process = subprocess.Popen(
     command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-    env={**os.environ, "TERAX_LAB_CONTROL": "1", "TERAX_LAB_TIMEOUT": str(host_timeout)},
+    env={**os.environ, "ESTATE_LAB_CONTROL": "1", "ESTATE_LAB_TIMEOUT": str(host_timeout)},
 )
 manifest["hostPid"] = process.pid
 poller.start()

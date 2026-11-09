@@ -1,5 +1,6 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { readFile } from "node:fs/promises";
-import { TeraxGhostty } from "@terax/ghostty-core/adapted";
+import { EstateGhostty } from "@estate/ghostty-core/adapted";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { RESIZE_PROMPT_HOLD_MS } from "./core/ResizePromptHold";
 import { TerminalResizeSync } from "@/modules/terminal/lib/terminalResizeSync";
@@ -7,12 +8,12 @@ import { AdaptedGhosttyTerminalModel } from "./AdaptedGhosttyTerminalModel";
 
 const encoder = new TextEncoder();
 const PROMPT = "user@host ~ % ";
-// What zsh with Terax's OSC 133 integration prints for a prompt: A starts it, B ends it.
+// What zsh with Estate's OSC 133 integration prints for a prompt: A starts it, B ends it.
 const PROMPT_BYTES = `\x1b]133;A\x07${PROMPT}\x1b]133;B\x07`;
 // What it prints again on SIGWINCH (redraw defaults to on, so Ghostty cleared the old one).
 const REDRAW_BYTES = `\r\x1b[0J${PROMPT_BYTES}`;
 
-let core: TeraxGhostty;
+let core: EstateGhostty;
 
 beforeAll(async () => {
   const file = await readFile(
@@ -21,7 +22,7 @@ beforeAll(async () => {
       import.meta.url,
     ),
   );
-  core = await TeraxGhostty.loadBytes(Uint8Array.from(file).buffer);
+  core = await EstateGhostty.loadBytes(Uint8Array.from(file).buffer);
 });
 
 afterEach(() => vi.useRealTimers());

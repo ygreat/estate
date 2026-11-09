@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { native } from "@/modules/ai/lib/native";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { Tab } from "@/modules/tabs";
@@ -116,7 +117,7 @@ export function useSpacesBoot({
         const activeTab = inActive[idx] ?? inActive[0] ?? restored[0];
         replaceTabs(restored, activeTab.id);
       } catch (e) {
-        console.error("[terax] spaces boot failed:", e);
+        console.error("[estate] spaces boot failed:", e);
       } finally {
         markBooted();
       }

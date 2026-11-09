@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::path::Path;
 use std::time::Duration;
 
@@ -67,7 +68,7 @@ fn location_repo() -> TestRepo {
 
 fn set_task_dir(repo: &TestRepo, template: &str) {
     repo.write(
-        ".terax/project.toml",
+        ".estate/project.toml",
         &format!("[worktree]\ndir = '{}'\n", template.replace('\\', "/")),
     );
     repo.commit_all("task location");
@@ -85,8 +86,8 @@ fn task_locations_reject_absolute_and_home_paths_outside_trusted_roots() {
         ),
         ("~/.ssh/{task}".into(), home.join(".ssh/task")),
         (
-            "~/.terax/worktrees-other/{task}".into(),
-            home.join(".terax/worktrees-other/task"),
+            "~/.estate/worktrees-other/{task}".into(),
+            home.join(".estate/worktrees-other/task"),
         ),
     ] {
         set_task_dir(&repo, &template);
@@ -128,7 +129,7 @@ fn task_locations_allow_default_and_sibling_worktrees() {
     let repo = location_repo();
     let (_home, home) = scratch();
     let default = create(&repo, &home, "default");
-    assert!(Path::new(&default.task.path).starts_with(home.join(".terax/worktrees")));
+    assert!(Path::new(&default.task.path).starts_with(home.join(".estate/worktrees")));
     let sibling = repo.root.parent().unwrap().join("repo-worktrees");
     set_task_dir(&repo, &format!("{}/{{task}}", sibling.display()));
     let task = create(&repo, &home, "sibling");
@@ -225,9 +226,9 @@ fn task_locations_resolve_symlinks_before_trusting_destinations() {
         error.contains(&outside.to_string_lossy().to_string()),
         "{error}"
     );
-    std::fs::create_dir_all(home.join(".terax")).unwrap();
-    std::os::unix::fs::symlink(&outside, home.join(".terax/worktrees")).unwrap();
-    set_task_dir(&repo, "~/.terax/worktrees/{project}/{task}");
+    std::fs::create_dir_all(home.join(".estate")).unwrap();
+    std::os::unix::fs::symlink(&outside, home.join(".estate/worktrees")).unwrap();
+    set_task_dir(&repo, "~/.estate/worktrees/{project}/{task}");
     assert!(tasks::create(
         &repo.registry,
         &repo.path(),
@@ -391,7 +392,7 @@ fn config_defaults_unknown_keys_types_and_lines() {
         project_config::parse("version = 999\nunknown = true\n[ports]\nbase = 4000\n").unwrap();
     assert_eq!(config.ports.base, 4000);
     assert_eq!(config.ports.per_task, 10);
-    assert_eq!(config.worktree.branch_prefix, "terax/");
+    assert_eq!(config.worktree.branch_prefix, "estate/");
     assert_eq!(config.layout.default.cards, ["agent", "review | preview"]);
     assert_eq!(config.scripts.setup, "pnpm install");
     let json = serde_json::to_value(&config).unwrap();
@@ -447,7 +448,7 @@ fn lifecycle_preserves_dirty_work_and_reallocates_ports() {
         ".gitignore",
         ".env\n.env.local\nlocal.json\nnode_modules/\n",
     );
-    repo.write(".terax/project.toml", "[worktree]\ninclude = ['.env', 'README.md', 'scratch.txt']\nshared = ['node_modules/.cache/']\n[scripts]\nsetup = 'echo setup'\narchive = 'echo archive'\n");
+    repo.write(".estate/project.toml", "[worktree]\ninclude = ['.env', 'README.md', 'scratch.txt']\nshared = ['node_modules/.cache/']\n[scripts]\nsetup = 'echo setup'\narchive = 'echo archive'\n");
     repo.write(".worktreeinclude", "local.json\n");
     repo.commit_all("configuration");
     repo.write(".env", "SECRET=value\n");
@@ -456,7 +457,7 @@ fn lifecycle_preserves_dirty_work_and_reallocates_ports() {
     repo.write("node_modules/.cache/item", "shared cache\n");
     let first = create(&repo, &home, "Fix Login!");
     let path = Path::new(&first.task.path);
-    assert_eq!(first.task.branch, "terax/fix-login");
+    assert_eq!(first.task.branch, "estate/fix-login");
     assert_eq!(first.setup_script, "echo setup");
     assert_eq!(first.copied, [".env", "local.json"]);
     assert!(!path.join("scratch.txt").exists());
@@ -470,8 +471,8 @@ fn lifecycle_preserves_dirty_work_and_reallocates_ports() {
             "shared cache\n"
         );
     }
-    assert_eq!(first.env["TERAX_PORT_9"], "3009");
-    assert!(!first.env["TERAX_WORKSPACE_PATH"].starts_with("\\\\?\\"));
+    assert_eq!(first.env["ESTATE_PORT_9"], "3009");
+    assert!(!first.env["ESTATE_WORKSPACE_PATH"].starts_with("\\\\?\\"));
     let second = create(&repo, &home, "Fix Login!");
     assert_ne!(first.task.path, second.task.path);
     assert_ne!(first.task.branch, second.task.branch);
@@ -662,7 +663,7 @@ fn symlink_escapes_are_rejected_and_usage_does_not_follow_links() {
     std::fs::write(outside.join("huge"), vec![0u8; 100_000]).unwrap();
     std::os::unix::fs::symlink(&outside, repo.root.join("escape")).unwrap();
     repo.write(
-        ".terax/project.toml",
+        ".estate/project.toml",
         "[worktree]\nshared = ['escape/huge']",
     );
     assert!(tasks::create(
@@ -679,8 +680,8 @@ fn symlink_escapes_are_rejected_and_usage_does_not_follow_links() {
     let usage = tasks::measure(&repo.root, 100_000, Duration::from_secs(1));
     assert!(usage.bytes < 100_000);
     assert!(tasks::measure(&repo.root, 1, Duration::from_secs(1)).truncated);
-    std::fs::remove_file(repo.root.join(".terax/project.toml")).unwrap();
-    std::os::unix::fs::symlink(outside.join("huge"), repo.root.join(".terax/project.toml"))
+    std::fs::remove_file(repo.root.join(".estate/project.toml")).unwrap();
+    std::os::unix::fs::symlink(outside.join("huge"), repo.root.join(".estate/project.toml"))
         .unwrap();
     assert!(project_config::read(&repo.registry, &repo.path(), &repo.ws).is_err());
     let config = project_config::WorktreeConfig {
@@ -778,7 +779,7 @@ fn include_and_shared_never_replace_checked_out_files() {
     repo.git(&["branch", "with-files"]);
     repo.git(&["rm", "-r", ".env", "cache"]);
     repo.write(".gitignore", ".env\ncache/\n");
-    repo.write(".terax/project.toml", "[worktree]\nshared = ['cache']\n");
+    repo.write(".estate/project.toml", "[worktree]\nshared = ['cache']\n");
     repo.commit_all("ignore files");
     repo.write(".env", "local source\n");
     repo.write("cache/file", "local cache\n");
@@ -838,8 +839,8 @@ fn invalid_config_and_corrupt_state_fail_before_worktree_creation() {
     ] {
         assert!(project_config::parse(config).is_err());
     }
-    std::fs::create_dir(home.join(".terax")).unwrap();
-    std::fs::write(home.join(".terax/task-worktrees.json"), "not json").unwrap();
+    std::fs::create_dir(home.join(".estate")).unwrap();
+    std::fs::write(home.join(".estate/task-worktrees.json"), "not json").unwrap();
     assert!(tasks::create(
         &repo.registry,
         &repo.path(),
@@ -851,8 +852,8 @@ fn invalid_config_and_corrupt_state_fail_before_worktree_creation() {
         &home
     )
     .is_err());
-    assert!(!home.join(".terax/worktrees").exists());
-    assert!(!repo.git(&["branch", "--list", "terax/*"]).contains("bad"));
+    assert!(!home.join(".estate/worktrees").exists());
+    assert!(!repo.git(&["branch", "--list", "estate/*"]).contains("bad"));
 }
 
 #[test]
@@ -1044,11 +1045,11 @@ fn branch_slugs_accept_file_names_and_dot_runs() {
     let (_home, home) = scratch();
     assert_eq!(
         create(&repo, &home, "Update Cargo.lock").task.branch,
-        "terax/update-cargo-lock"
+        "estate/update-cargo-lock"
     );
     assert_eq!(
         create(&repo, &home, "Fix foo..bar").task.branch,
-        "terax/fix-foo-bar"
+        "estate/fix-foo-bar"
     );
 }
 
@@ -1093,7 +1094,7 @@ fn includes_beyond_symlinks_are_skipped_without_losing_other_files() {
     let (_home, home) = scratch();
     repo.write(".gitignore", ".env\nactual/\n");
     repo.write(
-        ".terax/project.toml",
+        ".estate/project.toml",
         "[worktree]\ninclude = ['linked/.env', '.env']\nshared = []\n",
     );
     repo.commit_all("configuration");
@@ -1115,7 +1116,7 @@ fn clean_shared_directory_links_do_not_require_force_and_are_recreated() {
     let (_home, home) = scratch();
     repo.write(".gitignore", "node_modules/\n");
     repo.write(
-        ".terax/project.toml",
+        ".estate/project.toml",
         "[worktree]\nshared = ['node_modules']\n",
     );
     repo.commit_all("shared dependencies");
@@ -1187,7 +1188,7 @@ fn skipped_user_files_remain_unmanaged_across_restore() {
     let (_home, home) = scratch();
     repo.write("shared.txt", "tracked content\n");
     repo.write(
-        ".terax/project.toml",
+        ".estate/project.toml",
         "[worktree]\nshared = ['shared.txt']\n",
     );
     repo.commit_all("tracked shared path");
@@ -1302,7 +1303,7 @@ fn archive_restores_later_links_and_reports_partial_failure_state() {
     let (_home, home) = scratch();
     repo.write(".gitignore", "first/\nsecond/\n");
     repo.write(
-        ".terax/project.toml",
+        ".estate/project.toml",
         "[worktree]\nshared = ['first/cache', 'second/cache']\n",
     );
     repo.commit_all("shared directories");

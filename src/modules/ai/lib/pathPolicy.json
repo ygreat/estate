@@ -48,10 +48,10 @@
     "/appdata/roaming/microsoft/credentials",
     "/appdata/local/microsoft/credentials",
     "/appdata/roaming/gcloud",
-    "/library/caches/terax",
-    "/.cache/terax",
-    "/appdata/local/terax",
-    "/appdata/local/app.crynta.terax",
-    "/.local/share/app.crynta.terax"
+    "/library/caches/estate",
+    "/.cache/estate",
+    "/appdata/local/estate",
+    "/appdata/local/io.github.ygreat.estate",
+    "/.local/share/io.github.ygreat.estate"
   ]
 }

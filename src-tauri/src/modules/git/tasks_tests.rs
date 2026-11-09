@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 //! Integration tests for worktrees, checkpoints and branch operations against
 //! real temporary repositories.
 
@@ -524,18 +525,18 @@ fn creating_a_checkpoint_never_touches_the_index_head_branches_or_files() {
         .filter(|e| {
             e.file_name()
                 .to_string_lossy()
-                .starts_with("terax-snapshot")
+                .starts_with("estate-snapshot")
         })
         .collect();
     assert!(leftovers.is_empty(), "temporary indexes are cleaned up");
 
-    assert_eq!(created.info.ref_name, "refs/terax/checkpoints/task-1/1");
+    assert_eq!(created.info.ref_name, "refs/estate/checkpoints/task-1/1");
     assert_eq!(created.info.parent.as_deref(), Some(head.trim()));
     assert!(created.consistent);
     assert!(created.warnings.is_empty(), "{:?}", created.warnings);
     assert!(!created.limits.atomic);
     assert_eq!(
-        repo.git(&["rev-parse", "refs/terax/checkpoints/task-1/1"])
+        repo.git(&["rev-parse", "refs/estate/checkpoints/task-1/1"])
             .trim(),
         created.info.commit
     );
@@ -632,8 +633,8 @@ fn task_ids_and_refs_are_validated() {
         "refs/heads/main",
         "main",
         "HEAD",
-        "refs/terax/checkpoints/x",
-        "refs/terax/checkpoints/../1",
+        "refs/estate/checkpoints/x",
+        "refs/estate/checkpoints/../1",
     ] {
         assert!(
             checkpoint::restore(&repo.registry, &repo.path(), bad, true, &repo.ws).is_err(),
@@ -735,7 +736,7 @@ fn restore_refuses_when_files_changed_since_the_latest_checkpoint_unless_forced(
     assert_eq!(dirty, vec!["a.txt", "user-note.txt"]);
     assert_eq!(
         refused.latest_ref.as_deref(),
-        Some("refs/terax/checkpoints/t/2")
+        Some("refs/estate/checkpoints/t/2")
     );
     assert_eq!(
         repo.read("a.txt"),

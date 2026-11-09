@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { isMarkdownPath } from "@/lib/utils";
 import {
   type AgentInstanceCount,
@@ -801,8 +802,8 @@ export function useTabs(initial?: Partial<TerminalTab>) {
   useEffect(() => {
     if (!import.meta.env?.DEV || typeof window === "undefined") return;
     (
-      window as unknown as { __teraxNewBlockTab?: (cwd?: string) => number }
-    ).__teraxNewBlockTab = newBlockTab;
+      window as unknown as { __estateNewBlockTab?: (cwd?: string) => number }
+    ).__estateNewBlockTab = newBlockTab;
   }, [newBlockTab]);
 
   const newAgentGroupTab = useCallback(

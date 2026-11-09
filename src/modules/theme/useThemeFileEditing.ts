@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { type RefObject, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -43,12 +44,12 @@ export function useThemeFileEditing({ tabsRef, openFileTab }: Params) {
                 return;
               const parsed = parseThemeFile(res.content);
               if (!parsed.ok) {
-                console.warn("[terax] theme not applied:", parsed.error);
+                console.warn("[estate] theme not applied:", parsed.error);
                 return;
               }
               await saveCustomTheme(parsed.theme);
             } catch (e) {
-              console.warn("[terax] theme ingest failed:", e);
+              console.warn("[estate] theme ingest failed:", e);
             }
           })();
         },

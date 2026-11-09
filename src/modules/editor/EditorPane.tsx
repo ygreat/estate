@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { endpointIdFromCompatModel } from "@/modules/ai/config";
 import { getCustomEndpointKey, getKey } from "@/modules/ai/lib/keyring";
 import { lspFormatDocument, useLspExtension } from "@/modules/lsp";
@@ -653,7 +654,7 @@ export const EditorPane = memo(
           theme={themeExt}
           extensions={extensions}
           height="100%"
-          className="terax-code-editor flex-1 min-h-0 overflow-hidden"
+          className="estate-code-editor flex-1 min-h-0 overflow-hidden"
           basicSetup={{
             lineNumbers: true,
             highlightActiveLineGutter: true,

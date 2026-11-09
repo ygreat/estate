@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import type { UIMessage } from "@ai-sdk/react";
 import { describe, expect, it } from "vitest";
 import { deriveTitle } from "./sessions";
@@ -22,7 +23,7 @@ describe("deriveTitle", () => {
   });
 
   it("takes the first user text part", () => {
-    expect(deriveTitle([message("what is terax")])).toBe("what is terax");
+    expect(deriveTitle([message("what is estate")])).toBe("what is estate");
   });
 
   it("uses the first line only", () => {

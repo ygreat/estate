@@ -1146,6 +1146,83 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dea2df4cf52843e0452895c455a1a2cfbb842a1e7329671acf418fdc53ed4c59"
 
 [[package]]
+name = "estate"
+version = "0.1.0"
+dependencies = [
+ "block2",
+ "bytes",
+ "dirs 7.0.0",
+ "estate-cli",
+ "estate-control-protocol",
+ "fsevent-sys",
+ "futures-util",
+ "getrandom 0.4.3",
+ "globset",
+ "grep-regex",
+ "grep-searcher",
+ "gtk",
+ "http-range",
+ "ignore",
+ "keyring",
+ "libc",
+ "log",
+ "memchr",
+ "notify",
+ "nucleo-matcher",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "percent-encoding",
+ "portable-pty",
+ "proptest",
+ "regex",
+ "reqwest",
+ "rustls",
+ "serde",
+ "serde_json",
+ "shared_child",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-autostart",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-log",
+ "tauri-plugin-notification",
+ "tauri-plugin-opener",
+ "tauri-plugin-os",
+ "tauri-plugin-process",
+ "tauri-plugin-store",
+ "tauri-plugin-updater",
+ "tauri-plugin-window-state",
+ "tempfile",
+ "tokio",
+ "toml 1.1.6+spec-1.1.0",
+ "wasmparser",
+ "which",
+ "window-vibrancy 0.6.0",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "estate-cli"
+version = "0.1.0"
+dependencies = [
+ "dirs 7.0.0",
+ "estate-control-protocol",
+ "libc",
+ "serde_json",
+ "tempfile",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "estate-control-protocol"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "event-listener"
 version = "5.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4892,83 +4969,6 @@ checksum = "c4790fc369d5a530f4b544b094e31388b9b3a37c0f4652ade4505945f5660d24"
 dependencies = [
  "new_debug_unreachable",
  "utf-8",
-]
-
-[[package]]
-name = "terax"
-version = "0.1.0"
-dependencies = [
- "block2",
- "bytes",
- "dirs 7.0.0",
- "fsevent-sys",
- "futures-util",
- "getrandom 0.4.3",
- "globset",
- "grep-regex",
- "grep-searcher",
- "gtk",
- "http-range",
- "ignore",
- "keyring",
- "libc",
- "log",
- "memchr",
- "notify",
- "nucleo-matcher",
- "objc2",
- "objc2-app-kit",
- "objc2-foundation",
- "percent-encoding",
- "portable-pty",
- "proptest",
- "regex",
- "reqwest",
- "rustls",
- "serde",
- "serde_json",
- "shared_child",
- "tauri",
- "tauri-build",
- "tauri-plugin-autostart",
- "tauri-plugin-clipboard-manager",
- "tauri-plugin-log",
- "tauri-plugin-notification",
- "tauri-plugin-opener",
- "tauri-plugin-os",
- "tauri-plugin-process",
- "tauri-plugin-store",
- "tauri-plugin-updater",
- "tauri-plugin-window-state",
- "tempfile",
- "terax-cli",
- "terax-control-protocol",
- "tokio",
- "toml 1.1.6+spec-1.1.0",
- "wasmparser",
- "which",
- "window-vibrancy 0.6.0",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "terax-cli"
-version = "0.1.0"
-dependencies = [
- "dirs 7.0.0",
- "libc",
- "serde_json",
- "tempfile",
- "terax-control-protocol",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "terax-control-protocol"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
 ]
 
 [[package]]

@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { getGhosttyCoreRuntime } from "@/modules/terminal/ghostty/GhosttyCoreRuntime";
 import { WebGpuTerminalSurface } from "@/modules/terminal/ghostty/gpu/WebGpuTerminalSurface";
 import { webGpuTerminalRuntimeDiagnostics } from "@/modules/terminal/ghostty/gpu/WebGpuTerminalRuntime";
@@ -12,10 +13,10 @@ declare global {
     };
   }
 }
-// `--native-signal`: stand in for the NSWindow live-resize notifications Terax forwards from
+// `--native-signal`: stand in for the NSWindow live-resize notifications Estate forwards from
 // window_presentation.rs (the lab has no Tauri host). Without it only the heuristic runs.
 if (new URLSearchParams(location.search).get("nativeSignal") === "1") {
-  (window as unknown as { __teraxLiveResize: (active: boolean) => void }).__teraxLiveResize =
+  (window as unknown as { __estateLiveResize: (active: boolean) => void }).__estateLiveResize =
     setNativeLiveResize;
 }
 const core = getGhosttyCoreRuntime();

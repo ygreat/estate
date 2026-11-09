@@ -1,10 +1,11 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { SMOOTH_KEY, type SmoothHooks } from "./smoothHooks";
 
 /**
  * Smoothness probe for the app lab (`split-drag` and `resize` scenarios).
  *
  * Product code reports a handful of timestamps through `smoothHooks()` (always inside
- * `if (__TERAX_BENCH__)`, so none of it exists in a normal build); this module turns them into
+ * `if (__ESTATE_BENCH__)`, so none of it exists in a normal build); this module turns them into
  * the numbers that describe how a resize gesture looks: how often frames reach the screen, how
  * long a pane's text lags behind the layout it is drawn in, how long a pane stayed frozen on its
  * previous frame, and how many frames showed a prompt that a resize had just erased.

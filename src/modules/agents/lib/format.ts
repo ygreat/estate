@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 const LABELS: Record<string, string> = {
   claude: "Claude Code",
   codex: "Codex",
@@ -5,7 +6,7 @@ const LABELS: Record<string, string> = {
   pi: "Pi",
   opencode: "OpenCode",
   grok: "Grok",
-  terax: "Terax",
+  estate: "Estate",
 };
 
 export function displayAgent(agent: string): string {

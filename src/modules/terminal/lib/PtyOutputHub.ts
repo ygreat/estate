@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import {
   PARSE_BUDGET_MS,
   type PtyOutputReceiver,
@@ -401,7 +402,7 @@ export class PtyOutputHub {
           try {
             entry.onExit(frame.code);
           } catch (error) {
-            console.error("[terax] PTY exit handler failed:", error);
+            console.error("[estate] PTY exit handler failed:", error);
           }
           break;
         case "failed":
@@ -462,7 +463,7 @@ export class PtyOutputHub {
     this.failures += 1;
     this.stats.failures += 1;
     if (this.failures === 1)
-      console.warn("[terax] PTY stream request failed:", error);
+      console.warn("[estate] PTY stream request failed:", error);
     this.setTransport(
       this.failures >= STALL_AFTER_FAILURES ? "stalled" : "retrying",
     );

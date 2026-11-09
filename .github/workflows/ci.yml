@@ -90,7 +90,7 @@ jobs:
 
       - name: Terminal compositor pixel parity (DPR 1, 1.25, 1.5, 2)
         env:
-          TERAX_VISUAL_SOFTWARE: '1'
+          ESTATE_VISUAL_SOFTWARE: '1'
         run: |
           pnpm exec playwright install chromium --no-shell
           pnpm test:terminal-scaling

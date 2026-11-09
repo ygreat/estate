@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 use std::path::Path;
 use std::time::UNIX_EPOCH;
 use std::{
@@ -393,7 +394,7 @@ mod tests {
         let local = dir.path().join("local-link");
         std::os::windows::fs::symlink_dir(&target, &local).unwrap();
         let remote = dir.path().join("remote-link");
-        std::os::windows::fs::symlink_dir(r"\\terax-unreachable.invalid\share", &remote).unwrap();
+        std::os::windows::fs::symlink_dir(r"\\estate-unreachable.invalid\share", &remote).unwrap();
         for path in [&local, &local.join("file"), &remote, &remote.join("file")] {
             let path = super::super::to_canon(path);
             assert!(fs_stat(path.clone(), None, Some(true))
@@ -548,7 +549,7 @@ mod tests {
 
         let target = dir.path().join("note.txt");
         // Pre-stage a symlink at the legacy deterministic staging path.
-        let legacy = dir.path().join(".note.txt.terax.tmp");
+        let legacy = dir.path().join(".note.txt.estate.tmp");
         symlink(&outside, &legacy).unwrap();
 
         write_atomic(&target, b"payload").unwrap();

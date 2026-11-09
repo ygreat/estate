@@ -1,3 +1,4 @@
+<!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 # PTY transport v2: one multiplexed pull stream per window
 
 Status: implemented on `perf/resource-efficiency`. Sections below describe what shipped;
@@ -24,11 +25,11 @@ terminal, and hidden tabs pay the same as the visible one. Ten agent tabs at
 
 ### Pull stream
 
-- An asynchronous custom URI scheme, `terax-pty`, registered with
+- An asynchronous custom URI scheme, `estate-pty`, registered with
   `register_asynchronous_uri_scheme_protocol`. The frontend keeps exactly one
   outstanding `POST poll` request per webview. The URL is built with Tauri's
-  `convertFileSrc(path, "terax-pty")`: `terax-pty://localhost/poll`, or
-  `http://terax-pty.localhost/poll` on Windows. CSP `connect-src` allows both.
+  `convertFileSrc(path, "estate-pty")`: `estate-pty://localhost/poll`, or
+  `http://estate-pty.localhost/poll` on Windows. CSP `connect-src` allows both.
 - **Credential.** `pty_stream_open` (an ordinary command, so only the page's own
   frame can call it) returns a random 64-bit token from OS entropy (no fallback:
   if entropy is unavailable the command fails). Every request carries it. The

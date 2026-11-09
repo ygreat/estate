@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { invoke } from "@tauri-apps/api/core";
 import { homeDir } from "@tauri-apps/api/path";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
@@ -61,7 +62,7 @@ export async function activateTerminalLink(
   try {
     await runPlan(plan, context, deps);
   } catch (error) {
-    console.error("[terax] terminal link failed:", error);
+    console.error("[estate] terminal link failed:", error);
     context.focus();
   }
 }

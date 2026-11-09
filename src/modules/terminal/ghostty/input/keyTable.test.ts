@@ -1,4 +1,5 @@
-import { Key } from "@terax/ghostty-core/protocol";
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+import { Key } from "@estate/ghostty-core/protocol";
 import { describe, expect, it } from "vitest";
 import { baseTextForCode, KEY_MAP, unshiftedCodepoint } from "./keyTable";
 

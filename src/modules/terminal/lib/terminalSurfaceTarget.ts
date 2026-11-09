@@ -1,4 +1,5 @@
-const TERMINAL_SURFACE_SELECTOR = "[data-terax-terminal-surface]";
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
+const TERMINAL_SURFACE_SELECTOR = "[data-estate-terminal-surface]";
 
 export function isTerminalSurfaceTarget(target: EventTarget | null): boolean {
   const candidate = target as {
