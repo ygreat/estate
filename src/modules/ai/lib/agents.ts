@@ -18,6 +18,12 @@ export type Agent = {
   builtIn: boolean;
 };
 
+/**
+ * Estate: the Orchestrator in the AI panel's switcher. Not a persona: a goal
+ * sent with it selected opens an Orchestrator chat running a coding agent.
+ */
+export const ORCHESTRATOR_AGENT_ID = "estate:orchestrator";
+
 export const BUILTIN_AGENTS: readonly Agent[] = [
   {
     id: "builtin:coder",

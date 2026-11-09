@@ -11,13 +11,13 @@ import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { type AgentAuth, checkAgentAuth } from "@/modules/agent-chat/auth";
+import { AgentPicker } from "@/modules/agent-chat/AgentPicker";
+import { useAgentStatuses } from "@/modules/agent-chat/auth";
 import {
   CHAT_AGENT_LABEL,
   CHAT_AGENTS,
   type ChatAgentId,
 } from "@/modules/agent-chat/model";
-import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import type { OrchestratorDelegate } from "@/modules/orchestrator/instructions";
 import { useShortcutLabel } from "@/modules/shortcuts";
 import { shortPath } from "@/modules/spaces/lib/projects";
@@ -62,13 +62,6 @@ function writeAgent(agent: ChatAgentId): void {
   }
 }
 
-const STATUS: Record<AgentAuth["state"], { label: string; dot: string }> = {
-  "signed-in": { label: "Signed in", dot: "bg-emerald-500" },
-  "signed-out": { label: "Not signed in", dot: "bg-amber-500" },
-  missing: { label: "Not installed", dot: "bg-muted-foreground/40" },
-  unknown: { label: "Installed", dot: "bg-muted-foreground/60" },
-};
-
 /** Estate: the first thing you see. Pick a project, then start. */
 export function WelcomeScreen({
   current,
@@ -88,7 +81,7 @@ export function WelcomeScreen({
   // The open project counts as chosen only once the user confirms it here.
   const [chosen, setChosen] = useState(false);
   const [goal, setGoal] = useState("");
-  const [auth, setAuth] = useState<Partial<Record<ChatAgentId, AgentAuth>>>({});
+  const { auth, checking } = useAgentStatuses();
   const [picked, setPicked] = useState<ChatAgentId | null>(readAgent);
   const goalRef = useRef<HTMLTextAreaElement | null>(null);
   const project = chosen ? current : null;
@@ -104,18 +97,6 @@ export function WelcomeScreen({
   useEffect(() => {
     if (project) goalRef.current?.focus();
   }, [project]);
-
-  useEffect(() => {
-    let alive = true;
-    for (const a of CHAT_AGENTS) {
-      void checkAgentAuth(a).then((result) => {
-        if (alive) setAuth((m) => ({ ...m, [a]: result }));
-      });
-    }
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   // Without a remembered choice, the first signed-in agent.
   const agent: ChatAgentId =
@@ -244,47 +225,13 @@ export function WelcomeScreen({
 
                 <div className="flex flex-col gap-2.5">
                   <SectionLabel>Agent</SectionLabel>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {CHAT_AGENTS.map((a) => {
-                      const state = auth[a]?.state;
-                      const status = state ? STATUS[state] : null;
-                      const selected = a === agent;
-                      return (
-                        <button
-                          key={a}
-                          type="button"
-                          aria-pressed={selected}
-                          disabled={state === "missing"}
-                          onClick={() => pick(a)}
-                          className={cn(
-                            "flex items-center gap-2.5 rounded-lg border bg-card/70 px-2.5 py-2 text-left transition-colors",
-                            "disabled:cursor-not-allowed disabled:opacity-50",
-                            selected
-                              ? "border-primary/60 bg-primary/5"
-                              : "border-border hover:bg-muted/50",
-                          )}
-                        >
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/70 text-muted-foreground">
-                            <AgentIcon agent={a} size={14} />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[12px] font-medium">
-                              {CHAT_AGENT_LABEL[a]}
-                            </span>
-                            <span className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
-                              <span
-                                className={cn(
-                                  "size-1.5 shrink-0 rounded-full",
-                                  status?.dot ?? "bg-muted-foreground/30",
-                                )}
-                              />
-                              {status?.label ?? "Checking…"}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <AgentPicker
+                    value={agent}
+                    onChange={pick}
+                    auth={auth}
+                    checking={checking}
+                    cwd={project.root ?? ""}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-3">

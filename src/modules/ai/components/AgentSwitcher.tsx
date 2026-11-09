@@ -1,3 +1,4 @@
+// Modified by ygreat for Estate, 2026. Originally part of Terax.
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,13 +15,14 @@ import {
   CodeIcon,
   PaintBrush04Icon,
   PencilEdit02Icon,
+  Rocket01Icon,
   Settings01Icon,
   ShieldUserIcon,
   SparklesIcon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import type { AgentIconId } from "../lib/agents";
+import { type AgentIconId, ORCHESTRATOR_AGENT_ID } from "../lib/agents";
 import { useAgentsStore } from "../store/agentsStore";
 
 const ICONS: Record<AgentIconId, typeof CodeIcon> = {
@@ -41,10 +43,16 @@ export function AgentSwitcher({ isMiniWindow }: { isMiniWindow?: boolean }) {
   const list = useAgentsStore.getState().all();
   void customAgents; // keeps the store subscription alive
 
-  const active = list.find((a) => a.id === activeId) ?? list[0];
+  const orchestrating = activeId === ORCHESTRATOR_AGENT_ID;
+  const persona = list.find((a) => a.id === activeId) ?? list[0];
+  const active = orchestrating
+    ? { name: "Orchestrator" }
+    : { name: persona.name };
   const builtIn = list.filter((a) => a.builtIn);
   const custom = list.filter((a) => !a.builtIn);
-  const ActiveIcon = ICONS[active.icon] ?? SparklesIcon;
+  const ActiveIcon = orchestrating
+    ? Rocket01Icon
+    : (ICONS[persona.icon] ?? SparklesIcon);
 
   return (
     <DropdownMenu>
@@ -112,6 +120,41 @@ export function AgentSwitcher({ isMiniWindow }: { isMiniWindow?: boolean }) {
             </DropdownMenuItem>
           );
         })}
+        <DropdownMenuSeparator />
+        <div className="px-2 pt-1 pb-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+          Delegate
+        </div>
+        <DropdownMenuItem
+          onSelect={() => setActiveId(ORCHESTRATOR_AGENT_ID)}
+          className={cn(
+            "flex items-start gap-2 pr-2 text-[12px]",
+            orchestrating && "bg-accent/40",
+          )}
+        >
+          <HugeiconsIcon
+            icon={Rocket01Icon}
+            size={13}
+            strokeWidth={1.75}
+            className={cn(
+              "mt-0.5",
+              orchestrating ? "text-foreground" : "text-muted-foreground",
+            )}
+          />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span>Orchestrator</span>
+            <span className="line-clamp-1 text-[10.5px] text-muted-foreground">
+              Plans a goal and hands tasks to coding agents.
+            </span>
+          </span>
+          {orchestrating ? (
+            <HugeiconsIcon
+              icon={Tick02Icon}
+              size={12}
+              strokeWidth={2}
+              className="mt-0.5 shrink-0 text-foreground"
+            />
+          ) : null}
+        </DropdownMenuItem>
         {custom.length > 0 ? (
           <>
             <DropdownMenuSeparator />

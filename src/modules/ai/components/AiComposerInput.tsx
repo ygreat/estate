@@ -9,6 +9,8 @@ import { useComposer } from "../lib/composer";
 import { SLASH_COMMANDS } from "../lib/slashCommands";
 import { useChatStore } from "../store/chatStore";
 import { useSnippetsStore } from "../store/snippetsStore";
+import { useAgentsStore } from "../store/agentsStore";
+import { ORCHESTRATOR_AGENT_ID } from "../lib/agents";
 import { AgentSwitcher } from "./AgentSwitcher";
 import { FilePickerContent } from "./FilePicker";
 import { SnippetPickerContent, type PickerItem } from "./SnippetPicker";
@@ -61,6 +63,9 @@ function detectFileTrigger(value: string, caret: number): FileTrigger | null {
 
 export function AiComposerInput() {
   const c = useComposer();
+  const orchestrating = useAgentsStore(
+    (s) => s.activeId === ORCHESTRATOR_AGENT_ID,
+  );
   const snippets = useSnippetsStore((s) => s.snippets);
   const workspaceRoot = useChatStore((s) => s.live.getWorkspaceRoot());
 
@@ -258,7 +263,11 @@ export function AiComposerInput() {
                   c.submit();
                 }
               }}
-              placeholder="Ask Estate anything   -   # for snippets and commands, @ for files"
+              placeholder={
+                orchestrating
+                  ? "Describe a goal for the Orchestrator to plan and delegate"
+                  : "Ask Estate anything   -   # for snippets and commands, @ for files"
+              }
               rows={1}
               className={cn(
                 "max-h-40 flex-1 resize-none bg-transparent text-[13px] leading-relaxed outline-none",

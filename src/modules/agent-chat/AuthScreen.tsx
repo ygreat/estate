@@ -1,15 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { AgentIcon } from "@/modules/agents/lib/agentIcon";
-import { type AgentAuth, runInNewTerminal } from "./auth";
+import { type AgentAuth, INSTALL_HINT, runInNewTerminal } from "./auth";
 import { CHAT_AGENT_LABEL, type ChatAgentId } from "./model";
-
-const INSTALL_HINT: Record<ChatAgentId, string> = {
-  claude: "curl -fsSL https://claude.ai/install.sh | bash",
-  codex: "npm install -g @openai/codex",
-  gemini: "npm install -g @google/gemini-cli",
-  opencode: "npm install -g opencode-ai",
-};
 
 type Props = {
   agent: ChatAgentId;

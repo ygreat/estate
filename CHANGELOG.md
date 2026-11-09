@@ -34,7 +34,12 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 - The plan shows as a card you can edit before anything runs: each task's title, instructions, agent, model size (Fast, Balanced, Deep) and whether it edits code.
 - Run starts every task in its own agent chat tab. Tasks that edit code get their own git worktree and branch and "Edit files" access; the others are read only. The card shows each task's progress and opens its chat.
 - When every task has finished, their results go back to the Orchestrator, which summarizes what was done, what's left and how to review and merge each branch.
+- The Estate AI panel's agent switcher has an Orchestrator entry. With it selected, a message becomes a goal for an Orchestrator chat instead of a question for the panel's model. When Settings > Agents is set to ask, a dialog shows the agents with their sign-in state and can remember the choice.
 - Settings > Agents: the Orchestrator's instructions (editable, with Reset to default), which agent plans (or ask each time, with "remember my choice"), and whether editing tasks get worktrees.
+
+**Coding agent sign-in**
+- Settings > Agents lists Claude Code, Codex, Gemini CLI and OpenCode with what each signs in with (Claude account, ChatGPT account, Google account or an API key) and whether you're signed in. Sign in opens a terminal in the main window running the agent's own login; a missing agent shows its install command to copy.
+- The same status shows wherever you pick an agent (welcome screen, Orchestrator), with a Sign in button on agents that need it. Status refreshes when you come back to Estate after signing in.
 
 **Welcome screen**
 - Opens on launch over the editor, which shows blurred behind it (Settings > General can turn it off). Go to editor, Esc or a click anywhere outside skips it. First pick a project: the open one, a recent one or a new folder.

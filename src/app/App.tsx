@@ -65,7 +65,13 @@ import {
 } from "@/modules/spaces/lib/projects";
 import { ProjectButton } from "@/modules/statusbar/ProjectButton";
 import { WelcomeScreen } from "@/modules/welcome/WelcomeScreen";
-import { setShowWelcome } from "@/modules/settings/store";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { setOrchestratorAgent, setShowWelcome } from "@/modules/settings/store";
+import { AgentChoiceDialog } from "@/modules/orchestrator/AgentChoiceDialog";
+import {
+  ORCHESTRATE_EVENT,
+  type OrchestrateDetail,
+} from "@/modules/orchestrator/events";
 import type { ChatAgentId } from "@/modules/agent-chat/model";
 import { resolveInstructions } from "@/modules/orchestrator/instructions";
 import { orchestratorPrompt } from "@/modules/orchestrator/plan";
@@ -792,11 +798,11 @@ export default function App() {
 
   // Estate: an agent chat's sign-in screen asks for a terminal running the
   // agent's login. Only the fixed login commands are accepted.
+  // Settings asks over a Tauri event, so the terminal opens here.
   useEffect(() => {
-    const onRun = (event: Event) => {
-      const detail = (event as CustomEvent<RunInTerminalDetail>).detail;
+    const run = (detail: RunInTerminalDetail | null | undefined) => {
       if (!detail || !LOGIN_COMMANDS.includes(detail.command)) return;
-      const tabId = newTab(detail.cwd);
+      const tabId = newTab(detail.cwd || undefined);
       const tab = peekTab(tabId);
       const leafId = tab?.kind === "terminal" ? tab.activeLeafId : null;
       if (leafId === null) return;
@@ -804,8 +810,21 @@ export default function App() {
         writeToSession(leafId, `${detail.command}\r`);
       });
     };
+    const onRun = (event: Event) =>
+      run((event as CustomEvent<RunInTerminalDetail>).detail);
     window.addEventListener(RUN_IN_TERMINAL_EVENT, onRun);
-    return () => window.removeEventListener(RUN_IN_TERMINAL_EVENT, onRun);
+    const win = getCurrentWebviewWindow();
+    const unlisten = win.listen<RunInTerminalDetail>(
+      RUN_IN_TERMINAL_EVENT,
+      (event) => {
+        void win.setFocus();
+        run(event.payload);
+      },
+    );
+    return () => {
+      window.removeEventListener(RUN_IN_TERMINAL_EVENT, onRun);
+      void unlisten.then((off) => off());
+    };
   }, [newTab, peekTab]);
 
   const cdInNewTab = useCallback(
@@ -1514,6 +1533,19 @@ export default function App() {
     },
     [welcomeProject, inheritedCwdForNewTab, home, newAgentChatTab],
   );
+  // The AI panel's Orchestrator: plan with the set agent, or ask which.
+  const [pendingGoal, setPendingGoal] = useState<string | null>(null);
+  useEffect(() => {
+    const onGoal = (event: Event) => {
+      const goal = (event as CustomEvent<OrchestrateDetail>).detail?.goal;
+      if (!goal) return;
+      const delegate = usePreferencesStore.getState().orchestratorAgent;
+      if (delegate === "ask") setPendingGoal(goal);
+      else planWithOrchestrator(goal, delegate);
+    };
+    window.addEventListener(ORCHESTRATE_EVENT, onGoal);
+    return () => window.removeEventListener(ORCHESTRATE_EVENT, onGoal);
+  }, [planWithOrchestrator]);
   useEffect(() => {
     setOrchestratorHost({
       openChat: (agent, cwd, chatId, title) =>
@@ -1859,6 +1891,18 @@ export default function App() {
               }
             />
           </Suspense>
+        )}
+        {pendingGoal !== null && (
+          <AgentChoiceDialog
+            goal={pendingGoal}
+            cwd={welcomeProject?.root ?? ""}
+            onCancel={() => setPendingGoal(null)}
+            onPlan={(goal, agent, remember) => {
+              setPendingGoal(null);
+              if (remember) void setOrchestratorAgent(agent);
+              planWithOrchestrator(goal, agent);
+            }}
+          />
         )}
         {welcomeOpen && (
           <WelcomeScreen
