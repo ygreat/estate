@@ -911,12 +911,15 @@ function createGhosttyInput(
     scrollSpeed: () => usePreferencesStore.getState().terminalScrollSpeed,
     macOptionAsAlt: () => usePreferencesStore.getState().terminalMacOptionAsAlt,
     onData: (bytes) => {
+      const blocks = ghosttyBlocks(session.leafId);
       if (
-        ghosttyBlocks(session.leafId)?.getMode() === "prompt" &&
+        blocks?.getMode() === "prompt" &&
         !(bytes.length === 1 && bytes[0] === 3)
       )
         return;
-      enqueueTerminalInput(session, bytes);
+      // Typing straight into the shell (no block prompt yet, or a program
+      // running) counts as using the terminal, so the welcome goes away.
+      if (enqueueTerminalInput(session, bytes)) blocks?.typedToShell();
     },
     onKeyDown: (event) => {
       const blocks = ghosttyBlocks(session.leafId);

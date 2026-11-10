@@ -138,6 +138,13 @@ export class GhosttyBlockSession {
     };
   };
 
+  /** Raw keystrokes reached the shell outside the block prompt. */
+  typedToShell(): void {
+    if (this.everSubmitted) return;
+    this.everSubmitted = true;
+    this.changed();
+  }
+
   watermark(): WatermarkState {
     if (this.everSubmitted || this.controller?.hasAnyBlock) return "dead";
     if (!this.model) return "hidden";
