@@ -1,7 +1,7 @@
 # Modified by ygreat for Estate, 2026. Originally part of Terax.
 [package]
 name = "estate"
-version = "0.1.0"
+version = "0.1.1"
 description = "Estate — an open-source AI-native terminal emulator"
 authors = ["crynta"]
 license = "Apache-2.0"
@@ -14,7 +14,7 @@ default-members = [".", "crates/estate-cli", "crates/estate-control-protocol"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "Apache-2.0"
 

@@ -1127,7 +1127,7 @@ checksum = "dea2df4cf52843e0452895c455a1a2cfbb842a1e7329671acf418fdc53ed4c59"
 
 [[package]]
 name = "estate"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "block2",
  "bytes",
@@ -1185,7 +1185,7 @@ dependencies = [
 
 [[package]]
 name = "estate-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "dirs 7.0.0",
  "estate-control-protocol",
@@ -1197,7 +1197,7 @@ dependencies = [
 
 [[package]]
 name = "estate-control-protocol"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
