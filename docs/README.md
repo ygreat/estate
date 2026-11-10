@@ -39,4 +39,5 @@ repository and are not included in the application bundle.
 
 ## Contributing guides
 
+- [Releasing a macOS build](contributing/releasing.md) - bump the version, build signed, write `latest.json` and publish so installed copies can update.
 - [Testing](contributing/testing.md) - the testing contract, how to run checks, and what makes a good core-subsystem test.

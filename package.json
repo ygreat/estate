@@ -11,6 +11,8 @@
   "scripts": {
     "build:cli": "node scripts/build-cli.mjs --release",
     "build:cli:dev": "node scripts/build-cli.mjs",
+    "release:bump": "node scripts/release.mjs bump",
+    "release:updater": "node scripts/release.mjs updater",
     "dev": "vite",
     "dev:inspect": "INSPECT=true vite",
     "build": "tsc && vite build",
