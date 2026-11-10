@@ -14,6 +14,7 @@ import { ORCHESTRATOR_AGENT_ID } from "../lib/agents";
 import { AgentSwitcher } from "./AgentSwitcher";
 import { AccountTuningPicker } from "./AccountTuningPicker";
 import { ModelDropdown } from "./AiStatusBarControls";
+import { PlannerPicker } from "@/modules/orchestrator/PlannerPicker";
 import { FilePickerContent } from "./FilePicker";
 import { SnippetPickerContent, type PickerItem } from "./SnippetPicker";
 
@@ -222,8 +223,16 @@ export function AiComposerInput() {
             data-path-drop
             data-path-drop-base={workspaceRoot ?? undefined}
           >
-            <ModelDropdown />
-            <AccountTuningPicker />
+            {/* Estate: the Orchestrator plans with a coding agent, not the
+                panel's model, so its agent takes the model picker's place. */}
+            {orchestrating ? (
+              <PlannerPicker cwd={workspaceRoot ?? ""} />
+            ) : (
+              <>
+                <ModelDropdown />
+                <AccountTuningPicker />
+              </>
+            )}
             <textarea
               ref={c.textareaRef}
               value={c.value}

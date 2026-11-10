@@ -68,8 +68,8 @@ import {
 import { ProjectButton } from "@/modules/statusbar/ProjectButton";
 import { WelcomeScreen } from "@/modules/welcome/WelcomeScreen";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { setOrchestratorAgent, setShowWelcome } from "@/modules/settings/store";
-import { AgentChoiceDialog } from "@/modules/orchestrator/AgentChoiceDialog";
+import { setShowWelcome } from "@/modules/settings/store";
+import { resolvePlanner } from "@/modules/orchestrator/planner";
 import {
   ORCHESTRATE_EVENT,
   type OrchestrateDetail,
@@ -84,6 +84,7 @@ import { orchestratorPrompt } from "@/modules/orchestrator/plan";
 import { setOrchestratorHost } from "@/modules/orchestrator/runs";
 import type { FolderAction } from "@/modules/statusbar/CwdBreadcrumb";
 import {
+  checkAgentAuth,
   LOGIN_COMMANDS,
   RUN_IN_TERMINAL_EVENT,
   type RunInTerminalDetail,
@@ -1668,15 +1669,25 @@ export default function App() {
     },
     [welcomeProject, inheritedCwdForNewTab, home, newAgentChatTab],
   );
-  // The AI panel's Orchestrator: plan with the set agent, or ask which.
-  const [pendingGoal, setPendingGoal] = useState<string | null>(null);
+  // The AI panel's Orchestrator: plans with the agent its chat bar shows
+  // (the set one, or the first signed-in one; sign-in checks are cached).
   useEffect(() => {
     const onGoal = (event: Event) => {
       const goal = (event as CustomEvent<OrchestrateDetail>).detail?.goal;
       if (!goal) return;
-      const delegate = usePreferencesStore.getState().orchestratorAgent;
-      if (delegate === "ask") setPendingGoal(goal);
-      else planWithOrchestrator(goal, delegate);
+      const pref = usePreferencesStore.getState().orchestratorAgent;
+      if (pref !== "ask") {
+        planWithOrchestrator(goal, pref);
+        return;
+      }
+      void Promise.all(CHAT_AGENTS.map((a) => checkAgentAuth(a))).then(
+        (states) => {
+          const auth = Object.fromEntries(
+            CHAT_AGENTS.map((a, i) => [a, states[i]]),
+          );
+          planWithOrchestrator(goal, resolvePlanner(pref, auth));
+        },
+      );
     };
     window.addEventListener(ORCHESTRATE_EVENT, onGoal);
     return () => window.removeEventListener(ORCHESTRATE_EVENT, onGoal);
@@ -2026,18 +2037,6 @@ export default function App() {
               }
             />
           </Suspense>
-        )}
-        {pendingGoal !== null && (
-          <AgentChoiceDialog
-            goal={pendingGoal}
-            cwd={welcomeProject?.root ?? ""}
-            onCancel={() => setPendingGoal(null)}
-            onPlan={(goal, agent, remember) => {
-              setPendingGoal(null);
-              if (remember) void setOrchestratorAgent(agent);
-              planWithOrchestrator(goal, agent);
-            }}
-          />
         )}
         {welcomeOpen && (
           <WelcomeScreen

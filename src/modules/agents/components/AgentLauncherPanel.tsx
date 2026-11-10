@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import {
   AGENT_LAUNCHERS,
-  type AgentInstanceCount,
   type AgentLaunchCommands,
   type AgentLauncherId,
   type AgentLaunchRequest,
@@ -29,13 +28,10 @@ type Props = {
   onLaunch: (request: AgentLaunchRequest) => void;
 };
 
-const INSTANCE_COUNTS: AgentInstanceCount[] = [1, 2, 3, 4];
-
 export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
   const storedCommands = usePreferencesStore((s) => s.agentLaunchCommands);
   const hydrated = usePreferencesStore((s) => s.hydrated);
   const [agentId, setAgentId] = useState<AgentLauncherId>("claude");
-  const [instances, setInstances] = useState<AgentInstanceCount>(2);
   // Estate: open the agent as a chat (default) or in terminals.
   const [view, setView] = useState<"terminal" | "chat">("chat");
   const [drafts, setDrafts] = useState<AgentLaunchCommands>(storedCommands);
@@ -101,11 +97,9 @@ export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
     }
     const next = persist(agentId, command);
     if (!next) return;
-    onLaunch({
-      agent: agentId,
-      command: next[agentId],
-      instances,
-    });
+    // Estate: one agent per tab. Several agents in one tab's panes were hard
+    // to manage (no visible way to close one), so each launch is its own tab.
+    onLaunch({ agent: agentId, command: next[agentId], instances: 1 });
   };
 
   return (
@@ -134,7 +128,7 @@ export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
           <div className="text-[10px] text-muted-foreground">
             {asChat
               ? "A chat with the agent, no terminal"
-              : "One workspace, up to four panes"}
+              : "Opens in a new terminal tab"}
           </div>
         </div>
       </div>
@@ -207,33 +201,6 @@ export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
 
       {!asChat && (
         <>
-          <fieldset className="mt-3">
-            <legend className="mb-1.5 text-[11px] font-medium text-muted-foreground">
-              Instances
-            </legend>
-            <div className="grid grid-cols-4 gap-1">
-              {INSTANCE_COUNTS.map((count) => (
-                <button
-                  key={count}
-                  type="button"
-                  disabled={!hydrated}
-                  aria-label={`${count} ${count === 1 ? "instance" : "instances"}`}
-                  aria-pressed={instances === count}
-                  onClick={() => setInstances(count)}
-                  className={cn(
-                    "flex h-9 items-center justify-center gap-1.5 rounded-xl border text-xs font-medium transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25 disabled:pointer-events-none disabled:opacity-50",
-                    instances === count
-                      ? "border-primary/35 bg-primary/10 text-foreground"
-                      : "border-border/60 bg-background/30 text-muted-foreground hover:bg-accent hover:text-foreground",
-                  )}
-                >
-                  <PaneGlyph count={count} />
-                  {count}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
           <div className="mt-3">
             <div className="mb-1.5 flex items-center">
               <label
@@ -299,46 +266,8 @@ export function AgentLauncherPanel({ onBack, onLaunch }: Props) {
         disabled={!hydrated || (!asChat && !validation.ok)}
       >
         <HugeiconsIcon icon={PlayIcon} size={13} strokeWidth={2} />
-        {asChat
-          ? "Open chat"
-          : `Launch ${instances} ${instances === 1 ? "agent" : "agents"}`}
+        {asChat ? "Open chat" : "Launch agent"}
       </Button>
     </form>
-  );
-}
-
-function PaneGlyph({ count }: { count: AgentInstanceCount }) {
-  const cell = "rounded-[1px] bg-current opacity-75";
-  if (count === 1) {
-    return (
-      <span className="grid size-3 grid-cols-1 gap-px rounded-[2px] border border-current/50 p-px">
-        <span className={cell} />
-      </span>
-    );
-  }
-  if (count === 2) {
-    return (
-      <span className="grid size-3 grid-cols-2 gap-px rounded-[2px] border border-current/50 p-px">
-        <span className={cell} />
-        <span className={cell} />
-      </span>
-    );
-  }
-  if (count === 3) {
-    return (
-      <span className="grid size-3 grid-cols-2 grid-rows-2 gap-px rounded-[2px] border border-current/50 p-px">
-        <span className={cn(cell, "row-span-2")} />
-        <span className={cell} />
-        <span className={cell} />
-      </span>
-    );
-  }
-  return (
-    <span className="grid size-3 grid-cols-2 grid-rows-2 gap-px rounded-[2px] border border-current/50 p-px">
-      <span className={cell} />
-      <span className={cell} />
-      <span className={cell} />
-      <span className={cell} />
-    </span>
   );
 }
