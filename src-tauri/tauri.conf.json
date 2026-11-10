@@ -45,8 +45,8 @@
       "../src/modules/terminal/ghostty/webgl/LICENSE.xterm-js": "licenses/terminal/xterm-js.txt"
     },
     "targets": "all",
-    "createUpdaterArtifacts": false,
-    "copyright": "Copyright 2026 ygreat. Derived from Estate, Copyright 2026 Crynta.",
+    "createUpdaterArtifacts": true,
+    "copyright": "Copyright 2026 ygreat. Derived from Terax, Copyright 2026 Crynta.",
     "license": "Apache-2.0",
     "publisher": "ygreat",
     "icon": [
@@ -116,7 +116,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNCQUJGRDhBQjYwRTM0NjkKUldScE5BNjJpdjJyT3dIN0dqbUpHaDA4QW1GaDVmTTllRXdZVk96dFNTRUZ3Y2hiVGszYjFqRloK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFCMDMwQjAzRUFFQUMxMjYKUldRbXdlcnFBd3NER3hUNDNJV3dKSHNadVJsR3lZMlJWQy91MUMzSTBSSldiNUdyTmxwdHBiejIK",
       "endpoints": [
         "https://github.com/ygreat/estate/releases/latest/download/latest.json"
       ]
