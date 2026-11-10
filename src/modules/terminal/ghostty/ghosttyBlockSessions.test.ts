@@ -226,4 +226,13 @@ describe("block welcome (Estate)", () => {
     layout.history = 3;
     expect(busy.watermark()).toBe("dead");
   });
+
+  it("goes when keystrokes reach the shell without a block prompt", async () => {
+    const state = new GhosttyBlockSession();
+    await state.attach(fakeModel().model, vi.fn());
+    expect(state.getMode()).not.toBe("prompt");
+    expect(state.watermark()).toBe("visible");
+    state.typedToShell();
+    expect(state.watermark()).toBe("dead");
+  });
 });
