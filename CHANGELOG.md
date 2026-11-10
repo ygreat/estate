@@ -66,6 +66,7 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 
 ### Quality of life
 
+- Opening or switching to a project moves everything to it: the status bar folder, the Files sidebar and the window title. A project without tabs opens a terminal in its folder instead of leaving the previous project's tab in view.
 - The files and source control sidebar sits on the right by default; Settings > General > Layout moves it. The sidebar toggle follows it to the same side of the header.
 - The agent launcher (+ > Launch agents) opens chats by default; Terminal is the second choice.
 - A new block tab keeps its welcome screen (logo and key hints) until you start typing.

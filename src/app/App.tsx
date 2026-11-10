@@ -65,6 +65,7 @@ import {
   readRecentClearedAt,
   clearRecent,
 } from "@/modules/spaces/lib/projects";
+import { tabOnSpaceSwitch } from "@/modules/spaces/lib/activeSpace";
 import { ProjectButton } from "@/modules/statusbar/ProjectButton";
 import { WelcomeScreen } from "@/modules/welcome/WelcomeScreen";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -367,12 +368,12 @@ export default function App() {
       .getState()
       .spaces.find((s) => s.id === activeSpaceId);
     if (meta) void adoptWorkspaceEnv(meta.env);
-    const inSpace = tabsRef.current.filter((t) => t.spaceId === activeSpaceId);
-    if (inSpace.length === 0) return;
-    // Keep the active tab if it already belongs to the newly active space (a
-    // cross-space jump set it explicitly); else fall to the space's last tab.
-    if (inSpace.some((t) => t.id === activeId)) return;
-    setActiveId(inSpace[inSpace.length - 1].id);
+    // Estate: the active tab follows the project, so its folder (status bar,
+    // explorer, window title) does too. A project without tabs gets a
+    // terminal in its folder, as the active space is never left empty.
+    const next = tabOnSpaceSwitch(tabsRef.current, activeSpaceId, activeId);
+    if (next.kind === "activate") setActiveId(next.id);
+    else if (next.kind === "open") newTab(meta?.root ?? undefined);
   }, [
     activeSpaceId,
     activeId,
@@ -380,6 +381,7 @@ export default function App() {
     setActiveSpaceForNewTabs,
     setActiveId,
     adoptWorkspaceEnv,
+    newTab,
   ]);
 
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -467,6 +469,7 @@ export default function App() {
     tabs,
     launchCwd ?? home,
     projectRoot,
+    activeSpaceId,
   );
 
   useWindowTitle(activeTab, explorerRoot);

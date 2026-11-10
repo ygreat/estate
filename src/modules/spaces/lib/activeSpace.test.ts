@@ -1,6 +1,11 @@
 import type { WorkspaceEnv } from "@/modules/workspace";
 import { describe, expect, it } from "vitest";
-import { activeSpaceEnv, findActiveSpace, freshTabCwd } from "./activeSpace";
+import {
+  activeSpaceEnv,
+  findActiveSpace,
+  freshTabCwd,
+  tabOnSpaceSwitch,
+} from "./activeSpace";
 import type { SpaceMeta } from "./store";
 
 function space(over: Partial<SpaceMeta>): SpaceMeta {
@@ -75,5 +80,25 @@ describe("freshTabCwd", () => {
     expect(freshTabCwd(local, null, "C:/work", "C:/Users/me")).toBe("C:/work");
     expect(freshTabCwd(local, null, null, "C:/Users/me")).toBe("C:/Users/me");
     expect(freshTabCwd(local, null, null, null)).toBeNull();
+  });
+});
+
+describe("tabOnSpaceSwitch", () => {
+  const tabs = [
+    { id: 1, spaceId: "a" },
+    { id: 2, spaceId: "b" },
+    { id: 3, spaceId: "b" },
+  ];
+
+  it("keeps the active tab when it's already in the space", () => {
+    expect(tabOnSpaceSwitch(tabs, "b", 2)).toEqual({ kind: "keep" });
+  });
+
+  it("activates the space's last tab otherwise", () => {
+    expect(tabOnSpaceSwitch(tabs, "b", 1)).toEqual({ kind: "activate", id: 3 });
+  });
+
+  it("opens a tab in a space without any, instead of staying on the old one", () => {
+    expect(tabOnSpaceSwitch(tabs, "c", 1)).toEqual({ kind: "open" });
   });
 });
