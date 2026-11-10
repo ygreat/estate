@@ -3,73 +3,87 @@
   <img src="design/logo-estate.png" alt="Estate" width="112" height="112" />
   <h1>Estate</h1>
 
-  <p><strong>A lightweight, frictionless workspace for agentic development, built to run well on older machines.</strong></p>
+  <p><strong>Your workspace for building software together with AI agents.</strong></p>
 
   <p>
-    <img src="https://img.shields.io/badge/platform-macOS%20Intel-lightgrey" alt="platform" />
+    <a href="https://github.com/ygreat/estate/releases/tag/early-0.1.0"><img src="https://img.shields.io/badge/download-early%20build%200.1.0-brightgreen" alt="download early build" /></a>
+    <img src="https://img.shields.io/badge/platform-macOS%2012%2B%20Intel-lightgrey" alt="platform" />
     <img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="license" />
   </p>
 </div>
 
 ---
 
-Estate brings your terminal, editor, git and AI coding agents together in one small, fast app. It is made for people who build with agents, from seasoned developers to someone writing their first project with Claude Code, and it stays light enough to run smoothly on machines and operating systems that newer tools have left behind.
+Estate is for developers who work alongside coding agents. You describe what you want, agents like Claude Code, Codex, Gemini CLI and OpenCode do the work, and you stay in charge: you plan with them, watch them, review what they changed and decide what ships. The terminal, editor and git you need for your part sit in the same window.
 
-Estate is an independent project, built with Tauri and Rust on top of [Terax](https://github.com/crynta/terax-ai) 0.9.0.
+It's a small native app that stays fast on machines newer tools have left behind, including Intel Macs back to macOS 12. Estate is an independent project, built with Tauri and Rust on top of [Terax](https://github.com/crynta/terax-ai) 0.9.0.
 
-> [!IMPORTANT]
-> Estate is in early development and has no release yet. See [ROADMAP.md](ROADMAP.md) for what's next and [CHANGELOG.md](CHANGELOG.md) for what's new.
+> [!NOTE]
+> **An early build of 0.1.0 is out.** [Download it](https://github.com/ygreat/estate/releases/tag/early-0.1.0) to try Estate on an Intel Mac. It's a preview: it hasn't been through the full release checklist yet, and it doesn't update itself. See [ROADMAP.md](ROADMAP.md) for what's next and [CHANGELOG.md](CHANGELOG.md) for everything in it.
+
+## How you work with agents in Estate
+
+1. **Start from an idea.** Open a project and the welcome screen asks "What are we building today?". Pick an agent and describe it, and you're in a chat.
+2. **Plan big work with the Orchestrator.** Give it a goal and it splits the work into tasks that can run at the same time. You edit the plan, choose an agent for each task, then run it. Tasks that change code each get their own git worktree and branch, so agents don't step on each other.
+3. **Keep an eye on everything.** The Agents panel shows every agent you have going, in chats and in terminals: who's working, who needs you, who's blocked and who's done.
+4. **Stay in control.** Every chat has an access level: Read only, Edit files or Full access. When an agent is blocked, you see what it tried and can allow it and retry.
+5. **Review and ship.** Read the diffs, stage the hunks you want, commit and push, without leaving the window.
 
 ## Why Estate
 
-- **Frictionless.** Open a folder and start: talk to an agent, open a terminal, or split the window to watch both. Nothing to configure first.
-- **Agent-first.** Run Claude Code, Codex, Gemini CLI or OpenCode as a clean chat or in a terminal, and see every agent you have going in one place.
-- **Light on old hardware.** A small native app, not a bundled browser. Built and tested for Intel Macs back to macOS 12, with a renderer that keeps working on older GPUs.
+- **Built around agents.** Agents are where the work starts, not a plugin bolted onto an editor. Chat with one, run several in parallel, or orchestrate a whole plan.
+- **Any agent you already use.** Claude Code, Codex, Gemini CLI and OpenCode, with your existing sign-ins. Estate shows whether each one is installed and signed in, and never sees your account details.
+- **You stay the developer.** Clear access levels, visible tool calls, a Stop button, and a review step before anything is merged.
+- **Light on old hardware.** A small native app (the installer is about 8 MB), not a bundled browser. Built and tested for Intel Macs back to macOS 12.
 - **Private.** No telemetry, no analytics, no background update checks. Your keys stay in the system keychain.
 
 ## What you can do
 
 **Work with coding agents**
 - Chat with an agent instead of reading a terminal UI: streaming replies, tool calls you can expand, and a Stop button.
-- Pick up where you left off: chats share the project's own Claude Code sessions, listed in a sidebar.
-- Stay in control: each chat has an access level (Read only, Edit files, Full access), and anything blocked shows an "Allow and retry" button.
-- Switch models, use `/` commands, and keep an eye on your 5-hour and 7-day usage limits in the chat's status line.
-- See every agent at a glance in the Agents panel: who's working, who needs you, who's done.
+- Choose the model and how hard it thinks (effort from Low to Max), per chat.
+- Pick up where you left off: chats share the project's own Claude Code sessions, listed in a sidebar, and you can name them.
+- Drag files from the sidebar into the chat box to hand an agent their paths.
+- Use `/` commands, and keep an eye on context, cost and your 5-hour and 7-day usage limits in the chat's status line.
 
-**Arrange your workspace**
-- Split the window into up to four panes of any kind: terminals, chats, files, browser previews.
-- Split groups stay put: opening a new tab never replaces a pane, and your layout is saved per project.
-- Switch projects from the status bar, with recent projects one click away.
+**Plan and delegate**
+- The Orchestrator turns a goal into up to six parallel tasks, runs each in its own chat, then sums up what was done and how to review and merge each branch.
+- The Agents panel lists every agent with its state, colored so you can tell at a glance which one needs you.
 
 **The everyday tools**
-- A fast terminal with tabs and splits, and a block mode that groups each command with its output.
+- A fast terminal with tabs, splits and a block mode that groups each command with its output.
 - A code editor with a file explorer, language support and AI edit diffs.
 - Git: stage hunks, commit, push, pull, branches and history.
 - A browser pane for your local dev server.
-- A built-in AI assistant with your own API keys, or a local or LAN model.
+- A built-in AI assistant using your Claude or ChatGPT account, your own API keys, or a local model.
 
-**Make it yours**
-- Themes including Estate Default (green-to-lime accents) and Estate OLED (true black).
-- The sidebar on either side, and a status line you choose.
+**Arrange your workspace**
+- Split the window into up to four panes of any kind: terminals, chats, files, browser previews. Layouts are saved per project.
+- Switch projects from the status bar, with recent projects one click away.
+- Themes including Estate Default (green-to-lime accents) and Estate OLED (true black), and the sidebar on either side.
 
 ## Runs on
 
 | Platform | Support |
 | --- | --- |
-| macOS 12.7 or later, Intel | Primary. Every release is tested on a 2015 MacBook Pro. |
+| macOS 12.7 or later, Intel | Primary. The reference machine is a 2015 MacBook Pro. |
 | Older macOS 12, Intel | Best effort; needs Safari 16.4 or later. |
 | Apple Silicon | Not targeted yet. |
 | Windows, Linux | Not supported. |
 
 ## Install
 
-There are no releases yet. When there are, they'll be on the [Releases](https://github.com/ygreat/estate/releases) page.
+1. Download `Estate_0.1.0_x64.dmg` from the [early build release](https://github.com/ygreat/estate/releases/tag/early-0.1.0).
+2. Open it and drag **Estate** to **Applications**.
+3. Estate isn't signed with an Apple certificate yet, so macOS blocks the first launch. Right-click Estate in Applications, choose **Open**, then **Open** again. You only do this once. Or clear the download quarantine from a terminal:
 
-Estate isn't notarized by Apple. After moving it to Applications, clear the download quarantine once:
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Estate.app
+   ```
 
-```bash
-xattr -dr com.apple.quarantine /Applications/Estate.app
-```
+To check the download, compare `shasum -a 256 Estate_0.1.0_x64.dmg` with `SHA256SUMS.txt` on the release page.
+
+The early build doesn't update itself. Install newer builds from the [Releases](https://github.com/ygreat/estate/releases) page.
 
 ## Using AI
 
