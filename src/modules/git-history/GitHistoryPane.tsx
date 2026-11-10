@@ -7,11 +7,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import {
-  git,
-  type GitCommitFileChange,
-  type GitLogEntry,
-} from "@/modules/git";
+import { git, type GitCommitFileChange, type GitLogEntry } from "@/modules/git";
 import { FileIcon } from "@/modules/explorer/FileIcon";
 import {
   Copy01Icon,
@@ -26,6 +22,7 @@ import {
   useCallback,
   useDeferredValue,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -33,6 +30,11 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { GraphRail, MAX_VISIBLE_LANES, railWidth } from "./GraphRail";
+import {
+  type HistoryColumns,
+  historyColumns,
+  historyGridTemplate,
+} from "./lib/columns";
 import {
   EMPTY_GRAPH_STATE,
   layoutGraph,
@@ -48,7 +50,8 @@ import {
 
 const RAIL_RESERVED_PX = railWidth(MAX_VISIBLE_LANES);
 // rail | sha | subject(capped) | spacer(absorbs slack) | author(hugs) | date | changes
-const GRID_TEMPLATE = `${RAIL_RESERVED_PX + 4}px 60px minmax(0, 560px) minmax(12px, 1fr) minmax(140px, max-content) 96px 116px`;
+// Estate: Author, Date and Changes drop out in a narrow (split) pane.
+const RAIL_COLUMN_PX = RAIL_RESERVED_PX + 4;
 
 const PAGE_SIZE = 30;
 const ROW_HEIGHT = 32;
@@ -75,6 +78,8 @@ type Props = {
   onOpenCommitFile: (input: CommitFileDiffOpenInput) => void;
   /** Lets the header search bar drive commit filtering for the active pane. */
   onSearchHandle?: (handle: GitHistorySearchHandle | null) => void;
+  /** Estate: shown (in a pane) or kept mounted while hidden. */
+  visible?: boolean;
 };
 
 type LoadStatus = "idle" | "initial" | "more" | "error";
@@ -193,6 +198,7 @@ export function GitHistoryPane({
   repoRoot,
   onOpenCommitFile,
   onSearchHandle,
+  visible = true,
 }: Props) {
   const [commits, setCommits] = useState<GitLogEntry[]>([]);
   const [loadStatus, setLoadStatus] = useState<LoadStatus>("idle");
@@ -288,7 +294,34 @@ export function GitHistoryPane({
     }
     return { graphByCommit: cache.byCommit, maxLaneCount: cache.maxLaneCount };
   }, [commits]);
-  const gridTemplate = GRID_TEMPLATE;
+  // Estate: fit the columns to the pane, which a split can make narrow.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [columns, setColumns] = useState<HistoryColumns>(() =>
+    historyColumns(null, RAIL_COLUMN_PX),
+  );
+  useLayoutEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const measure = () => {
+      const next = historyColumns(el.clientWidth || null, RAIL_COLUMN_PX);
+      setColumns((prev) =>
+        prev.author === next.author &&
+        prev.date === next.date &&
+        prev.changes === next.changes
+          ? prev
+          : next,
+      );
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const gridTemplate = useMemo(
+    () => historyGridTemplate(columns, RAIL_COLUMN_PX),
+    [columns],
+  );
 
   const filtered = useMemo(() => {
     const q = activeSearch.toLowerCase();
@@ -331,6 +364,28 @@ export function GitHistoryPane({
       setLoadStatus("error");
     }
   }, [repoRoot]);
+
+  // Estate: a hidden pane stays mounted, so coming back into view reloads
+  // only when the branch has new commits (keeping scroll and search).
+  const firstShaRef = useRef<string | null>(null);
+  firstShaRef.current = commits[0]?.sha ?? null;
+  const wasVisible = useRef(visible);
+  useEffect(() => {
+    const cameBack = visible && !wasVisible.current;
+    wasVisible.current = visible;
+    if (!cameBack || firstShaRef.current === null) return;
+    let cancelled = false;
+    void git
+      .log(repoRoot, { limit: 1 })
+      .then(([head]) => {
+        if (!cancelled && head && head.sha !== firstShaRef.current)
+          void loadInitial();
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, repoRoot, loadInitial]);
 
   const loadMore = useCallback(async () => {
     if (inflightMoreRef.current || endReached) return;
@@ -506,7 +561,10 @@ export function GitHistoryPane({
 
   return (
     <TooltipProvider delayDuration={500} skipDelayDuration={200}>
-      <div className="flex h-full min-h-0 flex-col bg-background [contain:layout_style]">
+      <div
+        ref={rootRef}
+        className="flex h-full min-h-0 flex-col bg-background [contain:layout_style]"
+      >
         {loadStatus === "initial" && commits.length === 0 ? (
           <CenterPlaceholder>
             <Spinner className="size-4" />
@@ -546,9 +604,9 @@ export function GitHistoryPane({
               <div className="pl-px">SHA</div>
               <div className="min-w-0">Subject</div>
               <div />
-              <div className="ml-2">Author</div>
-              <div className="text-right">Date</div>
-              <div className="text-right">Changes</div>
+              {columns.author && <div className="ml-2">Author</div>}
+              {columns.date && <div className="text-right">Date</div>}
+              {columns.changes && <div className="text-right">Changes</div>}
             </div>
             <div
               ref={scrollRef}
@@ -584,6 +642,7 @@ export function GitHistoryPane({
                         graphRow={graphByCommit.get(commit.sha) ?? null}
                         maxLaneCount={maxLaneCount}
                         gridTemplate={gridTemplate}
+                        columns={columns}
                         onClick={handleRowClick}
                       />
                     </div>
@@ -691,6 +750,7 @@ type CommitRowProps = {
   graphRow: GraphRow | null;
   maxLaneCount: number;
   gridTemplate: string;
+  columns: HistoryColumns;
   onClick: (sha: string, event: React.MouseEvent<HTMLElement>) => void;
 };
 
@@ -701,6 +761,7 @@ const CommitRow = memo(function CommitRow({
   graphRow,
   maxLaneCount,
   gridTemplate,
+  columns,
   onClick,
 }: CommitRowProps) {
   const date = compactDate(commit.timestampSecs);
@@ -736,6 +797,12 @@ const CommitRow = memo(function CommitRow({
             ? "font-semibold text-foreground"
             : "font-medium text-foreground/95",
         )}
+        // Estate: what a narrow pane leaves out, on hover.
+        title={
+          columns.author && columns.date
+            ? undefined
+            : [commit.subject, commit.author || "Unknown", date].join(" · ")
+        }
       >
         {commit.subject ? (
           highlight(commit.subject, query)
@@ -744,63 +811,69 @@ const CommitRow = memo(function CommitRow({
         )}
       </span>
       <span aria-hidden />
-      <span
-        className="ml-2 inline-flex h-[18px] max-w-full min-w-0 items-center gap-1.5 justify-self-start self-center overflow-hidden rounded-md bg-foreground/6 pl-1 pr-1.5 text-[10.5px] font-medium text-foreground/85"
-        title={commit.authorEmail || commit.author}
-      >
+      {columns.author && (
         <span
-          className="inline-flex size-3.5 shrink-0 items-center justify-center rounded-[3px] font-mono text-[8.5px] font-bold uppercase tabular-nums text-background"
-          style={{
-            backgroundColor: authorTint(commit.authorEmail || commit.author),
-          }}
+          className="ml-2 inline-flex h-[18px] max-w-full min-w-0 items-center gap-1.5 justify-self-start self-center overflow-hidden rounded-md bg-foreground/6 pl-1 pr-1.5 text-[10.5px] font-medium text-foreground/85"
+          title={commit.authorEmail || commit.author}
         >
-          {initials}
-        </span>
-        <span className="min-w-0 truncate">
-          {commit.author ? highlight(commit.author, query) : "Unknown"}
-        </span>
-      </span>
-      <span className="text-right font-mono text-[10.5px] tabular-nums text-muted-foreground/75">
-        {date}
-      </span>
-      <span className="flex min-w-0 items-center justify-end gap-1.5 font-mono text-[10px] tabular-nums">
-        {commit.filesChanged > 0 ? (
           <span
-            className="inline-flex items-center gap-1 text-muted-foreground/75"
-            title={`${commit.filesChanged} ${commit.filesChanged === 1 ? "file" : "files"} changed`}
+            className="inline-flex size-3.5 shrink-0 items-center justify-center rounded-[3px] font-mono text-[8.5px] font-bold uppercase tabular-nums text-background"
+            style={{
+              backgroundColor: authorTint(commit.authorEmail || commit.author),
+            }}
           >
-            <HugeiconsIcon
-              icon={File02Icon}
-              size={10.5}
-              strokeWidth={1.7}
-              className="opacity-70"
+            {initials}
+          </span>
+          <span className="min-w-0 truncate">
+            {commit.author ? highlight(commit.author, query) : "Unknown"}
+          </span>
+        </span>
+      )}
+      {columns.date && (
+        <span className="text-right font-mono text-[10.5px] tabular-nums text-muted-foreground/75">
+          {date}
+        </span>
+      )}
+      {columns.changes && (
+        <span className="flex min-w-0 items-center justify-end gap-1.5 font-mono text-[10px] tabular-nums">
+          {commit.filesChanged > 0 ? (
+            <span
+              className="inline-flex items-center gap-1 text-muted-foreground/75"
+              title={`${commit.filesChanged} ${commit.filesChanged === 1 ? "file" : "files"} changed`}
+            >
+              <HugeiconsIcon
+                icon={File02Icon}
+                size={10.5}
+                strokeWidth={1.7}
+                className="opacity-70"
+              />
+              <span className="font-medium">{commit.filesChanged}</span>
+            </span>
+          ) : null}
+          {commit.filesChanged > 0 && totalStat > 0 ? (
+            <span
+              aria-hidden
+              className="size-[3px] shrink-0 rounded-full bg-muted-foreground/30"
             />
-            <span className="font-medium">{commit.filesChanged}</span>
-          </span>
-        ) : null}
-        {commit.filesChanged > 0 && totalStat > 0 ? (
-          <span
-            aria-hidden
-            className="size-[3px] shrink-0 rounded-full bg-muted-foreground/30"
-          />
-        ) : null}
-        {totalStat > 0 ? (
-          <span className="inline-flex items-center gap-1">
-            {commit.insertions > 0 ? (
-              <span className="font-semibold text-emerald-600/85 dark:text-emerald-400/85">
-                +{commit.insertions}
-              </span>
-            ) : null}
-            {commit.deletions > 0 ? (
-              <span className="font-semibold text-rose-600/85 dark:text-rose-400/85">
-                −{commit.deletions}
-              </span>
-            ) : null}
-          </span>
-        ) : commit.filesChanged === 0 ? (
-          <span className="text-muted-foreground/40">—</span>
-        ) : null}
-      </span>
+          ) : null}
+          {totalStat > 0 ? (
+            <span className="inline-flex items-center gap-1">
+              {commit.insertions > 0 ? (
+                <span className="font-semibold text-emerald-600/85 dark:text-emerald-400/85">
+                  +{commit.insertions}
+                </span>
+              ) : null}
+              {commit.deletions > 0 ? (
+                <span className="font-semibold text-rose-600/85 dark:text-rose-400/85">
+                  −{commit.deletions}
+                </span>
+              ) : null}
+            </span>
+          ) : commit.filesChanged === 0 ? (
+            <span className="text-muted-foreground/40">—</span>
+          ) : null}
+        </span>
+      )}
     </button>
   );
 });
