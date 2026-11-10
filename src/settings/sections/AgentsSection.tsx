@@ -615,7 +615,7 @@ const CHAT_STATUS_LABELS: Record<ChatStatusItem, [string, string]> = {
 
 /** Estate: which items the agent chat status line shows. */
 const DELEGATE_LABEL: Record<OrchestratorDelegate, string> = {
-  ask: "Ask me each time",
+  ask: "First signed-in agent",
   claude: "Claude Code",
   codex: "Codex",
   gemini: "Gemini CLI",
