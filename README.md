@@ -6,7 +6,7 @@
   <p><strong>Your workspace for building software together with AI agents.</strong></p>
 
   <p>
-    <a href="https://github.com/ygreat/estate/releases/tag/early-0.1.0"><img src="https://img.shields.io/badge/download-early%20build%200.1.0-brightgreen" alt="download early build" /></a>
+    <a href="https://github.com/ygreat/estate/releases/latest"><img src="https://img.shields.io/github/v/release/ygreat/estate?label=download&color=brightgreen" alt="download the latest release" /></a>
     <img src="https://img.shields.io/badge/platform-macOS%2012%2B%20Intel-lightgrey" alt="platform" />
     <img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="license" />
   </p>
@@ -19,7 +19,7 @@ Estate is for developers who work alongside coding agents. You describe what you
 It's a small native app that stays fast on machines newer tools have left behind, including Intel Macs back to macOS 12. Estate is an independent project, built with Tauri and Rust on top of [Terax](https://github.com/crynta/terax-ai) 0.9.0.
 
 > [!NOTE]
-> **An early build of 0.1.0 is out.** [Download it](https://github.com/ygreat/estate/releases/tag/early-0.1.0) to try Estate on an Intel Mac. It's a preview: it hasn't been through the full release checklist yet, and it doesn't update itself. See [ROADMAP.md](ROADMAP.md) for what's next and [CHANGELOG.md](CHANGELOG.md) for everything in it.
+> **Estate 0.1.1 is out.** [Download the latest release](https://github.com/ygreat/estate/releases/latest) to try Estate on an Intel Mac, or update from Settings → About if you have 0.1.0. These are early releases: they haven't been through the full release checklist yet. See [ROADMAP.md](ROADMAP.md) for what's next and [CHANGELOG.md](CHANGELOG.md) for everything in it.
 
 ## How you work with agents in Estate
 
@@ -73,7 +73,7 @@ It's a small native app that stays fast on machines newer tools have left behind
 
 ## Install
 
-1. Download `Estate_0.1.0_x64.dmg` from the [early build release](https://github.com/ygreat/estate/releases/tag/early-0.1.0).
+1. Download the DMG (`Estate_<version>_x64.dmg`) from the [latest release](https://github.com/ygreat/estate/releases/latest).
 2. Open it and drag **Estate** to **Applications**.
 3. Estate isn't signed with an Apple certificate yet, so macOS blocks the first launch. Right-click Estate in Applications, choose **Open**, then **Open** again. You only do this once. Or clear the download quarantine from a terminal:
 
@@ -81,9 +81,11 @@ It's a small native app that stays fast on machines newer tools have left behind
    xattr -dr com.apple.quarantine /Applications/Estate.app
    ```
 
-To check the download, compare `shasum -a 256 Estate_0.1.0_x64.dmg` with `SHA256SUMS.txt` on the release page.
+To check the download, compare `shasum -a 256` of the DMG with `SHA256SUMS.txt` on the release page.
 
-The early build doesn't update itself. Install newer builds from the [Releases](https://github.com/ygreat/estate/releases) page.
+## Updating
+
+Estate updates itself, but only when you ask: open **Settings → About** and click **Check for updates**. If there's a newer release, **Install** downloads it, checks that it's signed with Estate's release key, and restarts on the new version. Estate never checks for updates in the background.
 
 ## Using AI
 
@@ -111,6 +113,8 @@ pnpm tauri build --target x86_64-apple-darwin   # build the app and DMG
 ```
 
 Checks: `pnpm lint`, `pnpm check-types`, `pnpm test`, and in `src-tauri`, `cargo clippy --all-targets --locked -- -D warnings` and `cargo test --locked`.
+
+To publish a signed release that installed copies can update to, see [Releasing a macOS build](docs/contributing/releasing.md).
 
 ## Contributing
 
