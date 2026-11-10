@@ -667,6 +667,16 @@ export const MODELS = [
     tags: ["reasoning", "coding"],
   },
   {
+    id: "claude-account-fable",
+    provider: "claude-account",
+    label: "Claude Fable",
+    hint: "Account",
+    description:
+      "Your Claude account's newest flagship model, through Claude Code.",
+    capabilities: { intelligence: 5, speed: 2, cost: 5 },
+    tags: ["reasoning", "coding"],
+  },
+  {
     id: "claude-account-opus",
     provider: "claude-account",
     label: "Claude Opus",
@@ -698,7 +708,7 @@ export const MODELS = [
 
 /** Estate: the CLI model name for an account model ("sonnet"), or undefined. */
 export function accountModelArg(modelId: string): string | undefined {
-  const m = /^claude-account-(sonnet|opus|haiku)$/.exec(modelId);
+  const m = /^claude-account-(fable|sonnet|opus|haiku)$/.exec(modelId);
   return m ? m[1] : undefined;
 }
 

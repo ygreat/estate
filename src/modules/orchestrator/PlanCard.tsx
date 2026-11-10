@@ -1,5 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import {
@@ -7,8 +15,9 @@ import {
   CHAT_AGENTS,
   type ChatAgentId,
 } from "@/modules/agent-chat/model";
+import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import { usePreferencesStore } from "@/modules/settings/preferences";
-import type { ModelSize, Plan } from "./plan";
+import { type ModelSize, modelFor, type Plan } from "./plan";
 import {
   dispatchPlan,
   type RunTask,
@@ -30,6 +39,7 @@ const SIZE_LABEL: Record<ModelSize, string> = {
   balanced: "Balanced",
   deep: "Deep",
 };
+const SIZES = Object.keys(SIZE_LABEL) as ModelSize[];
 
 const STATUS: Record<TaskStatus, { label: string; tone: string }> = {
   starting: { label: "Starting", tone: "text-muted-foreground" },
@@ -38,8 +48,13 @@ const STATUS: Record<TaskStatus, { label: string; tone: string }> = {
   failed: { label: "Failed", tone: "text-destructive" },
 };
 
+// Estate: the same field look as the app's Select (input fill, no border).
 const field =
-  "rounded-md border border-border/70 bg-background px-2 py-1 text-[12px] outline-none focus-visible:border-ring";
+  "rounded-lg border border-transparent bg-input/50 px-2.5 text-[12px] outline-none transition-[box-shadow,border-color] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30";
+const trigger =
+  "h-8 shrink-0 gap-1.5 rounded-lg px-2.5 py-0 text-[12px] data-[size=default]:h-8 [&_svg:not([class*='size-'])]:size-3.5";
+const menu = "rounded-xl p-1";
+const menuItem = "rounded-lg py-1.5 pl-2 text-[12px]";
 
 /** Estate: the Orchestrator's plan, editable until it runs. */
 export function PlanCard({
@@ -126,62 +141,91 @@ export function PlanCard({
                       value={t.title}
                       onChange={(e) => update(i, { title: e.target.value })}
                       aria-label="Task title"
-                      className={cn(field, "min-w-0 flex-1 font-medium")}
+                      className={cn(field, "h-8 min-w-0 flex-1 font-medium")}
                     />
-                    <select
+                    <Select
                       value={t.agent}
-                      onChange={(e) =>
-                        update(i, { agent: e.target.value as ChatAgentId })
+                      onValueChange={(v) =>
+                        update(i, { agent: v as ChatAgentId })
                       }
-                      aria-label="Agent"
-                      className={field}
                     >
-                      {CHAT_AGENTS.map((a) => (
-                        <option key={a} value={a}>
-                          {CHAT_AGENT_LABEL[a]}
-                        </option>
-                      ))}
-                    </select>
-                    <select
+                      <SelectTrigger aria-label="Agent" className={trigger}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent
+                        position="popper"
+                        align="end"
+                        className={menu}
+                      >
+                        {CHAT_AGENTS.map((a) => (
+                          <SelectItem key={a} value={a} className={menuItem}>
+                            <AgentIcon agent={a} size={13} />
+                            {CHAT_AGENT_LABEL[a]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
                       value={t.model}
-                      onChange={(e) =>
-                        update(i, { model: e.target.value as ModelSize })
+                      onValueChange={(v) =>
+                        update(i, { model: v as ModelSize })
                       }
-                      aria-label="Model size"
-                      className={field}
                     >
-                      {(Object.keys(SIZE_LABEL) as ModelSize[]).map((m) => (
-                        <option key={m} value={m}>
-                          {SIZE_LABEL[m]}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger
+                        aria-label="Model size"
+                        className={cn(trigger, "min-w-[6.5rem]")}
+                      >
+                        <SelectValue>{SIZE_LABEL[t.model]}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent
+                        position="popper"
+                        align="end"
+                        className={menu}
+                      >
+                        {SIZES.map((m) => (
+                          <SelectItem key={m} value={m} className={menuItem}>
+                            {SIZE_LABEL[m]}
+                            {/* Estate: the model this size picks for the agent. */}
+                            <span className="font-normal text-muted-foreground">
+                              {modelFor(t.agent, m) ?? "agent's default"}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <textarea
                     value={t.prompt}
                     onChange={(e) => update(i, { prompt: e.target.value })}
                     rows={3}
                     aria-label="Task instructions"
-                    className={cn(field, "resize-y leading-5")}
+                    className={cn(field, "resize-y py-1.5 leading-5")}
                   />
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <input
-                        type="checkbox"
+                  <div className="flex items-center justify-between pt-0.5">
+                    <label
+                      htmlFor={`${orchestratorChatId}-task-${t.key}-edits`}
+                      className="flex cursor-pointer items-center gap-2 text-[11px] text-muted-foreground select-none"
+                    >
+                      <Checkbox
+                        id={`${orchestratorChatId}-task-${t.key}-edits`}
                         checked={t.edits}
-                        onChange={(e) => update(i, { edits: e.target.checked })}
+                        onCheckedChange={(v) =>
+                          update(i, { edits: v === true })
+                        }
+                        className="size-3.5 rounded-[4px] [&_svg]:size-3"
                       />
                       Edits code
                     </label>
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="xs"
                       onClick={() =>
                         setTasks((list) => list.filter((_, j) => j !== i))
                       }
-                      className="text-[11px] text-muted-foreground hover:text-destructive"
+                      className="h-6 rounded-md text-[11px] font-normal text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     >
                       Remove
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -202,7 +246,7 @@ export function PlanCard({
               setStarting(true);
               void dispatchPlan(orchestratorChatId, cwd, tasks, worktrees);
             }}
-            className="bg-gradient-to-r from-[var(--brand-from)] to-[var(--brand-to)] text-white hover:opacity-90"
+            className="h-7 px-3 text-[11.5px]"
           >
             Run {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
           </Button>

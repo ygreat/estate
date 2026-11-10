@@ -1,10 +1,21 @@
-import { Add01Icon, GitBranchIcon } from "@hugeicons/core-free-icons";
+import {
+  Add01Icon,
+  GitBranchIcon,
+  PencilEdit02Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import type { ChatAgentId } from "./model";
+import { sessionKey, useSessionNames } from "./sessionNames";
 import { listChatSessions, type SessionSummary } from "./store";
 
 export function relativeTime(ms: number, now = Date.now()): string {
@@ -23,8 +34,9 @@ export function relativeTime(ms: number, now = Date.now()): string {
   });
 }
 
-export function sessionLabel(s: SessionSummary): string {
-  return s.title || s.lastPrompt || "Untitled session";
+/** A name given in Estate first (the chat tab's title), then the agent's. */
+export function sessionLabel(s: SessionSummary, name?: string): string {
+  return name || s.title || s.lastPrompt || "Untitled session";
 }
 
 /** The folder's saved sessions, newest first; refetched when `refresh` changes. */
@@ -57,57 +69,155 @@ export function useChatSessions(
 }
 
 export function SessionList({
+  agent,
   sessions,
   currentId,
   disabled,
   onOpen,
   limit,
+  now,
 }: {
+  agent: ChatAgentId;
   sessions: SessionSummary[];
   currentId: string | undefined;
   disabled: boolean;
   onOpen: (id: string) => void;
   limit?: number;
+  /** A ticking clock, so times stay current while the list stays open. */
+  now?: number;
 }) {
+  const names = useSessionNames((s) => s.names);
+  const setName = useSessionNames((s) => s.setName);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const shown = limit ? sessions.slice(0, limit) : sessions;
   return (
     <ul className="flex flex-col gap-0.5">
       {shown.map((s) => {
         const current = s.id === currentId;
-        return (
-          <li key={s.id}>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onOpen(s.id)}
-              aria-current={current ? "true" : undefined}
-              title={s.lastPrompt ?? undefined}
+        const label = sessionLabel(s, names[sessionKey(agent, s.id)]);
+        const meta = (
+          <span className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+            <span>{relativeTime(s.modifiedMs, now)}</span>
+            {s.branch && (
+              <span className="flex min-w-0 items-center gap-0.5">
+                <HugeiconsIcon icon={GitBranchIcon} size={10} strokeWidth={2} />
+                <span className="truncate font-mono">{s.branch}</span>
+              </span>
+            )}
+          </span>
+        );
+        if (editingId === s.id) {
+          return (
+            <li
+              key={s.id}
               className={cn(
-                "flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left transition-colors disabled:opacity-60",
-                current ? "bg-accent" : "hover:bg-accent/60",
+                "flex flex-col gap-0.5 rounded-md px-2 py-1.5",
+                current ? "bg-accent" : "bg-accent/60",
               )}
             >
-              <span className="line-clamp-2 text-[12px] leading-4">
-                {sessionLabel(s)}
-              </span>
-              <span className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
-                <span>{relativeTime(s.modifiedMs)}</span>
-                {s.branch && (
-                  <span className="flex min-w-0 items-center gap-0.5">
-                    <HugeiconsIcon
-                      icon={GitBranchIcon}
-                      size={10}
-                      strokeWidth={2}
-                    />
-                    <span className="truncate font-mono">{s.branch}</span>
+              <SessionRenameInput
+                initial={label}
+                onCommit={(value) => {
+                  setName(agent, s.id, value);
+                  setEditingId(null);
+                }}
+                onCancel={() => setEditingId(null)}
+              />
+              {meta}
+            </li>
+          );
+        }
+        return (
+          <li key={s.id}>
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onOpen(s.id)}
+                  aria-current={current ? "true" : undefined}
+                  title={s.lastPrompt ?? undefined}
+                  className={cn(
+                    "flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left transition-colors disabled:opacity-60",
+                    current ? "bg-accent" : "hover:bg-accent/60",
+                  )}
+                >
+                  <span className="line-clamp-2 text-[12px] leading-4">
+                    {label}
                   </span>
-                )}
-              </span>
-            </button>
+                  {meta}
+                </button>
+              </ContextMenuTrigger>
+              <ContextMenuContent
+                className="min-w-32 p-1"
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
+                <ContextMenuItem
+                  className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                  onSelect={() => setEditingId(s.id)}
+                >
+                  <HugeiconsIcon
+                    icon={PencilEdit02Icon}
+                    size={13}
+                    strokeWidth={1.75}
+                  />
+                  <span className="flex-1">Rename</span>
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           </li>
         );
       })}
     </ul>
+  );
+}
+
+/** Enter saves (empty restores the agent's own title), Escape cancels. */
+function SessionRenameInput({
+  initial,
+  onCommit,
+  onCancel,
+}: {
+  initial: string;
+  onCommit: (value: string) => void;
+  onCancel: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const done = useRef(false);
+  useEffect(() => {
+    // After the context menu hands focus back to its trigger.
+    const raf = requestAnimationFrame(() => {
+      ref.current?.focus();
+      ref.current?.select();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  const finish = (fn: () => void) => {
+    if (done.current) return;
+    done.current = true;
+    fn();
+  };
+  // An unchanged name isn't saved, so the agent's own title keeps showing.
+  const commit = (value: string) =>
+    finish(() =>
+      value.trim() === initial.trim() ? onCancel() : onCommit(value),
+    );
+  return (
+    <input
+      ref={ref}
+      defaultValue={initial}
+      aria-label="Rename session"
+      className="w-full min-w-0 rounded-sm bg-background px-1 text-[12px] leading-4 text-foreground outline-none ring-1 ring-border focus:ring-ring"
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") commit(e.currentTarget.value);
+        else if (e.key === "Escape") finish(onCancel);
+      }}
+      onBlur={(e) => {
+        if (!document.hasFocus()) return;
+        commit(e.currentTarget.value);
+      }}
+    />
   );
 }
 
@@ -168,6 +278,7 @@ export function HistorySidebar({
           </p>
         ) : (
           <SessionList
+            agent={agent}
             sessions={sessions}
             currentId={currentSessionId}
             disabled={running}

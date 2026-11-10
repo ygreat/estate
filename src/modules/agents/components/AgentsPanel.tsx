@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   relativeTime,
-  sessionLabel,
+  SessionList,
   useChatSessions,
 } from "@/modules/agent-chat/HistorySidebar";
 import { useAgentChatStore } from "@/modules/agent-chat/store";
@@ -32,6 +32,7 @@ type Props = {
 const DOT: Record<AgentRowState, string> = {
   attention:
     "bg-amber-500 shadow-[0_0_0_3px] shadow-amber-500/20 animate-pulse",
+  blocked: "bg-orange-500 shadow-[0_0_0_3px] shadow-orange-500/20",
   working: "bg-sky-500 shadow-[0_0_0_3px] shadow-sky-500/20 animate-pulse",
   idle: "bg-emerald-500",
   ready: "bg-muted-foreground/40",
@@ -39,6 +40,7 @@ const DOT: Record<AgentRowState, string> = {
 
 const TEXT: Record<AgentRowState, string> = {
   attention: "text-amber-600 dark:text-amber-400",
+  blocked: "text-orange-600 dark:text-orange-400",
   working: "text-sky-600 dark:text-sky-400",
   idle: "text-emerald-600 dark:text-emerald-400",
   ready: "text-muted-foreground",
@@ -73,6 +75,7 @@ export function AgentsPanel({
       out[id] = {
         running: c.running,
         hasMessages: c.transcript.items.length > 0,
+        blocked: c.transcript.denied,
       };
     }
     return out;
@@ -228,26 +231,16 @@ function SavedSessions({
       <h3 className="px-2 pt-2 pb-1 text-[10.5px] font-medium tracking-wide text-muted-foreground/80 uppercase">
         Saved Claude Code sessions
       </h3>
-      <ul className="flex flex-col gap-0.5">
-        {sessions.slice(0, 8).map((s) => (
-          <li key={s.id}>
-            <button
-              type="button"
-              onClick={() => onOpen(s.id)}
-              title="Resume in a chat"
-              className="flex w-full flex-col rounded-md px-2 py-1.5 text-left hover:bg-accent/60"
-            >
-              <span className="line-clamp-1 text-[12px] leading-4">
-                {sessionLabel(s)}
-              </span>
-              <span className="text-[10.5px] text-muted-foreground">
-                {relativeTime(s.modifiedMs, now)}
-                {s.branch ? ` · ${s.branch}` : ""}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      {/* Estate: the chat tab's name when it has one; right-click renames. */}
+      <SessionList
+        agent="claude"
+        sessions={sessions}
+        currentId={undefined}
+        disabled={false}
+        onOpen={onOpen}
+        limit={8}
+        now={now}
+      />
     </section>
   );
 }

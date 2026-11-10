@@ -276,7 +276,7 @@ export function TabBar({
               // While renaming, render a non-button cell so the <input> is not
               // nested inside the trigger <button> (invalid HTML, and WebKit
               // blocks focus/selection on inputs inside buttons).
-              if (editingId === t.id && t.kind === "terminal") {
+              if (editingId === t.id && canRename(t)) {
                 return (
                   <Fragment key={t.id}>
                     {showGap(i) && <DropIndicator />}
@@ -558,7 +558,7 @@ export function TabBar({
                     className="min-w-32 p-1"
                     onCloseAutoFocus={(e) => e.preventDefault()}
                   >
-                    {t.kind === "terminal" && (
+                    {canRename(t) && (
                       <>
                         <ContextMenuItem
                           className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
@@ -836,6 +836,11 @@ function groupClass(
     prev && "rounded-l-none",
     next && "rounded-r-none",
   );
+}
+
+/** Terminal and agent chat tabs can be renamed from their context menu. */
+function canRename(t: Tab): boolean {
+  return t.kind === "terminal" || t.kind === "agent-chat";
 }
 
 function TabRenameInput({

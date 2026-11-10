@@ -73,6 +73,17 @@ describe("buildAgentRows", () => {
     ]);
   });
 
+  it("shows a chat refused by its access level as blocked, not idle", () => {
+    const state = (c: { running: boolean; blocked: boolean }) =>
+      buildAgentRows(tabs, {}, { c1: { ...c, hasMessages: true } }).find(
+        (r) => r.key === "chat:c1",
+      )?.state;
+    expect(state({ running: false, blocked: true })).toBe("blocked");
+    // Retrying starts a new turn: working, whatever the last one hit.
+    expect(state({ running: true, blocked: true })).toBe("working");
+    expect(state({ running: false, blocked: false })).toBe("idle");
+  });
+
   it("names rows by tab and folder, and keeps their space", () => {
     const api = rows.find((r) => r.key === "terminal:11");
     expect(api).toMatchObject({

@@ -230,3 +230,33 @@ describe("hydrateTabsAligned (Estate split layouts)", () => {
     expect(serializeTabs(tabs)).toHaveLength(2);
   });
 });
+
+describe("agent chat tab titles", () => {
+  const chat = (over: Partial<Extract<Tab, { kind: "agent-chat" }>>): Tab =>
+    ({
+      id: 1,
+      kind: "agent-chat",
+      spaceId: "s1",
+      title: "Claude Code",
+      chatId: "c1",
+      agent: "claude",
+      cwd: "/a",
+      ...over,
+    }) as Tab;
+
+  it("keeps an Orchestrator tab's default title through a restore", () => {
+    const saved = serializeTabs([
+      chat({ title: "Orchestrator", role: "orchestrator" }),
+    ]);
+    expect(saved[0]).not.toHaveProperty("title");
+    const [tab] = hydrateTabs(saved, "s1", counter());
+    expect(tab).toMatchObject({ title: "Orchestrator", role: "orchestrator" });
+  });
+
+  it("saves an Orchestrator tab renamed to the agent's label", () => {
+    const saved = serializeTabs([
+      chat({ title: "Claude Code", role: "orchestrator" }),
+    ]);
+    expect(saved[0]).toMatchObject({ title: "Claude Code" });
+  });
+});

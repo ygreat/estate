@@ -16,8 +16,11 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 
 **Agent chat** (Claude Code, Codex, Gemini CLI, OpenCode)
 - Open a coding agent as a chat instead of a terminal. Replies stream in, tool calls show as expandable cards, and follow-ups continue the same agent session. Stop ends the agent and anything it started.
-- Access level per chat: Read only (the default), Edit files or Full access, mapped to each agent's own permission settings. Blocked actions show an "Allow and retry" card.
+- Access level per chat: Read only (the default), Edit files or Full access, mapped to each agent's own permission settings. Blocked actions show an "Allow and retry" card, and the chat shows as Blocked (orange) in the Agents panel until you retry. Codex counts as blocked when it says the folder is read-only, or when its sandbox refuses a command or edit.
 - Sessions sidebar: a Claude Code chat lists the project folder's own Claude Code sessions (the ones `claude` uses in a terminal there), with title, time and branch. Open one to see its recent messages and continue it. An empty chat lists recent sessions too.
+- Drag files or folders from the Files sidebar into a chat box (a chat tab or the AI panel) to insert their paths at the cursor, relative to the chat's folder. The box outlines while you hover it. Dropping on a terminal still pastes the shell-quoted path.
+- Rename a chat tab from its right-click menu, like a terminal tab. The name belongs to the tab's session: the sessions sidebar and the Agents panel show it, and right-clicking a session there renames it too (the tab follows). Opening another session in the tab shows that session's name; a new session starts unnamed. Clearing a name goes back to the agent's own title.
+- The chat's model picker also sets effort: Low, Medium, High, Extra high or Max (Default leaves it to the agent), shown as "Opus · High". Each level has its own color, from sky (Low) to rose (Max), in the picker and on its button. Claude Code takes every level except on Haiku; Codex lists its own models with the levels each takes, up to Extra high (Codex has no Max). Each chat remembers its choice.
 - Model menu in the chat header (Default, Opus, Sonnet, Haiku or any model name).
 - Typing `/` lists commands: `/clear` and `/model` are handled by Estate; the agent's own commands (`/compact`, `/context`, `/init`, skills) go to the agent.
 - Status line under the message box: folder, branch and worktree, model, access, context, tokens, cost, and gauges for how much of the 5-hour and 7-day usage limits is left. Choose the items in Settings > Agents.
@@ -47,12 +50,15 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 - The AI panel opens without any API key when one of these accounts is signed in, and starts on its model.
 - The model picker lists signed-in account models first under "Your accounts". A model is greyed out only when its account isn't signed in. Browsing Anthropic or OpenAI while signed in with that account offers a shortcut to the account's models.
 - A notice explains the trade-offs (read only, no Estate tools, slower start, uses your plan's limits): a strip in the AI chat while an account model is selected (collapsible), in the picker, and in Settings > Models.
+- The model picker lives inside the chat box, a small label at its left with the provider's icon, so the box you type in is also where you switch models. It's no longer in the status bar.
+- Account models: Claude Fable joins Sonnet, Opus and Haiku. Next to an account model, a small control sets its effort and, for a ChatGPT account, which Codex model it uses. Remembered per account and applied from the next message.
 
 **Welcome screen**
 - Opens on launch over the editor, which shows blurred behind it (Settings > General can turn it off). Go to editor, Esc or a click anywhere outside skips it.
-- Two clear choices: Create New Project and Open Project, with recent projects below (the open one marked "Open now").
+- Two clear choices: Create New Project and Open Project, with recent projects below (the open one marked "Open now"). Clear Recent empties the list without deleting any project; a project comes back once it's opened again. The status bar's project menu still lists every project.
 - Create New Project asks for a Project Name and a Root Directory (defaults to ~/Projects, remembers your last choice, with Choose… to pick another), shows the folder it will make, creates it and opens it.
-- Then: "What are we building today?" Pick an agent (each shows whether it's installed and signed in), describe the idea, and start a chat or plan it with the Orchestrator. New terminal and Command palette sit below with their shortcuts.
+- Then: "What are we building today?" One chat box with the agent switcher inside it on the left: Claude Code, Codex, Gemini CLI or OpenCode (each shows whether it's installed and signed in), or the Orchestrator to plan and delegate. A signed-out agent shows Sign in right in the box. Enter starts the chat, Shift+Enter adds a line. New terminal and Command palette sit below with their shortcuts.
+- Opening a project that already has work, saved chat or editor tabs or Claude Code sessions in its folder, goes straight to it. The chat box shows for a project with neither (a terminal tab alone doesn't count as work).
 
 **Themes**
 - Estate Default now uses green to lime accents.

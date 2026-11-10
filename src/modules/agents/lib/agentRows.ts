@@ -9,7 +9,12 @@ import type { Tab } from "@/modules/tabs/lib/useTabs";
 import { labelFor } from "@/modules/tabs/lib/tabLabel";
 import type { AgentSession } from "./types";
 
-export type AgentRowState = "attention" | "working" | "idle" | "ready";
+export type AgentRowState =
+  | "attention"
+  | "blocked"
+  | "working"
+  | "idle"
+  | "ready";
 
 export type AgentRow = {
   key: string;
@@ -27,17 +32,24 @@ export type AgentRow = {
 };
 
 /** What the panel needs to know about a chat. */
-export type ChatActivity = { running: boolean; hasMessages: boolean };
+export type ChatActivity = {
+  running: boolean;
+  hasMessages: boolean;
+  /** Its last turn had actions refused by the chat's access level. */
+  blocked?: boolean;
+};
 
 const ORDER: Record<AgentRowState, number> = {
   attention: 0,
-  working: 1,
-  idle: 2,
-  ready: 3,
+  blocked: 1,
+  working: 2,
+  idle: 3,
+  ready: 4,
 };
 
 export const AGENT_STATE_LABEL: Record<AgentRowState, string> = {
   attention: "Needs you",
+  blocked: "Blocked",
   working: "Working",
   idle: "Idle",
   ready: "Ready",
@@ -86,11 +98,14 @@ export function buildAgentRows(
   for (const tab of tabs) {
     if (tab.kind !== "agent-chat") continue;
     const chat = chats[tab.chatId];
+    // Estate: a chat whose last turn was refused waits for more access.
     const state: AgentRowState = chat?.running
       ? "working"
-      : chat?.hasMessages
-        ? "idle"
-        : "ready";
+      : chat?.blocked
+        ? "blocked"
+        : chat?.hasMessages
+          ? "idle"
+          : "ready";
     rows.push({
       key: `chat:${tab.chatId}`,
       kind: "chat",

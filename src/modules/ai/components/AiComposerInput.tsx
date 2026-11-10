@@ -12,6 +12,8 @@ import { useSnippetsStore } from "../store/snippetsStore";
 import { useAgentsStore } from "../store/agentsStore";
 import { ORCHESTRATOR_AGENT_ID } from "../lib/agents";
 import { AgentSwitcher } from "./AgentSwitcher";
+import { AccountTuningPicker } from "./AccountTuningPicker";
+import { ModelDropdown } from "./AiStatusBarControls";
 import { FilePickerContent } from "./FilePicker";
 import { SnippetPickerContent, type PickerItem } from "./SnippetPicker";
 
@@ -215,7 +217,13 @@ export function AiComposerInput() {
     <>
       <Popover open={pickerOpen}>
         <PopoverAnchor asChild>
-          <div className="flex items-start gap-2">
+          <div
+            className="flex items-start gap-2"
+            data-path-drop
+            data-path-drop-base={workspaceRoot ?? undefined}
+          >
+            <ModelDropdown />
+            <AccountTuningPicker />
             <textarea
               ref={c.textareaRef}
               value={c.value}
@@ -270,7 +278,7 @@ export function AiComposerInput() {
               }
               rows={1}
               className={cn(
-                "max-h-40 flex-1 resize-none bg-transparent text-[13px] leading-relaxed outline-none",
+                "max-h-40 min-w-0 flex-1 resize-none bg-transparent text-[13px] leading-relaxed outline-none",
                 "placeholder:text-muted-foreground/60",
               )}
             />

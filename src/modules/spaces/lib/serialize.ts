@@ -5,7 +5,7 @@ import {
   type SplitDir,
 } from "@/modules/terminal/lib/panes";
 import {
-  CHAT_AGENT_LABEL,
+  chatTabDefaultTitle,
   CHAT_AGENTS,
   type ChatAgentId,
 } from "@/modules/agent-chat/model";
@@ -105,7 +105,9 @@ function serializeTab(tab: Tab): SerializedTab | null {
         chatId: tab.chatId,
         agent: tab.agent,
         cwd: tab.cwd,
-        ...(tab.title !== CHAT_AGENT_LABEL[tab.agent] && { title: tab.title }),
+        ...(tab.title !== chatTabDefaultTitle(tab.agent, tab.role) && {
+          title: tab.title,
+        }),
         ...(tab.role && { role: tab.role }),
       };
     default:
@@ -224,6 +226,7 @@ function hydrateTab(
       if (!CHAT_AGENTS.includes(agent)) return null;
       if (!/^[A-Za-z0-9_-]{1,64}$/.test(s.chatId) || typeof s.cwd !== "string")
         return null;
+      const role = s.role === "orchestrator" ? s.role : undefined;
       return {
         id: allocId(),
         kind: "agent-chat",
@@ -232,7 +235,7 @@ function hydrateTab(
         title:
           typeof s.title === "string" && s.title.trim()
             ? s.title.slice(0, 120)
-            : CHAT_AGENT_LABEL[agent],
+            : chatTabDefaultTitle(agent, role),
         chatId: s.chatId,
         agent,
         cwd: s.cwd,
