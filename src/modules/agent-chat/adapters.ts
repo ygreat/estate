@@ -223,8 +223,31 @@ export function claudeAdapter(): TurnAdapter {
 
 // ---- Codex --------------------------------------------------------------------
 
+/**
+ * Estate: Codex doesn't report what its sandbox refused. A failed command
+ * whose output names the sandbox, an edit it declined, or (most often, as it
+ * usually doesn't even try) a reply saying the folder is read-only count as
+ * blocked, so the chat offers more access and the Agents panel shows it.
+ */
+const CODEX_SANDBOX_OUTPUT =
+  /operation not permitted|read-only file system|permission denied|sandbox/i;
+const CODEX_READ_ONLY_REPLY =
+  /\bread-only\b|\bsandbox(?:ed)?\b|(?:don['\u2019]t|do not) have (?:write|edit) (?:access|permission)/i;
+
 export function codexAdapter(): TurnAdapter {
   let ended = false;
+  const denied: { name: string; title: string }[] = [];
+  let lastReply = "";
+  /** The turn's denials, once, before it ends. */
+  const takeDenied = (): ChatEvent[] => {
+    if (denied.length === 0 && CODEX_READ_ONLY_REPLY.test(lastReply))
+      denied.push({
+        name: "codex",
+        title: "Codex said it can't change files with this access",
+      });
+    lastReply = "";
+    return denied.length ? [{ type: "denied", tools: denied.splice(0) }] : [];
+  };
   const itemEvents = (item: Obj, phase: string): ChatEvent[] => {
     const id = str(item.id) ?? "item";
     const status = str(item.status);
@@ -237,11 +260,24 @@ export function codexAdapter(): TurnAdapter {
     switch (item.type) {
       case "agent_message": {
         const text = str(item.text) ?? "";
+        if (text) lastReply = text;
         return text ? [{ type: "text", id, text, final: true }] : [];
       }
       case "command_execution": {
         const command = unwrapShell(str(item.command) ?? "");
         const exit = num(item.exit_code);
+        const output = str(item.aggregated_output) ?? "";
+        if (
+          phase === "item.completed" &&
+          (status === "declined" ||
+            (exit !== undefined &&
+              exit !== 0 &&
+              CODEX_SANDBOX_OUTPUT.test(output)))
+        )
+          denied.push({
+            name: "shell",
+            title: `Run: ${oneLine(command, 80)}`,
+          });
         return [
           {
             type: "tool",
@@ -262,6 +298,14 @@ export function codexAdapter(): TurnAdapter {
         const paths = changes
           .map((c) => str(c.path))
           .filter(Boolean) as string[];
+        if (
+          phase === "item.completed" &&
+          (status === "declined" || status === "failed")
+        )
+          denied.push({
+            name: "file_change",
+            title: `Edit: ${oneLine(paths.join(", ") || "files", 80)}`,
+          });
         return [
           {
             type: "tool",
@@ -337,6 +381,7 @@ export function codexAdapter(): TurnAdapter {
         ended = true;
         const u = obj(o.usage);
         return [
+          ...takeDenied(),
           {
             type: "usage",
             inputTokens: num(u.input_tokens),
@@ -348,6 +393,7 @@ export function codexAdapter(): TurnAdapter {
       if (type === "turn.failed") {
         ended = true;
         return [
+          ...takeDenied(),
           {
             type: "error",
             message: str(obj(o.error).message) ?? "Codex turn failed",
@@ -365,7 +411,7 @@ export function codexAdapter(): TurnAdapter {
       }
       return [];
     },
-    finish: () => (ended ? [] : [{ type: "done", ok: false }]),
+    finish: () => (ended ? [] : [...takeDenied(), { type: "done", ok: false }]),
   };
 }
 

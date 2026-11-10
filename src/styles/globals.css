@@ -631,3 +631,11 @@ html[data-window-inactive] *::after {
     animation: none;
   }
 }
+
+/* Estate: a chat box under a file dragged from the sidebar. Plain outline:
+   color-mix isn't available on macOS 12's WebKit. */
+[data-path-drop][data-path-drop-active] {
+  border-radius: 0.5rem;
+  outline: 1.5px dashed var(--ring);
+  outline-offset: -3px;
+}

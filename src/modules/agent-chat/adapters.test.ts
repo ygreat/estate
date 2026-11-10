@@ -94,6 +94,56 @@ describe("Codex adapter (recorded)", () => {
     expect(t.stats?.outputTokens).toBe(67);
   });
 
+  it("counts a reply saying the folder is read-only as blocked", () => {
+    const t = replay("codex", "codex-denied.jsonl");
+    expect(t.denied).toBe(true);
+    expect(of(t, "notice").some((n) => n.tone === "denied")).toBe(true);
+    expect(replay("codex", "codex-read.jsonl").denied).toBe(false);
+    expect(replay("codex", "codex-write.jsonl").denied).toBe(false);
+  });
+
+  it("counts a sandboxed command or a declined edit as blocked", () => {
+    const run = (items: object[]) => {
+      const adapter = createTurnAdapter("codex");
+      let t = beginTurn(EMPTY_TRANSCRIPT, "u1", "prompt");
+      const lines = [
+        ...items.map((item) => ({ type: "item.completed", item })),
+        { type: "turn.completed", usage: {} },
+      ];
+      for (const line of lines)
+        for (const e of adapter.push(line)) t = applyChatEvent(t, e);
+      return t;
+    };
+    const blocked = run([
+      {
+        id: "c1",
+        type: "command_execution",
+        command: "touch a.txt",
+        exit_code: 1,
+        status: "failed",
+        aggregated_output: "touch: a.txt: Operation not permitted",
+      },
+      { id: "f1", type: "file_change", status: "declined", changes: [] },
+    ]);
+    const notice = of(blocked, "notice").find((n) => n.tone === "denied");
+    expect(notice?.tools?.map((tool) => tool.name)).toEqual([
+      "shell",
+      "file_change",
+    ]);
+    // A command that just failed isn't a refusal.
+    const failed = run([
+      {
+        id: "c1",
+        type: "command_execution",
+        command: "false",
+        exit_code: 1,
+        status: "failed",
+        aggregated_output: "",
+      },
+    ]);
+    expect(failed.denied).toBe(false);
+  });
+
   it("keeps the thread id across a resumed turn", () => {
     const first = replay("codex", "codex-read.jsonl");
     const second = replay("codex", "codex-write.jsonl", first);

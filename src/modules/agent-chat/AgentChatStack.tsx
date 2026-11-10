@@ -6,10 +6,11 @@ import { AgentChatPane } from "./AgentChatPane";
 type Props = {
   tabs: Tab[];
   activeId: number;
+  onRenameTab: (id: number, title: string) => void;
 };
 
 /** Keeps every open chat mounted (streaming continues while hidden). */
-export function AgentChatStack({ tabs, activeId }: Props) {
+export function AgentChatStack({ tabs, activeId, onRenameTab }: Props) {
   const placementOf = useTabPlacement();
   const chats = tabs.filter(
     (t): t is AgentChatTab => t.kind === "agent-chat" && !t.cold,
@@ -31,6 +32,8 @@ export function AgentChatStack({ tabs, activeId }: Props) {
               agent={t.agent}
               cwd={t.cwd}
               role={t.role}
+              title={t.title}
+              onRename={(title) => onRenameTab(t.id, title)}
               visible={visible}
             />
           </div>

@@ -10,6 +10,7 @@ import { promptFromMessages } from "./accountModel";
 
 describe("account models", () => {
   it("maps account model ids to CLI model names", () => {
+    expect(accountModelArg("claude-account-fable")).toBe("fable");
     expect(accountModelArg("claude-account-opus")).toBe("opus");
     expect(accountModelArg("claude-account-haiku")).toBe("haiku");
     expect(accountModelArg("chatgpt-account-default")).toBeUndefined();

@@ -17,6 +17,12 @@ import {
   type ChatAgentId,
   type ChatEvent,
 } from "@/modules/agent-chat/model";
+import {
+  effectiveEffort,
+  effortsFor,
+  loadAgentModels,
+} from "@/modules/agent-chat/effort";
+import { useAccountTuning } from "./accountTuning";
 import { native } from "./native";
 
 type ModelV3 = Extract<LanguageModel, { specificationVersion: "v3" }>;
@@ -112,6 +118,18 @@ export function createAccountModel(
         `Sign in to ${label} first: Settings > Models > Accounts.`,
       );
     const cwd = await workFolder();
+    // Estate: the account's chosen effort (and Codex model), read per request.
+    // Resolved before the run is set up, so nothing is awaited between
+    // listening for an abort and starting the agent.
+    const tuning = useAccountTuning.getState();
+    const runModel = agent === "codex" ? (tuning.codexModel ?? model) : model;
+    const effort =
+      agent === "claude" || agent === "codex"
+        ? effectiveEffort(
+            tuning.effort[agent],
+            effortsFor(agent, runModel, await loadAgentModels(agent)),
+          )
+        : undefined;
     const chatId = newChatId();
     const adapter = createTurnAdapter(agent);
     const channel = new Channel<BackendEvent>();
@@ -207,6 +225,11 @@ export function createAccountModel(
       finish(error ? "error" : "stop");
     };
 
+    // Aborted while checking sign-in or loading models: don't start at all.
+    if (options.abortSignal?.aborted) {
+      finish("other");
+      return { stream };
+    }
     options.abortSignal?.addEventListener("abort", () => {
       void invoke("agent_chat_cancel", { chatId }).catch(() => {});
     });
@@ -218,7 +241,8 @@ export function createAccountModel(
         agent,
         access: "read",
         sessionId: null,
-        model: model ?? null,
+        model: runModel ?? null,
+        effort: effort ?? null,
         prompt: promptFromMessages(options.prompt),
         cwd,
       },

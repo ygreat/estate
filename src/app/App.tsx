@@ -62,6 +62,8 @@ import {
   projectForFolder,
   readOpenedAt,
   recentProjects,
+  readRecentClearedAt,
+  clearRecent,
 } from "@/modules/spaces/lib/projects";
 import { ProjectButton } from "@/modules/statusbar/ProjectButton";
 import { WelcomeScreen } from "@/modules/welcome/WelcomeScreen";
@@ -72,7 +74,11 @@ import {
   ORCHESTRATE_EVENT,
   type OrchestrateDetail,
 } from "@/modules/orchestrator/events";
-import type { ChatAgentId } from "@/modules/agent-chat/model";
+import {
+  chatTabDefaultTitle,
+  CHAT_AGENTS,
+  type ChatAgentId,
+} from "@/modules/agent-chat/model";
 import { resolveInstructions } from "@/modules/orchestrator/instructions";
 import { orchestratorPrompt } from "@/modules/orchestrator/plan";
 import { setOrchestratorHost } from "@/modules/orchestrator/runs";
@@ -149,6 +155,15 @@ import {
   WindowVibrancyBridge,
 } from "@/modules/theme";
 import { UpdaterDialog } from "@/modules/updater";
+import {
+  anyAgentHasSession,
+  projectHasSession,
+  workTabCount,
+} from "@/modules/welcome/projectSession";
+import {
+  chatPathDropTarget,
+  firstPathDropTarget,
+} from "@/modules/explorer/lib/chatPathDrop";
 import {
   currentWorkspaceEnv,
   useWorkspaceEnvStore,
@@ -264,6 +279,12 @@ export default function App() {
   const { zoomIn, zoomOut, zoomReset } = useZoom();
   useApplyEditorFontSize();
   const terminalPathDropTarget = useTerminalFileDrop();
+  // Estate: files dragged from the sidebar land in a chat box first, else the
+  // terminal under the pointer.
+  const explorerPathDropTarget = useMemo(
+    () => firstPathDropTarget(chatPathDropTarget, terminalPathDropTarget),
+    [terminalPathDropTarget],
+  );
   const explorerRef = useRef<FileExplorerHandle>(null);
 
   // Drives session disposal off the pane tree, not React lifecycles —
@@ -1353,7 +1374,17 @@ export default function App() {
   );
 
   const handleRenameTab = useCallback(
-    (id: number, title: string) => updateTab(id, { customTitle: title.trim() }),
+    (id: number, title: string) => {
+      const tab = tabsRef.current.find((t) => t.id === id);
+      // Estate: a chat tab's title is its name; empty goes back to the agent.
+      if (tab?.kind === "agent-chat") {
+        updateTab(id, {
+          title: title.trim() || chatTabDefaultTitle(tab.agent, tab.role),
+        });
+        return;
+      }
+      updateTab(id, { customTitle: title.trim() });
+    },
     [updateTab],
   );
 
@@ -1411,31 +1442,46 @@ export default function App() {
 
   // Estate: projects (spaces with a folder) from the status bar.
   const spacesForProjects = useSpaces((s) => s.spaces);
-  // Re-read recents whenever the project changes (opening marks it).
+  // Re-read recents whenever the project changes (opening marks it) or
+  // Clear Recent runs.
+  const [recentCleared, setRecentCleared] = useState(readRecentClearedAt);
+  // The status bar's switcher lists every project; Clear Recent only empties
+  // the welcome screen's list.
   // biome-ignore lint/correctness/useExhaustiveDependencies: activeSpaceId triggers the re-read
-  const recent = useMemo(
+  const allProjects = useMemo(
     () => recentProjects(spacesForProjects, readOpenedAt()),
     [spacesForProjects, activeSpaceId],
   );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeSpaceId triggers the re-read
+  const recent = useMemo(
+    () => recentProjects(spacesForProjects, readOpenedAt(), recentCleared),
+    [spacesForProjects, activeSpaceId, recentCleared],
+  );
+  const clearRecentProjects = useCallback(() => {
+    const now = Date.now();
+    clearRecent(now);
+    setRecentCleared(now);
+  }, []);
   const switchProject = useCallback((spaceId: string) => {
     markOpened(spaceId);
     useSpaces.getState().setActive(spaceId);
   }, []);
+  /** Opens (or switches to) the folder's project; false if it can't. */
   const openProjectFolder = useCallback(
-    async (folder: string) => {
+    async (folder: string): Promise<boolean> => {
       try {
         await native.workspaceAuthorize(folder);
       } catch (error) {
         toast.error("Could not open this folder", {
           description: String(error),
         });
-        return;
+        return false;
       }
       const { spaces, create, setActive } = useSpaces.getState();
       const existing = projectForFolder(spaces, folder);
       if (existing) {
         switchProject(existing.id);
-        return;
+        return true;
       }
       const meta = create({
         name: folderName(folder),
@@ -1446,10 +1492,11 @@ export default function App() {
       setActiveSpaceForNewTabs(meta.id);
       newTab(folder);
       setActive(meta.id);
+      return true;
     },
     [switchProject, workspaceEnv, setActiveSpaceForNewTabs, newTab],
   );
-  const pickProjectFolder = useCallback(async (): Promise<boolean> => {
+  const pickFolder = useCallback(async (): Promise<string | null> => {
     let picked: string | string[] | null;
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
@@ -1464,12 +1511,67 @@ export default function App() {
       toast.error("Couldn't open the folder picker", {
         description: String(error),
       });
+      return null;
+    }
+    return typeof picked === "string" ? picked : null;
+  }, []);
+  const pickProjectFolder = useCallback(async (): Promise<boolean> => {
+    const picked = await pickFolder();
+    if (!picked) return false;
+    return openProjectFolder(picked);
+  }, [pickFolder, openProjectFolder]);
+
+  // Estate: a project with work tabs (chats, editors; not the terminal that
+  // opening adds) or agent sessions skips the welcome chat box and goes
+  // straight to its work. The folder must be authorized first (opening does
+  // that); each agent is asked for one session, stopping at the first hit.
+  const hasAgentSessions = useCallback(async (root: string) => {
+    const { listChatSessions } = await import("@/modules/agent-chat/store");
+    return anyAgentHasSession(CHAT_AGENTS, (a) =>
+      listChatSessions(a, root, 1).then((list) => list.length),
+    );
+  }, []);
+  /** Open Project from the welcome screen: true to show its chat box. */
+  const openFolderFromWelcome = useCallback(async (): Promise<boolean> => {
+    const picked = await pickFolder();
+    if (!picked) return false;
+    if (!(await openProjectFolder(picked))) return false;
+    const opened = projectForFolder(useSpaces.getState().spaces, picked);
+    if (
+      await projectHasSession({
+        workTabs: opened ? workTabCount(tabsRef.current, opened.id) : 0,
+        root: picked,
+        hasSessions: hasAgentSessions,
+      })
+    ) {
+      setWelcomeOpen(false);
       return false;
     }
-    if (typeof picked !== "string") return false;
-    await openProjectFolder(picked);
     return true;
-  }, [openProjectFolder]);
+  }, [pickFolder, openProjectFolder, hasAgentSessions]);
+  /** A recent project from the welcome screen: true to show its chat box. */
+  const switchFromWelcome = useCallback(
+    async (spaceId: string): Promise<boolean> => {
+      const meta = useSpaces.getState().spaces.find((s) => s.id === spaceId);
+      if (spaceId !== useSpaces.getState().activeId) switchProject(spaceId);
+      const root = meta?.root ?? null;
+      if (
+        await projectHasSession({
+          workTabs: workTabCount(tabsRef.current, spaceId),
+          root,
+          hasSessions: async (r) => {
+            await native.workspaceAuthorize(r);
+            return hasAgentSessions(r);
+          },
+        })
+      ) {
+        setWelcomeOpen(false);
+        return false;
+      }
+      return true;
+    },
+    [switchProject, hasAgentSessions],
+  );
 
   // Estate: Create New Project makes root/name and opens it.
   const createProject = useCallback(
@@ -1486,8 +1588,9 @@ export default function App() {
           ? `${name} already exists there. Choose another name, or use Open Project.`
           : `Couldn't create the folder: ${why}`;
       }
-      await openProjectFolder(path);
-      return null;
+      return (await openProjectFolder(path))
+        ? null
+        : "The folder was created but couldn't be opened. Try Open Project.";
     },
     [openProjectFolder],
   );
@@ -1546,7 +1649,7 @@ export default function App() {
         .workspaceAuthorize(cwd)
         .then(() => {
           newAgentChatTab(agent, cwd, chatId, {
-            title: "Orchestrator",
+            title: chatTabDefaultTitle(agent, "orchestrator"),
             role: "orchestrator",
           });
           return import("@/modules/agent-chat/store").then(
@@ -1863,7 +1966,7 @@ export default function App() {
                 onOpenInSourceControl={handleOpenRepositoryInSourceControl}
                 onOpenGitHistory={handleOpenGitHistoryForPath}
                 onAttachToAgent={handleAttachFileToAgent}
-                pathDropTarget={terminalPathDropTarget}
+                pathDropTarget={explorerPathDropTarget}
                 visible={!sidebarCollapsed}
               />
             ) : sidebarView === "agents" ? (
@@ -1940,12 +2043,13 @@ export default function App() {
           <WelcomeScreen
             current={welcomeProject}
             recent={recent}
+            onClearRecent={clearRecentProjects}
             home={home}
             showOnStartup={showWelcomePref}
             onShowOnStartupChange={(v) => void setShowWelcome(v)}
-            onOpenFolder={pickProjectFolder}
+            onOpenFolder={openFolderFromWelcome}
             onCreateProject={createProject}
-            onSwitchProject={switchProject}
+            onSwitchProject={switchFromWelcome}
             onStartChat={startChatFromWelcome}
             planAgent={orchestratorAgentPref}
             onPlan={planWithOrchestrator}
@@ -2041,6 +2145,7 @@ export default function App() {
                         onOpenCommitFile={openCommitFileDiffTab}
                         onGitHistorySearchHandle={setGitHistoryHandle}
                         onSetMarkdownView={setMarkdownView}
+                        onRenameTab={handleRenameTab}
                       />
                     </div>
 
@@ -2073,7 +2178,7 @@ export default function App() {
               folderActions={folderActions}
               project={
                 <ProjectButton
-                  projects={recent}
+                  projects={allProjects}
                   activeSpaceId={activeSpaceId}
                   activeName={
                     spacesForProjects.find((sp) => sp.id === activeSpaceId)

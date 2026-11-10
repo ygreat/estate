@@ -17,6 +17,13 @@ import {
   type Transcript,
   type UsageWindow,
 } from "./model";
+import {
+  type ChatEffort,
+  effectiveEffort,
+  effortsFor,
+  isEffort,
+  loadAgentModels,
+} from "./effort";
 
 /** Mirrors `ChatStreamEvent` in src-tauri/src/modules/agent_chat.rs. */
 type StreamEvent =
@@ -29,6 +36,8 @@ export type ChatSession = {
   cwd: string;
   access: ChatAccess;
   model?: string;
+  /** Estate: effort level; unset is the agent's default. */
+  effort?: ChatEffort;
   transcript: Transcript;
   running: boolean;
   /** Loaded from disk (or confirmed new), so saving can't clobber history. */
@@ -44,6 +53,7 @@ type State = {
   /** Slash commands each agent reported, for the composer's menu. */
   commands: Partial<Record<ChatAgentId, string[]>>;
   setModel: (id: string, model: string | undefined) => void;
+  setEffort: (id: string, effort: ChatEffort | undefined) => void;
   /** Starts a fresh agent session in this chat (like /clear). */
   newSession: (id: string) => void;
   /** Shows a saved agent session in this chat and continues it. */
@@ -63,11 +73,16 @@ const disk = new LazyStore("estate-agent-chats.json", {
   defaults: {},
   autoSave: 1000,
 });
-type Saved = Pick<ChatSession, "agent" | "cwd" | "access" | "model"> & {
+type Saved = Pick<
+  ChatSession,
+  "agent" | "cwd" | "access" | "model" | "effort"
+> & {
   transcript: Pick<Transcript, "items" | "sessionId" | "model" | "totals">;
 };
 
 const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+/** Chats whose Stop was pressed during the current turn (see `send`). */
+const stopRequested = new Set<string>();
 function scheduleSave(id: string) {
   const prev = saveTimers.get(id);
   if (prev) clearTimeout(prev);
@@ -82,6 +97,7 @@ function scheduleSave(id: string) {
         cwd: c.cwd,
         access: c.access,
         model: c.model,
+        effort: c.effort,
         transcript: {
           items: c.transcript.items,
           sessionId: c.transcript.sessionId,
@@ -242,6 +258,7 @@ export const useAgentChatStore = create<State>((set, get) => ({
                 ...c,
                 access: saved.access ?? c.access,
                 model: saved.model,
+                effort: isEffort(saved.effort) ? saved.effort : undefined,
                 transcript: {
                   ...EMPTY_TRANSCRIPT,
                   items: Array.isArray(saved.transcript?.items)
@@ -262,6 +279,7 @@ export const useAgentChatStore = create<State>((set, get) => ({
     const chat = get().chats[id];
     const prompt = text.trim();
     if (!chat || chat.running || !prompt) return;
+    stopRequested.delete(id);
     updateChat(id, (c) => ({
       ...c,
       running: true,
@@ -320,6 +338,23 @@ export const useAgentChatStore = create<State>((set, get) => ({
       scheduleSave(id);
     };
 
+    // Estate: an effort level the chosen model doesn't take isn't sent.
+    const effort = effectiveEffort(
+      chat.effort,
+      effortsFor(chat.agent, chat.model, await loadAgentModels(chat.agent)),
+    );
+    // Stop pressed while the models loaded: the backend had no run to cancel,
+    // so don't start one.
+    if (stopRequested.delete(id)) {
+      applyEvents(id, [
+        { type: "info", message: "Stopped." },
+        { type: "done", ok: false },
+      ]);
+      updateChat(id, (c) => ({ ...c, running: false }));
+      scheduleSave(id);
+      return;
+    }
+
     try {
       await invoke("agent_chat_run", {
         request: {
@@ -328,6 +363,7 @@ export const useAgentChatStore = create<State>((set, get) => ({
           access: get().chats[id]?.access ?? chat.access,
           sessionId: chat.transcript.sessionId ?? null,
           model: chat.model ?? null,
+          effort: effort ?? null,
           prompt,
           cwd: chat.cwd,
         },
@@ -345,12 +381,19 @@ export const useAgentChatStore = create<State>((set, get) => ({
 
   cancel(id) {
     if (!get().chats[id]?.running) return;
+    // Estate: remembered in case the run hasn't been started yet.
+    stopRequested.add(id);
     void invoke("agent_chat_cancel", { chatId: id }).catch(() => {});
   },
 
   setModel(id, model) {
     const next = model?.trim() || undefined;
     updateChat(id, (c) => (c.model === next ? c : { ...c, model: next }));
+    scheduleSave(id);
+  },
+
+  setEffort(id, effort) {
+    updateChat(id, (c) => (c.effort === effort ? c : { ...c, effort }));
     scheduleSave(id);
   },
 
@@ -438,6 +481,7 @@ export type SessionSummary = {
 export function listChatSessions(
   agent: ChatAgentId,
   cwd: string,
+  limit?: number,
 ): Promise<SessionSummary[]> {
-  return invoke<SessionSummary[]>("agent_chat_sessions", { agent, cwd });
+  return invoke<SessionSummary[]>("agent_chat_sessions", { agent, cwd, limit });
 }

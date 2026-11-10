@@ -48,6 +48,60 @@ pub enum ChatAccess {
     Full,
 }
 
+/// Estate: how hard the agent thinks. Claude Code takes all five; Codex takes
+/// the ones its model lists.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ChatEffort {
+    Low,
+    Medium,
+    High,
+    Xhigh,
+    Max,
+}
+
+impl ChatEffort {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ChatEffort::Low => "low",
+            ChatEffort::Medium => "medium",
+            ChatEffort::High => "high",
+            ChatEffort::Xhigh => "xhigh",
+            ChatEffort::Max => "max",
+        }
+    }
+}
+
+/// Adds the effort level for agents that take one (Claude Code, Codex); the
+/// others run at their default. Pure.
+pub fn with_effort(
+    mut inv: Invocation,
+    agent: ChatAgent,
+    effort: Option<ChatEffort>,
+) -> Invocation {
+    let Some(effort) = effort else {
+        return inv;
+    };
+    match agent {
+        ChatAgent::Claude => {
+            inv.args
+                .extend(["--effort".to_string(), effort.as_str().to_string()]);
+        }
+        ChatAgent::Codex => {
+            // Before the trailing `-` (prompt on stdin), which must stay last.
+            let at = inv.args.len().saturating_sub(1);
+            inv.args.splice(
+                at..at,
+                [
+                    "-c".to_string(),
+                    format!("model_reasoning_effort=\"{}\"", effort.as_str()),
+                ],
+            );
+        }
+        ChatAgent::Gemini | ChatAgent::Opencode => {}
+    }
+    inv
+}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Invocation {
     pub program: &'static str,
@@ -275,6 +329,8 @@ pub struct ChatRunRequest {
     pub access: ChatAccess,
     pub session_id: Option<String>,
     pub model: Option<String>,
+    #[serde(default)]
+    pub effort: Option<ChatEffort>,
     pub prompt: String,
     pub cwd: String,
 }
@@ -293,13 +349,17 @@ pub async fn agent_chat_run(
     }
     let cwd = authorize_spawn_cwd(&registry, Some(&request.cwd), &WorkspaceEnv::Local)?
         .ok_or("agent chat: a workspace folder is required")?;
-    let inv = build_invocation(
+    let inv = with_effort(
+        build_invocation(
+            request.agent,
+            request.access,
+            request.session_id.as_deref(),
+            request.model.as_deref(),
+            &request.prompt,
+        )?,
         request.agent,
-        request.access,
-        request.session_id.as_deref(),
-        request.model.as_deref(),
-        &request.prompt,
-    )?;
+        request.effort,
+    );
     if state.running.lock().unwrap().contains_key(&request.chat_id) {
         return Err("agent chat: a reply is already running".into());
     }
@@ -665,6 +725,13 @@ fn read_range(path: &std::path::Path, from: u64, len: u64) -> std::io::Result<St
     Ok(String::from_utf8_lossy(&buf).into_owned())
 }
 
+/// How many sessions to summarize: the caller's limit, within the cap.
+pub fn sessions_limit(limit: Option<usize>) -> usize {
+    limit
+        .unwrap_or(MAX_SESSIONS_LISTED)
+        .min(MAX_SESSIONS_LISTED)
+}
+
 fn session_dir(
     registry: &WorkspaceRegistry,
     agent: ChatAgent,
@@ -678,17 +745,20 @@ fn session_dir(
     Ok(claude_projects_dir().map(|d| d.join(encode_claude_project(&cwd))))
 }
 
-/// Sessions the agent has for this folder, newest first. Empty for agents
-/// whose history Estate doesn't read yet.
+/// Sessions the agent has for this folder, newest first, at most `limit`
+/// (capped at `MAX_SESSIONS_LISTED`). Empty for agents whose history Estate
+/// doesn't read yet.
 #[tauri::command]
 pub async fn agent_chat_sessions(
     registry: tauri::State<'_, WorkspaceRegistry>,
     agent: ChatAgent,
     cwd: String,
+    limit: Option<usize>,
 ) -> Result<Vec<SessionSummary>, String> {
     let Some(dir) = session_dir(&registry, agent, &cwd)? else {
         return Ok(Vec::new());
     };
+    let limit = sessions_limit(limit);
     tauri::async_runtime::spawn_blocking(move || {
         let Ok(entries) = std::fs::read_dir(&dir) else {
             return Vec::new();
@@ -718,7 +788,7 @@ pub async fn agent_chat_sessions(
             })
             .collect();
         files.sort_by_key(|f| std::cmp::Reverse(f.2));
-        files.truncate(MAX_SESSIONS_LISTED);
+        files.truncate(limit);
         files
             .into_iter()
             .map(|(path, id, modified_ms, bytes)| {
@@ -978,11 +1048,195 @@ pub async fn agent_chat_auth(agent: ChatAgent) -> Result<AgentAuth, String> {
         .map_err(|e| e.to_string())
 }
 
+/// Estate: a model the agent offers, with the effort levels it takes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentModel {
+    pub id: String,
+    pub label: String,
+    pub efforts: Vec<String>,
+    pub default_effort: Option<String>,
+}
+
+const EFFORTS: [&str; 5] = ["low", "medium", "high", "xhigh", "max"];
+const MAX_MODELS_CACHE_BYTES: u64 = 4 * 1024 * 1024;
+
+/// The models Codex lists in its picker, from its `models_cache.json`. Hidden
+/// models, unusable ids and effort levels Estate doesn't pass are left out.
+/// Pure.
+pub fn codex_models_from_cache(json: &str) -> Vec<AgentModel> {
+    let Ok(root) = serde_json::from_str::<serde_json::Value>(json) else {
+        return Vec::new();
+    };
+    let Some(models) = root.get("models").and_then(|m| m.as_array()) else {
+        return Vec::new();
+    };
+    let str_of =
+        |v: &serde_json::Value, k: &str| v.get(k).and_then(|x| x.as_str()).map(str::to_string);
+    models
+        .iter()
+        .filter(|m| m.get("visibility").and_then(|v| v.as_str()) == Some("list"))
+        .filter_map(|m| {
+            let id = str_of(m, "slug")?;
+            if !valid_token(&id, 100, &['.', ':', '/', '[', ']']) {
+                return None;
+            }
+            let efforts: Vec<String> = m
+                .get("supported_reasoning_levels")
+                .and_then(|l| l.as_array())
+                .map(|levels| {
+                    levels
+                        .iter()
+                        .filter_map(|l| l.get("effort").and_then(|e| e.as_str()))
+                        .filter(|e| EFFORTS.contains(e))
+                        .map(str::to_string)
+                        .collect()
+                })
+                .unwrap_or_default();
+            let default_effort =
+                str_of(m, "default_reasoning_level").filter(|e| efforts.contains(e));
+            let label = str_of(m, "display_name")
+                .filter(|l| !l.trim().is_empty())
+                .unwrap_or_else(|| id.clone());
+            Some(AgentModel {
+                id,
+                label: label.chars().take(60).collect(),
+                efforts,
+                default_effort,
+            })
+        })
+        .take(50)
+        .collect()
+}
+
+fn codex_home() -> Option<std::path::PathBuf> {
+    let overlay = crate::modules::lsp::env::server_env_overlay();
+    overlay
+        .get("CODEX_HOME")
+        .cloned()
+        .or_else(|| std::env::var("CODEX_HOME").ok())
+        .filter(|v| !v.trim().is_empty())
+        .map(std::path::PathBuf::from)
+        .or_else(|| dirs::home_dir().map(|h| h.join(".codex")))
+}
+
+/// Models the agent offers, for the chat's model picker. Codex only for now
+/// (its local model list); empty for the others and when there is no list.
+#[tauri::command]
+pub async fn agent_chat_models(agent: ChatAgent) -> Result<Vec<AgentModel>, String> {
+    if agent != ChatAgent::Codex {
+        return Ok(Vec::new());
+    }
+    let Some(path) = codex_home().map(|h| h.join("models_cache.json")) else {
+        return Ok(Vec::new());
+    };
+    tauri::async_runtime::spawn_blocking(move || {
+        let Ok(file) = std::fs::File::open(&path) else {
+            return Vec::new();
+        };
+        let mut text = String::new();
+        if file
+            .take(MAX_MODELS_CACHE_BYTES)
+            .read_to_string(&mut text)
+            .is_err()
+        {
+            return Vec::new();
+        }
+        codex_models_from_cache(&text)
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const PROMPT: &str = "--dangerously-skip-permissions; rm -rf ~";
+
+    #[test]
+    fn sessions_limit_stays_within_the_cap() {
+        assert_eq!(sessions_limit(None), MAX_SESSIONS_LISTED);
+        assert_eq!(sessions_limit(Some(1)), 1);
+        assert_eq!(sessions_limit(Some(0)), 0);
+        assert_eq!(sessions_limit(Some(usize::MAX)), MAX_SESSIONS_LISTED);
+    }
+
+    #[test]
+    fn effort_goes_where_each_agent_reads_it() {
+        let claude = with_effort(
+            build_invocation(ChatAgent::Claude, ChatAccess::Read, None, None, "x").unwrap(),
+            ChatAgent::Claude,
+            Some(ChatEffort::Xhigh),
+        );
+        assert!(claude.args.windows(2).any(|w| w == ["--effort", "xhigh"]));
+
+        let codex = with_effort(
+            build_invocation(
+                ChatAgent::Codex,
+                ChatAccess::Read,
+                Some("abc-123"),
+                None,
+                "x",
+            )
+            .unwrap(),
+            ChatAgent::Codex,
+            Some(ChatEffort::High),
+        );
+        assert!(codex
+            .args
+            .windows(2)
+            .any(|w| w == ["-c", "model_reasoning_effort=\"high\""]));
+        assert_eq!(codex.args.last().map(String::as_str), Some("-"));
+
+        for agent in [ChatAgent::Gemini, ChatAgent::Opencode] {
+            let plain = build_invocation(agent, ChatAccess::Read, None, None, "x").unwrap();
+            let tuned = with_effort(
+                build_invocation(agent, ChatAccess::Read, None, None, "x").unwrap(),
+                agent,
+                Some(ChatEffort::Max),
+            );
+            assert_eq!(plain.args, tuned.args);
+        }
+        let none = with_effort(
+            build_invocation(ChatAgent::Claude, ChatAccess::Read, None, None, "x").unwrap(),
+            ChatAgent::Claude,
+            None,
+        );
+        assert!(!none.args.iter().any(|a| a == "--effort"));
+    }
+
+    #[test]
+    fn codex_models_list_only_usable_listed_models() {
+        let json = r#"{"models":[
+            {"slug":"gpt-a","display_name":"GPT A","visibility":"list",
+             "default_reasoning_level":"medium",
+             "supported_reasoning_levels":[{"effort":"low"},{"effort":"medium"},{"effort":"ultra"}]},
+            {"slug":"gpt-hidden","visibility":"hide","supported_reasoning_levels":[]},
+            {"slug":"bad slug; rm","visibility":"list"},
+            {"slug":"gpt-b","visibility":"list","default_reasoning_level":"ultra"}
+        ]}"#;
+        let models = codex_models_from_cache(json);
+        assert_eq!(
+            models,
+            vec![
+                AgentModel {
+                    id: "gpt-a".into(),
+                    label: "GPT A".into(),
+                    efforts: vec!["low".into(), "medium".into()],
+                    default_effort: Some("medium".into()),
+                },
+                AgentModel {
+                    id: "gpt-b".into(),
+                    label: "gpt-b".into(),
+                    efforts: vec![],
+                    default_effort: None,
+                },
+            ]
+        );
+        assert!(codex_models_from_cache("not json").is_empty());
+        assert!(codex_models_from_cache("{}").is_empty());
+    }
 
     #[test]
     fn programs_are_fixed_per_agent() {

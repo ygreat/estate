@@ -31,6 +31,13 @@ describe("projects", () => {
     ]);
   });
 
+  it("after Clear Recent, lists only projects opened since", () => {
+    expect(recentProjects(spaces, {}, 50)).toEqual([]);
+    expect(
+      recentProjects(spaces, { a: 40, b: 60 }, 50).map((s) => s.id),
+    ).toEqual(["b"]);
+  });
+
   it("finds the project for a folder, ignoring a trailing slash", () => {
     expect(projectForFolder(spaces, "/w/b/")?.id).toBe("b");
     expect(projectForFolder(spaces, "/w/z")).toBeUndefined();

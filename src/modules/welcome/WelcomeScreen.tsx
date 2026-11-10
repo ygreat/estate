@@ -9,33 +9,34 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { AgentPicker } from "@/modules/agent-chat/AgentPicker";
 import { useAgentStatuses } from "@/modules/agent-chat/auth";
-import {
-  CHAT_AGENT_LABEL,
-  CHAT_AGENTS,
-  type ChatAgentId,
-} from "@/modules/agent-chat/model";
+import { CHAT_AGENTS, type ChatAgentId } from "@/modules/agent-chat/model";
 import type { OrchestratorDelegate } from "@/modules/orchestrator/instructions";
 import { useShortcutLabel } from "@/modules/shortcuts";
 import { shortPath } from "@/modules/spaces/lib/projects";
 import { NewProjectDialog } from "./NewProjectDialog";
+import { WelcomeComposer } from "./WelcomeComposer";
 import type { SpaceMeta } from "@/modules/spaces/lib/store";
 
 type Props = {
   /** The open project, if it has a folder. */
   current: SpaceMeta | null;
   recent: SpaceMeta[];
+  /** Clear Recent: empties the list; the projects are kept. */
+  onClearRecent: () => void;
   home: string | null;
   showOnStartup: boolean;
   onShowOnStartupChange: (show: boolean) => void;
-  /** Open Project: resolves true when a folder was picked and opened. */
+  /**
+   * Open Project. Resolves true to show the chat box: a folder was opened
+   * and it has no session yet (one with a session closes this screen).
+   */
   onOpenFolder: () => Promise<boolean>;
   /** Creates `root/name`, opens it as a project; resolves an error or null. */
   onCreateProject: (name: string, root: string) => Promise<string | null>;
-  onSwitchProject: (spaceId: string) => void;
+  /** A recent project. Resolves true to show the chat box, as above. */
+  onSwitchProject: (spaceId: string) => Promise<boolean>;
   /** Opens a chat with `agent`, sending `prompt` first when it isn't empty. */
   onStartChat: (prompt: string, agent: ChatAgentId) => void;
   /** Which agent plans: a fixed one, or "ask" to use the one picked here. */
@@ -69,6 +70,7 @@ function writeAgent(agent: ChatAgentId): void {
 export function WelcomeScreen({
   current,
   recent,
+  onClearRecent,
   home,
   showOnStartup,
   onShowOnStartupChange,
@@ -84,19 +86,23 @@ export function WelcomeScreen({
 }: Props) {
   // The open project counts as chosen only once the user confirms it here.
   const [chosen, setChosen] = useState(false);
-  const [goal, setGoal] = useState("");
   const [creating, setCreating] = useState(false);
   const { auth, checking } = useAgentStatuses();
   const [picked, setPicked] = useState<ChatAgentId | null>(readAgent);
   const goalRef = useRef<HTMLTextAreaElement | null>(null);
   const creatingRef = useRef(creating);
   creatingRef.current = creating;
+  // A click outside the open agent menu only closes the menu, not the screen.
+  const menuOpen = useRef(false);
+  const clickClosedMenu = useRef(false);
   const project = chosen ? current : null;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       // The New Project dialog handles its own Escape.
-      if (e.key === "Escape" && !creatingRef.current) onClose();
+      // Menus close on their own Escape (and mark it handled).
+      if (e.key === "Escape" && !e.defaultPrevented && !creatingRef.current)
+        onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -116,7 +122,6 @@ export function WelcomeScreen({
     writeAgent(a);
   };
   const planner = planAgent === "ask" ? agent : planAgent;
-  const text = goal.trim();
 
   // The open project first, then the most recent others.
   const recentList = [
@@ -129,7 +134,13 @@ export function WelcomeScreen({
     // biome-ignore lint/a11y/noStaticElementInteractions: Esc and the "Go to editor" button do the same from the keyboard.
     // biome-ignore lint/a11y/useKeyWithClickEvents: as above.
     <div
-      onClick={onClose}
+      onPointerDownCapture={() => {
+        clickClosedMenu.current = menuOpen.current;
+      }}
+      onClick={() => {
+        if (clickClosedMenu.current) clickClosedMenu.current = false;
+        else onClose();
+      }}
       className="fade-in-0 fixed inset-0 z-50 flex animate-in flex-col bg-background/60 backdrop-blur-xl duration-200"
     >
       <div
@@ -163,16 +174,9 @@ export function WelcomeScreen({
                 draggable={false}
                 className="size-20 rounded-3xl shadow-lg shadow-black/25"
               />
-              <div className="flex flex-col gap-1.5">
-                <h1 className="text-[17px] font-semibold tracking-tight">
-                  What are we building today?
-                </h1>
-                <p className="text-[12px] text-muted-foreground">
-                  {project
-                    ? "Describe it and pick an agent, or start another way."
-                    : "Create a new project, or open one you already have."}
-                </p>
-              </div>
+              <h1 className="text-[17px] font-semibold tracking-tight">
+                What are we building today?
+              </h1>
             </div>
 
             {!project ? (
@@ -209,7 +213,20 @@ export function WelcomeScreen({
 
                 {recentList.length > 0 && (
                   <div className="flex flex-col gap-2.5">
-                    <SectionLabel>Recent</SectionLabel>
+                    <div className="flex items-center justify-between">
+                      <SectionLabel>Recent</SectionLabel>
+                      {/* The open project stays listed, so only others clear. */}
+                      {recent.some((p) => p.id !== current?.id) && (
+                        <button
+                          type="button"
+                          onClick={onClearRecent}
+                          className="rounded px-1 text-[11px] text-muted-foreground/70 transition-colors hover:text-foreground"
+                          title="Clear the list. Projects aren't deleted, and come back when opened again."
+                        >
+                          Clear Recent
+                        </button>
+                      )}
+                    </div>
                     {recentList.map((p) => (
                       <Row
                         key={p.id}
@@ -225,8 +242,9 @@ export function WelcomeScreen({
                           ) : undefined
                         }
                         onClick={() => {
-                          if (p.id !== current?.id) onSwitchProject(p.id);
-                          setChosen(true);
+                          void onSwitchProject(p.id).then((fresh) => {
+                            if (fresh) setChosen(true);
+                          });
                         }}
                       />
                     ))}
@@ -261,47 +279,20 @@ export function WelcomeScreen({
                   onClick={() => setChosen(false)}
                 />
 
-                <div className="flex flex-col gap-2.5">
-                  <SectionLabel>Agent</SectionLabel>
-                  <AgentPicker
-                    value={agent}
-                    onChange={pick}
-                    auth={auth}
-                    checking={checking}
-                    cwd={project.root ?? ""}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <Textarea
-                    ref={goalRef}
-                    value={goal}
-                    onChange={(e) => setGoal(e.target.value)}
-                    rows={3}
-                    placeholder="Describe what you want to build…"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                        e.preventDefault();
-                        onStartChat(text, agent);
-                      }
-                    }}
-                    className="min-h-20 text-[13px]"
-                  />
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!text}
-                      onClick={() => onPlan(text, planner)}
-                      title={`${CHAT_AGENT_LABEL[planner]} splits the goal into tasks for several agents`}
-                    >
-                      Plan with Orchestrator
-                    </Button>
-                    <Button size="sm" onClick={() => onStartChat(text, agent)}>
-                      {text ? "Start chat" : "Open chat"}
-                    </Button>
-                  </div>
-                </div>
+                <WelcomeComposer
+                  ref={goalRef}
+                  agent={agent}
+                  onAgentChange={pick}
+                  auth={auth}
+                  checking={checking}
+                  planner={planner}
+                  cwd={project.root ?? ""}
+                  onStartChat={onStartChat}
+                  onPlan={onPlan}
+                  onMenuOpenChange={(open) => {
+                    menuOpen.current = open;
+                  }}
+                />
 
                 <div className="grid grid-cols-[auto_auto] items-center justify-center gap-x-12 gap-y-3 text-[12px]">
                   <Hint

@@ -1334,6 +1334,12 @@ export function useTabs(initial?: Partial<TerminalTab>) {
               ...(patch.path !== undefined && { path: patch.path }),
             };
           }
+          // Estate: a chat tab only takes a new title (its name).
+          if (x.kind === "agent-chat") {
+            return patch.title !== undefined && patch.title !== x.title
+              ? { ...x, title: patch.title }
+              : x;
+          }
           // editor tab: auto-promote from preview the moment the file becomes dirty.
           const autoPin =
             patch.dirty === true && (x as EditorTab).preview

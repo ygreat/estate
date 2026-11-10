@@ -23,6 +23,14 @@ export const CHAT_AGENT_LABEL: Record<ChatAgentId, string> = {
   opencode: "OpenCode",
 };
 
+/** A chat tab's title when it has no name of its own. */
+export function chatTabDefaultTitle(
+  agent: ChatAgentId,
+  role?: "orchestrator",
+): string {
+  return role === "orchestrator" ? "Orchestrator" : CHAT_AGENT_LABEL[agent];
+}
+
 export const ACCESS_LABEL: Record<ChatAccess, string> = {
   read: "Read only",
   edit: "Edit files",

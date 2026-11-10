@@ -51,6 +51,12 @@ import { needsSignIn, useAgentAuth } from "./auth";
 import { AuthScreen } from "./AuthScreen";
 import { ChatComposer } from "./ChatComposer";
 import { HistorySidebar, SessionList, useChatSessions } from "./HistorySidebar";
+import {
+  syncChatTitle,
+  type TitleState,
+  useSessionName,
+  useSessionNames,
+} from "./sessionNames";
 import { ModelPicker } from "./ModelPicker";
 import { useAgentChatStore } from "./store";
 
@@ -78,6 +84,9 @@ type Props = {
   cwd: string;
   /** Estate: an Orchestrator chat shows its plans as plan cards. */
   role?: "orchestrator";
+  /** The tab's title, which is also its session's name. */
+  title: string;
+  onRename: (title: string) => void;
   visible: boolean;
 };
 
@@ -88,7 +97,15 @@ function folderName(path: string): string {
   return parts[parts.length - 1] ?? path;
 }
 
-export function AgentChatPane({ chatId, agent, cwd, role, visible }: Props) {
+export function AgentChatPane({
+  chatId,
+  agent,
+  cwd,
+  role,
+  title,
+  onRename,
+  visible,
+}: Props) {
   const open = useAgentChatStore((s) => s.open);
   const {
     auth,
@@ -101,6 +118,7 @@ export function AgentChatPane({ chatId, agent, cwd, role, visible }: Props) {
   const setAccess = useAgentChatStore((s) => s.setAccess);
   const retryWithAccess = useAgentChatStore((s) => s.retryWithAccess);
   const setModel = useAgentChatStore((s) => s.setModel);
+  const setEffort = useAgentChatStore((s) => s.setEffort);
   const newSession = useAgentChatStore((s) => s.newSession);
   const openSession = useAgentChatStore((s) => s.openSession);
   const [historyOpen, setHistoryOpen] = useState(readHistoryOpen);
@@ -127,6 +145,13 @@ export function AgentChatPane({ chatId, agent, cwd, role, visible }: Props) {
   const access = chat?.access ?? "read";
   const loaded = chat?.loaded ?? false;
   const orchestrator = role === "orchestrator";
+  useTabSessionName({
+    enabled: loaded && !orchestrator,
+    agent,
+    sessionId: chat?.transcript.sessionId,
+    title,
+    onRename,
+  });
   // Only the latest plan is live; earlier ones were superseded.
   const planItemId = useMemo(() => {
     if (!orchestrator) return null;
@@ -197,6 +222,8 @@ export function AgentChatPane({ chatId, agent, cwd, role, visible }: Props) {
             open={modelOpen}
             onOpenChange={setModelOpen}
             onChange={(m) => setModel(chatId, m)}
+            effort={chat?.effort}
+            onEffortChange={(e) => setEffort(chatId, e)}
           />
           <Select
             value={access}
@@ -306,7 +333,12 @@ export function AgentChatPane({ chatId, agent, cwd, role, visible }: Props) {
               </div>
             </div>
 
-            <div className="shrink-0 border-t border-border/60 px-3 py-2.5">
+            {/* Estate: files dragged from the sidebar drop their paths here. */}
+            <div
+              data-path-drop
+              data-path-drop-base={cwd}
+              className="shrink-0 border-t border-border/60 px-3 py-2.5"
+            >
               <ChatComposer
                 ref={inputRef}
                 placeholder={`Message ${CHAT_AGENT_LABEL[agent]}… (/ for commands)`}
@@ -564,6 +596,7 @@ function EmptyState({
             Continue a session in this folder
           </p>
           <SessionList
+            agent={agent}
             sessions={sessions}
             currentId={undefined}
             disabled={false}
@@ -760,4 +793,33 @@ function Stats({ stats }: { stats: TurnStats }) {
       {parts.join(" · ")}
     </p>
   );
+}
+
+/** Estate: keeps the tab's title and its session's name the same. */
+function useTabSessionName({
+  enabled,
+  agent,
+  sessionId,
+  title,
+  onRename,
+}: {
+  enabled: boolean;
+  agent: ChatAgentId;
+  sessionId: string | undefined;
+  title: string;
+  onRename: (title: string) => void;
+}) {
+  const name = useSessionName(agent, sessionId);
+  const last = useRef<TitleState | null>(null);
+  const renameRef = useRef(onRename);
+  renameRef.current = onRename;
+  useEffect(() => {
+    if (!enabled) return;
+    const cur: TitleState = { sessionId, title, name };
+    const change = syncChatTitle(last.current, cur, CHAT_AGENT_LABEL[agent]);
+    last.current = cur;
+    if (change.setTitle !== undefined) renameRef.current(change.setTitle);
+    if (change.saveName !== undefined && sessionId)
+      useSessionNames.getState().setName(agent, sessionId, change.saveName);
+  }, [enabled, agent, sessionId, title, name]);
 }

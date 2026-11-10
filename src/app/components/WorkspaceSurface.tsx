@@ -39,6 +39,8 @@ type Props = {
   onOpenCommitFile: GitHistoryStackProps["onOpenCommitFile"];
   onGitHistorySearchHandle: GitHistoryStackProps["onSearchHandle"];
   onSetMarkdownView: EditorStackProps["onSetMarkdownView"];
+  /** Estate: a chat tab follows its session's name. */
+  onRenameTab: (id: number, title: string) => void;
 };
 
 /** Each kind's layer ignores the pointer; a shown tab inside it takes it back. */
@@ -75,6 +77,7 @@ export function WorkspaceSurface({
   onOpenCommitFile,
   onGitHistorySearchHandle,
   onSetMarkdownView,
+  onRenameTab,
 }: Props) {
   return (
     <WorkspaceLayoutFrame
@@ -139,7 +142,11 @@ export function WorkspaceSurface({
         />
       </div>
       <div className={LAYER}>
-        <AgentChatStack tabs={tabs} activeId={activeId} />
+        <AgentChatStack
+          tabs={tabs}
+          activeId={activeId}
+          onRenameTab={onRenameTab}
+        />
       </div>
     </WorkspaceLayoutFrame>
   );

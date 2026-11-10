@@ -163,8 +163,6 @@ export function AiStatusBarControls() {
         </IconBtn>
       )}
 
-      <ModelDropdown />
-
       <span className="mx-1 h-8 w-px bg-border" aria-hidden />
       <Button
         onClick={closePanel}
@@ -216,7 +214,8 @@ export function AiStatusBarControls() {
 
 type Tab = "all" | "favorites" | "recent";
 
-function ModelDropdown() {
+/** Estate: the model switcher, a small label at the left of the chat box. */
+export function ModelDropdown() {
   const selected = useChatStore((s) => s.selectedModelId);
   const apiKeys = useChatStore((s) => s.apiKeys);
   const setSelected = useChatStore((s) => s.setSelectedModelId);
@@ -346,12 +345,11 @@ function ModelDropdown() {
   return (
     <DropdownMenu onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
+        <button
           type="button"
-          variant="ghost"
-          size="sm"
           className={cn(
-            "h-5.5 gap-1 rounded-md px-1.5 my-1 text-xs hover:bg-accent hover:text-foreground",
+            "flex h-[22px] max-w-[10rem] shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] outline-none transition-colors",
+            "hover:bg-accent/60 hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring data-[state=open]:bg-accent/60 data-[state=open]:text-foreground",
             currentProviderHasKey
               ? "text-muted-foreground"
               : "text-amber-600 dark:text-amber-400",
@@ -362,18 +360,25 @@ function ModelDropdown() {
               : `${current.label} — no key configured`
           }
         >
-          {current.label}
+          <HugeiconsIcon
+            icon={PROVIDER_ICON[current.provider]}
+            size={12}
+            strokeWidth={1.75}
+            className="shrink-0"
+          />
+          <span className="truncate">{current.label}</span>
           <HugeiconsIcon
             icon={ArrowDown01Icon}
-            size={11}
+            size={10}
             strokeWidth={2}
-            className="opacity-70"
+            className="shrink-0 opacity-60"
           />
-        </Button>
+        </button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        align="end"
+        side="top"
+        align="start"
         className="w-[28rem] p-0 overflow-hidden rounded-xl border border-border/70 shadow-xl"
         onFocusCapture={(e) => {
           if (e.target !== inputRef.current) inputRef.current?.focus();
