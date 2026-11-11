@@ -66,6 +66,7 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 
 ### Quality of life
 
+- A terminal resized into a split no longer shows its prompt twice. With the bash that ships with macOS, a long prompt that wraps in a narrow pane also keeps the cursor where you type, and shell integration no longer turns itself off when several terminals start at once.
 - Git History works in a split pane: the commit table fits the pane, dropping Changes, then Author, then Date as it narrows (the subject shows them on hover). It also stays loaded when you switch tabs or rearrange a split, keeping its place and search, and reloads only when there are new commits.
 - Opening or switching to a project moves everything to it: the status bar folder, the Files sidebar and the window title. A project without tabs opens a terminal in its folder instead of leaving the previous project's tab in view.
 - The files and source control sidebar sits on the right by default; Settings > General > Layout moves it. The sidebar toggle follows it to the same side of the header.

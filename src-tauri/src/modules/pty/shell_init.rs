@@ -253,6 +253,7 @@ mod unix {
     use std::ffi::OsString;
     use std::fs;
     use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
 
     use portable_pty::CommandBuilder;
 
@@ -485,8 +486,16 @@ mod unix {
             }
         }
         // Atomic replace: a parallel shell startup must never source a half-written file.
+        // Each write has its own temp file: shells spawned together (a restored split)
+        // all rewrite a changed script, and a shared temp name let one rename fail and
+        // start that shell without integration.
+        static WRITES: AtomicU64 = AtomicU64::new(0);
         let mut tmp: OsString = path.as_os_str().to_owned();
-        tmp.push(".__estate_tmp__");
+        tmp.push(format!(
+            ".__estate_tmp_{}_{}__",
+            std::process::id(),
+            WRITES.fetch_add(1, Ordering::Relaxed)
+        ));
         let tmp = PathBuf::from(tmp);
         fs::write(&tmp, content).map_err(|e| format!("write {}: {e}", tmp.display()))?;
         fs::rename(&tmp, path).map_err(|e| {
@@ -498,6 +507,27 @@ mod unix {
     #[cfg(test)]
     mod tests {
         use super::*;
+
+        #[test]
+        fn concurrent_writes_of_a_changed_script_all_succeed() {
+            let dir = std::env::temp_dir()
+                .join(format!("estate-write-if-changed-{}", std::process::id()));
+            fs::create_dir_all(&dir).unwrap();
+            let rc = dir.join("bashrc");
+            fs::write(&rc, "old version").unwrap();
+            let results: Vec<Result<(), String>> = std::thread::scope(|scope| {
+                let handles: Vec<_> = (0..8)
+                    .map(|_| scope.spawn(|| write_if_changed(&rc, BASHRC)))
+                    .collect();
+                handles.into_iter().map(|h| h.join().unwrap()).collect()
+            });
+            let content = fs::read_to_string(&rc).unwrap();
+            let leftovers = fs::read_dir(&dir).unwrap().count();
+            fs::remove_dir_all(&dir).unwrap();
+            assert!(results.iter().all(Result::is_ok), "{results:?}");
+            assert_eq!(content, BASHRC);
+            assert_eq!(leftovers, 1, "temp files left behind");
+        }
 
         #[test]
         fn classify_maps_known_shells() {
