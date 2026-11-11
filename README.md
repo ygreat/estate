@@ -6,7 +6,7 @@
   <p><strong>Your workspace for building software together with AI agents.</strong></p>
 
   <p>
-    <a href="https://github.com/ygreat/estate/releases/latest"><img src="https://img.shields.io/github/v/release/ygreat/estate?label=download&color=brightgreen" alt="download the latest release" /></a>
+    <img src="https://img.shields.io/badge/status-closed%20testing-orange" alt="status: closed testing" />
     <img src="https://img.shields.io/badge/platform-macOS%2012%2B%20Intel-lightgrey" alt="platform" />
     <img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="license" />
   </p>
@@ -19,7 +19,7 @@ Estate is for developers who work alongside coding agents. You describe what you
 It's a small native app that stays fast on machines newer tools have left behind, including Intel Macs back to macOS 12. Estate is an independent project, built with Tauri and Rust on top of [Terax](https://github.com/crynta/terax-ai) 0.9.0.
 
 > [!NOTE]
-> **Estate 0.1.1 is out.** [Download the latest release](https://github.com/ygreat/estate/releases/latest) to try Estate on an Intel Mac, or update from Settings → About if you have 0.1.0. These are early releases: they haven't been through the full release checklist yet. See [ROADMAP.md](ROADMAP.md) for what's next and [CHANGELOG.md](CHANGELOG.md) for everything in it.
+> **Estate is in closed testing.** There are no public downloads right now; builds go to a small group of testers directly. You can still [build it from source](#build-from-source). See [ROADMAP.md](ROADMAP.md) for what's next and [CHANGELOG.md](CHANGELOG.md) for what's changed.
 
 ## How you work with agents in Estate
 
@@ -73,7 +73,9 @@ It's a small native app that stays fast on machines newer tools have left behind
 
 ## Install
 
-1. Download the DMG (`Estate_<version>_x64.dmg`) from the [latest release](https://github.com/ygreat/estate/releases/latest).
+Estate is in closed testing, so there's no public download yet. If you're a tester:
+
+1. Get the DMG (`Estate_<version>_x64.dmg`) you were sent.
 2. Open it and drag **Estate** to **Applications**.
 3. Estate isn't signed with an Apple certificate yet, so macOS blocks the first launch. Right-click Estate in Applications, choose **Open**, then **Open** again. You only do this once. Or clear the download quarantine from a terminal:
 
@@ -81,11 +83,13 @@ It's a small native app that stays fast on machines newer tools have left behind
    xattr -dr com.apple.quarantine /Applications/Estate.app
    ```
 
-To check the download, compare `shasum -a 256` of the DMG with `SHA256SUMS.txt` on the release page.
+To check the download, compare `shasum -a 256` of the DMG with the `SHA256SUMS.txt` that came with it.
 
 ## Updating
 
 Estate updates itself, but only when you ask: open **Settings → About** and click **Check for updates**. If there's a newer release, **Install** downloads it, checks that it's signed with Estate's release key, and restarts on the new version. Estate never checks for updates in the background.
+
+During closed testing there are no public releases, so **Check for updates** won't find anything. Testers get new builds directly.
 
 ## Using AI
 
