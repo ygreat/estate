@@ -1,10 +1,10 @@
 # PRD: Estate
 
-Nov 9, 2026 · @Yeremia Greatto
+Nov 9, 2026 · revised Nov 12, 2026 (Apple Silicon build) · @Yeremia Greatto
 
 ## Summary
 
-Estate is a focused developer workspace with seven tools that runs on Intel Macs with macOS 12 Monterey and sends no telemetry.
+Estate is a focused developer workspace with seven tools that runs on Macs with macOS 12 Monterey or later and sends no telemetry. Intel Macs stuck on Monterey are the primary target; a native Apple Silicon (arm64) build ships alongside the Intel one with the same macOS 12.0 floor.
 
 It is an open-source Tauri 2 and Rust project at [ygreat/estate](https://github.com/ygreat/estate). It started from Terax 0.9.0 (the `main` branch at commit `a2c0877`, 6 November 2026, 50 commits after the v0.9.0 release) and is developed independently from there; later Terax releases are not relevant to Estate. The seven tools are terminal, SSH/SFTP, database browser, editor, AI agent, in-app browser and Git. The reference machine is a 15-inch 2015 MacBook Pro on Monterey with Safari 17.6.
 
@@ -27,20 +27,22 @@ Terax is the best base because it uses Tauri 2, Rust, portable-pty, a libghostty
 
 ## Goals, non-goals and success metrics
 
-The release succeeds when one x86\_64 build launches on Monterey and all seven tools complete a real work session on the reference Mac.
+The release succeeds when the x86\_64 build launches on Monterey and all seven tools complete a real work session on the reference Mac, and the arm64 build launches natively on an Apple Silicon Mac and passes the smoke test in the release checklist.
 
 **Goals**
 
 - Ship seven tools only: terminal, SSH/SFTP, database browser, editor, AI agent, in-app browser and Git.
 - Run on macOS 12 Intel without any dependency on macOS 13 or later.
+- Ship a native Apple Silicon build from the same source, with the same macOS 12.0 floor and no Rosetta.
 - Send no telemetry, analytics or crash reports.
 - Let CLI agents run in a local or SSH terminal, with versions the user can pin.
 - Develop Estate on its own from the Terax 0.9.0 starting point. Later Terax releases are not merged or ported.
 
 **Non-goals**
 
-- Apple Silicon builds. Terax already serves those Macs.
-- macOS below 12, and Windows or Linux packaging changes.
+- A universal (fat) macOS binary. Intel and Apple Silicon get separate DMGs, so each download stays small.
+- macOS below 12, and Linux packaging changes.
+- Windows in the first release. A Windows build is planned after it; see the [ROADMAP](ROADMAP.md).
 - Voice input, custom backgrounds and other Terax features outside the seven tools.
 - Local model inference on the Intel Mac. Remote or LAN endpoints stay supported.
 - A bundled Chromium browser engine.
@@ -66,7 +68,7 @@ The primary user is a developer on an Intel Mac that cannot officially update pa
 | macOS 12.7, Intel x86\_64, 15-inch 2015 MacBook Pro | Primary. Every release is tested here. |
 | macOS 12.x below 12.7, Intel | Best effort. Depends on the installed Safari version. |
 | macOS 13 to 15, Intel | Secondary. Should work and is smoke-tested when a Mac is available. |
-| Apple Silicon | Not targeted. |
+| Apple Silicon, macOS 12 or later | Secondary. Native arm64 build; every release is launched and smoke-tested on an Apple Silicon Mac. |
 
 Plan for the reference Mac's limits: a quad-core Intel CPU, up to 16 GB of RAM, and either integrated graphics or an older AMD GPU, depending on the model. Confirm the exact configuration in Phase 0.
 
@@ -77,7 +79,8 @@ Every layer has a workable path on Monterey Intel, and the frozen WebKit and age
 | Layer | Finding | Verdict |
 | --- | --- | --- |
 | Tauri 2 | The v1 docs give a [10.13 minimum](https://v1.tauri.app/v1/guides/building/macos), and one Tauri 2 project [treats 11 as the effective floor](https://packetthrower.github.io/Baudrun/REQUIREMENTS/). Crashes on older macOS [do occur and get fixed case by case](https://github.2858349172.workers.dev/tauri-apps/wry/pull/1734). | Use, and lock versions |
-| Rust | [macOS 10.12 is the x86 minimum](https://doc.rust-lang.org/stable/rustc/platform-support/apple-darwin.html). Intel Macs [moved to Tier 2 in Rust 1.90](https://blog.rust-lang.org/2025/08/19/demoting-x86-64-apple-darwin-to-tier-2-with-host-tools), so tests are no longer guaranteed. | Use, and pin the toolchain |
+| Rust | [macOS 10.12 is the x86 minimum](https://doc.rust-lang.org/stable/rustc/platform-support/apple-darwin.html). Intel Macs [moved to Tier 2 in Rust 1.90](https://blog.rust-lang.org/2025/08/19/demoting-x86-64-apple-darwin-to-tier-2-with-host-tools), so tests are no longer guaranteed. `aarch64-apple-darwin` is Tier 1 with an 11.0 minimum, below Estate's 12.0 floor. | Use, and pin the toolchain with both targets |
+| Apple Silicon | Every arm64 Mac shipped with macOS 11 or later, so the 12.0 floor covers all of them that are updated. arm64 code must carry a code signature to run; the linker adds an ad-hoc one, and any later change to the bundle needs a re-sign. An Intel Mac can cross-compile the arm64 build but cannot run it. | Build on either Mac; launch on Apple Silicon |
 | Apple build tools | [Xcode 14.2 is the last for Monterey](https://developer.apple.com/forums/thread/757205). It [needs macOS 12.5 and ships the 13.1 SDK](https://www.junian.dev/downloads/xcode/). | Use on the reference Mac |
 | Node | [Node 24 binaries require macOS 13.5](https://nodejs-hbt4jjs1l-openjs.vercel.app/en/blog/announcements/v22-to-v24). [Vite 8 accepts Node 22.12 or later](https://lilting.ch/en/articles/vite-8-rolldown). | Stay on Node 22 |
 | Native npm build binaries | I found no stated macOS minimum for Rolldown, Lightning CSS or Tailwind's native engine. | Test in Phase 0 |
@@ -113,6 +116,7 @@ P0 items block the first release, P1 items should ship in it, and P2 items can f
 | ID | Tool | Requirement | Acceptance check | Priority |
 | --- | --- | --- | --- | --- |
 | FR-1 | App | Install and launch on macOS 12.7 Intel from a DMG. | Clean user account, no dyld error, no Rosetta. | P0 |
+| FR-1a | App | Install and launch on Apple Silicon from its own arm64 DMG. | Clean user account, no dyld error; Activity Monitor shows the app as Apple, not Intel. | P0 |
 | FR-2 | App | Check WebKit at startup. | Below Safari 16.4, show a plain message instead of a blank window. | P0 |
 | FR-3 | App | Remove Terax branding and point updates at ygreat/estate. | No Terax name or icon in the UI; the app never offers an upstream build. | P0 |
 | FR-4 | App | No telemetry. | A network capture of an idle session shows no outbound traffic except user-enabled update checks. | P0 |
@@ -175,22 +179,28 @@ The browser pane is the only part that loads untrusted pages, so it is walled of
 
 **Terminal rendering.** On Monterey the terminal runs on the WebGL2 fallback, so treat it as the primary renderer there: test it on the reference GPU in Phase 0, measure CPU and battery while idle and under heavy output, and keep the fallback's changes in its own module. Also confirm the libghostty-vt WebAssembly module loads in Safari 17.6.
 
-**Build on the reference Mac first.** It uses the 13.1 SDK, so an API that is newer than Monterey tends to fail early. Pin Rust in `rust-toolchain.toml`, commit `Cargo.lock`, and build with:
+**Build on the reference Mac first.** It uses the 13.1 SDK, so an API that is newer than Monterey tends to fail early. Pin Rust in `rust-toolchain.toml` with both `x86_64-apple-darwin` and `aarch64-apple-darwin` as targets, commit `Cargo.lock`, and build each architecture separately:
 
 ```bash
 export MACOSX_DEPLOYMENT_TARGET=12.0
 pnpm install --frozen-lockfile
 pnpm tauri build --target x86_64-apple-darwin
+pnpm tauri build --target aarch64-apple-darwin
 ```
 
 The first build can take [20 to 40 minutes](https://dev.to/0xkoji/build-terax-for-intel-mac-1j5a). If a native npm tool will not run on Monterey, build on a newer Intel runner and still test on the reference Mac.
 
+**Apple Silicon build.** The arm64 DMG comes from the same source and the same deployment target. The `estate-cli` sidecar must be built for the same target (`ESTATE_CLI_TARGET`), or the bundle mixes architectures. The Intel Mac can cross-compile it, and GitHub's `macos-latest` runner is arm64, so either can build it. Only an Apple Silicon Mac can prove it launches. Apple Silicon Macs on macOS 13 or later may get the WebGPU terminal path; on Monterey they run WebGL2 like the reference Mac.
+
 **Launching is the only real proof.** A declared minimum does not settle it: Claude Code builds [marked 13.0 still ran on Monterey until one used a missing symbol](https://claudeissues.com/issue/91309-bug-v2-1-257-aborts-at-launch-on-macos-12-dyld-dnsservicegetaddrinfoex-auto-upda). Check the minimum, then launch every build:
 
 ```bash
-APP="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Estate.app"
-find "$APP" -type f -perm +111 -exec otool -l {} \; | grep -A3 -E 'LC_BUILD_VERSION|LC_VERSION_MIN'
-open "$APP"
+for ARCH in x86_64 aarch64; do
+  APP="src-tauri/target/$ARCH-apple-darwin/release/bundle/macos/Estate.app"
+  find "$APP" -type f -perm +111 -exec lipo -archs {} \;   # one architecture per bundle
+  find "$APP" -type f -perm +111 -exec otool -l {} \; | grep -A3 -E 'LC_BUILD_VERSION|LC_VERSION_MIN'
+done
+open "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Estate.app"   # on Apple Silicon, open the aarch64 one
 ```
 
 **Web baseline.** Set Vite's `build.target` to `safari16.4` (done; it was `es2022`). Load polyfills for Iterator helpers, `Promise.try` and ReadableStream async iteration before any other code, and test AI streaming early.
@@ -230,7 +240,7 @@ If the installer says no compatible tools are available, sign in at Apple's [dev
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source "$HOME/.cargo/env"
-rustup target add x86_64-apple-darwin
+rustup target add x86_64-apple-darwin aarch64-apple-darwin
 
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
 export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
@@ -341,7 +351,8 @@ If Gate 1 fails on a native dependency that cannot be patched, stop and reassess
 **Release checklist**, run on the reference Mac for every build:
 
 - [ ] DMG installs and Estate launches from a clean user account.
-- [ ] The binary check shows no minimum above macOS 12.0.
+- [ ] The binary check shows no minimum above macOS 12.0, and each bundle holds only its own architecture.
+- [ ] Apple Silicon smoke test: the arm64 DMG installs and launches natively; a terminal runs vim, the editor saves a file, the Git panel commits and the AI panel streams a reply.
 - [ ] vim, htop and tmux render correctly in WebGL mode on the reference Mac, and in WebGPU mode on a macOS 13 or later smoke-test Mac when one is available.
 - [ ] An SSH session runs vim, and a changed host key is rejected until confirmed.
 - [ ] A large SFTP transfer completes and can be cancelled.
@@ -365,6 +376,8 @@ The largest risks are vendors dropping Monterey and a WebKit that will never be 
 | WebKit stays at Safari 17.6 permanently | New web APIs break the UI; browser pages carry unpatched flaws | Polyfills, FR-2 check, isolated browser pane, local-first use |
 | A Rust or npm dependency needs macOS 13 | Launch or build failure | Lock versions; launch every build on the reference Mac |
 | Rust and GitHub reduce Intel support | Toolchain bugs; no hosted Intel runner after fall 2027 | Pin Rust; keep the reference Mac as the build machine |
+| No Apple Silicon Mac on hand at release time | The arm64 DMG ships without a real launch | Launch it on GitHub's arm64 `macos-latest` runner at minimum; do not publish it untested |
+| A dependency builds for one architecture only | One DMG fails to build or bundles the wrong slice | Build both targets on every release; check `lipo -archs` |
 | Sign-in pages reject the embedded browser | OAuth flows fail in the pane | Open-externally button; hand off to the system browser |
 | WebGL2 renders poorly on the old GPU | Missing text or heavy battery use; there is no renderer below WebGL2 | Test in Phase 0; FR-6 context-loss recovery; build FR-6a only if needed |
 | WebGPU never available on Monterey | The less-tested WebGL2 path is the only one Estate users run | Treat WebGL2 as primary; measure it against the Success metrics |
@@ -384,6 +397,7 @@ The largest risks are vendors dropping Monterey and a WebKit that will never be 
 - Origin: started from Terax 0.9.0 (commit `a2c0877`); developed independently, with no `upstream` remote and no porting of later Terax changes. All work lands on `main` at ygreat/estate.
 - Web floor: Safari 16.4, with the reference Mac on 17.6.
 - Privacy: no telemetry.
+- Platforms: Intel Mac first (reference Mac), Apple Silicon as a separate native arm64 DMG from 12 November 2026; Windows after the first release.
 - Distribution: open source under Apache-2.0, with no Apple notarization. The README tells users to clear the download quarantine after moving the app to Applications: `xattr -dr com.apple.quarantine /Applications/Estate.app`.
 
 ## Sources
