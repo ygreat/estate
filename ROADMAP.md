@@ -5,9 +5,9 @@ Estate's direction, what's planned, and what's deliberately out of scope. The fu
 
 ## What Estate is
 
-A focused developer workspace with seven tools (terminal, SSH/SFTP, database browser, editor, AI agent, in-app browser and Git) that runs on Intel Macs with macOS 12 Monterey and sends no telemetry. It is built on Tauri 2 and Rust. Estate started from Terax 0.9.0 (commit `a2c0877`, 6 November 2026) and is developed independently from there, for older macOS. Later Terax releases are not merged or ported.
+A focused developer workspace with seven tools (terminal, SSH/SFTP, database browser, editor, AI agent, in-app browser and Git) that runs on Macs with macOS 12 Monterey or later and sends no telemetry. Intel Macs stuck on Monterey come first; Apple Silicon Macs get their own native build. It is built on Tauri 2 and Rust. Estate started from Terax 0.9.0 (commit `a2c0877`, 6 November 2026) and is developed independently from there, for older macOS. Later Terax releases are not merged or ported.
 
-The first release succeeds when one x86_64 build launches on Monterey and all seven tools complete a real work session on the reference Mac (15-inch 2015 MacBook Pro, macOS 12.7, Safari 17.6).
+The first release succeeds when the x86_64 build launches on Monterey and all seven tools complete a real work session on the reference Mac (15-inch 2015 MacBook Pro, macOS 12.7, Safari 17.6), and the arm64 build launches natively on an Apple Silicon Mac and passes its smoke test.
 
 ## Principles
 
@@ -41,6 +41,8 @@ These came with the Terax 0.9.0 code Estate started from, and need verifying on 
 - [ ] Build on the reference Mac and confirm the build tools (Rolldown, Lightning CSS, Tailwind) run on Monterey
 - [ ] Launch on macOS 12.7 from a clean install with no dyld errors
 - [ ] Measure the WebGL2 terminal on the reference GPU
+- [ ] Add `aarch64-apple-darwin` to the pinned toolchain and build an arm64 DMG (app and `estate-cli`) whose binaries declare macOS 12.0
+- [ ] Launch the arm64 build natively on an Apple Silicon Mac, with no Rosetta
 - [ ] **Gate 1:** go or no-go for the whole approach
 
 ## Phase 1: Core tools on Monterey
@@ -100,8 +102,9 @@ Additions beyond the PRD's seven tools, from using Estate day to day. Details in
 ## Phase 3: First release
 
 - [ ] Run the full release checklist on the reference Mac
+- [ ] Run the Apple Silicon smoke test on an Apple Silicon Mac
 - [ ] Ship `LICENSE`, `NOTICE`, `MODIFICATIONS.md` and a third-party license list in the release
-- [ ] Publish a DMG on GitHub Releases
+- [ ] Publish Intel and Apple Silicon DMGs on GitHub Releases, with both in the updater manifest
 
 ## Later
 
@@ -109,11 +112,12 @@ Additions beyond the PRD's seven tools, from using Estate day to day. Details in
 - Agent compatibility check: list installed agents, versions and whether they launch
 - Git over SSH sessions
 - A last-resort non-GPU terminal renderer, only if WebGL2 fails on the reference GPU
+- Windows build, tested on a Windows PC. The inherited Terax code supports Windows, but nothing Estate added has run there yet.
 
 ## Out of scope
 
-- Apple Silicon builds. Terax already serves those Macs.
-- macOS below 12, and Windows or Linux packaging.
+- A universal (fat) macOS binary. Intel and Apple Silicon get separate DMGs.
+- macOS below 12, and Linux packaging.
 - Features outside the seven tools, such as voice input and custom backgrounds.
 - Local model inference on the Intel Mac. Remote or LAN endpoints are supported.
 - A bundled Chromium or other browser engine.
