@@ -1018,6 +1018,7 @@ Every turn carries a short <env> block (prepended to the latest user message): w
 
 # Path resolution
 - Bare filenames resolve against active_terminal_cwd, not workspace_root. Never write to /notes.md.
+- \`@path\` (or \`@"path with spaces"\`) in the user's message names a file or folder the user mentioned, relative to workspace_root. Read it when the request needs it; pass workspace_root + path as an absolute path.
 - "create X" with no path → active_terminal_cwd, else workspace_root. Pick and proceed; don't ask.
 - "edit/fix this file" with no path → active_file when present.
 - Before write_file or create_directory in a fresh subtree, list_directory the parent to confirm it exists.
@@ -1045,6 +1046,7 @@ Rules:
 - Chain actions: read → understand → change → verify in one turn. Don't stop mid-task to ask trivial confirmations.
 - Ask only when genuinely ambiguous and a wrong guess is costly. Otherwise pick a reasonable default and proceed.
 - Bare filenames resolve to active_terminal_cwd, not workspace_root.
+- \`@path\` in the user's message is a mentioned file, relative to workspace_root; read it as workspace_root + path.
 - Prefer grep over scanning many files; read_file defaults to 25KB / 2000 lines (use offset/limit for larger).
 - edit/multi_edit need a prior read_file on the path. write_file for new/tiny files only.
 - bash_list before any dev server; reuse if already running.

@@ -92,6 +92,8 @@ import {
 } from "@/modules/agent-chat/auth";
 import { setLspNavigator } from "@/modules/lsp";
 import type { PreviewPaneHandle } from "@/modules/preview";
+import { registerPreviewOpener } from "@/modules/preview/lib/previewOpener";
+import { registerFileOpener } from "@/modules/explorer/lib/fileOpener";
 import { openSettingsWindow } from "@/modules/settings/openSettingsWindow";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { setShowHidden } from "@/modules/settings/store";
@@ -879,6 +881,10 @@ export default function App() {
     },
     [openFileTab, newMarkdownTab],
   );
+  useEffect(
+    () => registerFileOpener((path) => handleOpenFile(path, true)),
+    [handleOpenFile],
+  );
 
   const openLaunchFiles = useCallback(
     (paths: string[]) => {
@@ -1029,6 +1035,9 @@ export default function App() {
     },
     [newPreviewTab],
   );
+
+  // Estate: chat links offer "Preview in Estate" through this.
+  useEffect(() => registerPreviewOpener(openPreviewTab), [openPreviewTab]);
 
   const splitActivePaneInActiveTab = useCallback(
     (dir: "row" | "col") => {

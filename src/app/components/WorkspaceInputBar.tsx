@@ -176,7 +176,7 @@ export function WorkspaceInputBar({
               {renderAi && (
                 <div className={cn(effectiveMode !== "ai" && "hidden")}>
                   <Suspense fallback={null}>
-                    <AiComposerInput />
+                    <AiComposerInput active={open && effectiveMode === "ai"} />
                   </Suspense>
                 </div>
               )}

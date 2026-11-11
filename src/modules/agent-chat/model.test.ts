@@ -5,6 +5,7 @@ import {
   clip,
   describeTool,
   EMPTY_TRANSCRIPT,
+  lineChanges,
   MAX_ITEMS,
   unwrapShell,
 } from "./model";
@@ -123,5 +124,35 @@ describe("tool descriptions", () => {
     expect(unwrapShell("/bin/bash -lc 'ls -la'")).toBe("ls -la");
     expect(unwrapShell('/bin/zsh -lc "echo hi"')).toBe("echo hi");
     expect(unwrapShell("git status")).toBe("git status");
+  });
+});
+
+describe("edit line counts", () => {
+  it("ignores the lines an edit keeps", () => {
+    expect(lineChanges("a\nb\nc", "a\nB\nB2\nc")).toEqual({ add: 2, del: 1 });
+    expect(lineChanges("", "x\ny")).toEqual({ add: 2, del: 0 });
+    expect(lineChanges("same", "same")).toEqual({ add: 0, del: 0 });
+  });
+
+  it("reports edits, multi-edits and writes", () => {
+    expect(
+      describeTool("Edit", {
+        file_path: "/a.ts",
+        old_string: "x",
+        new_string: "y\nz",
+      }).changes,
+    ).toEqual({ add: 2, del: 1 });
+    expect(
+      describeTool("MultiEdit", {
+        file_path: "/a.ts",
+        edits: [
+          { old_string: "x", new_string: "y" },
+          { oldString: "", newString: "n" },
+        ],
+      }).changes,
+    ).toEqual({ add: 2, del: 1 });
+    expect(
+      describeTool("Write", { file_path: "/a.ts", content: "1\n2\n" }).changes,
+    ).toEqual({ add: 2, del: 0 });
   });
 });

@@ -4,7 +4,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { usePresence } from "@/lib/usePresence";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useWorkspaceFiles } from "../hooks/useWorkspaceFiles";
+import {
+  MENTION_TEXTAREA_ACTIVE,
+  MentionHighlights,
+} from "@/modules/mentions/MentionHighlights";
+import { useMentionComposer } from "@/modules/mentions/useMentionComposer";
 import { useComposer } from "../lib/composer";
 import { SLASH_COMMANDS } from "../lib/slashCommands";
 import { useChatStore } from "../store/chatStore";
@@ -23,12 +27,6 @@ type SnippetTrigger = {
   end: number;
   query: string;
   char: "#" | "/";
-};
-
-type FileTrigger = {
-  start: number;
-  end: number;
-  query: string;
 };
 
 function detectSnippetTrigger(
@@ -50,21 +48,10 @@ function detectSnippetTrigger(
   return null;
 }
 
-function detectFileTrigger(value: string, caret: number): FileTrigger | null {
-  for (let i = caret - 1; i >= 0; i--) {
-    const ch = value[i];
-    if (ch === "@") {
-      const prev = i === 0 ? " " : value[i - 1];
-      if (!/\s/.test(prev)) return null;
-      const slice = value.slice(i + 1, caret);
-      return { start: i, end: caret, query: slice };
-    }
-    if (/\s/.test(ch)) return null;
-  }
-  return null;
-}
+/** The textarea's box, shared with the mention chip layer behind it. */
+const TEXTAREA_BOX = "text-[13px] leading-relaxed";
 
-export function AiComposerInput() {
+export function AiComposerInput({ active }: { active: boolean }) {
   const c = useComposer();
   const orchestrating = useAgentsStore(
     (s) => s.activeId === ORCHESTRATOR_AGENT_ID,
@@ -73,20 +60,14 @@ export function AiComposerInput() {
   const workspaceRoot = useChatStore((s) => s.live.getWorkspaceRoot());
 
   const [trigger, setTrigger] = useState<SnippetTrigger | null>(null);
-  const [fileTrigger, setFileTrigger] = useState<FileTrigger | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const workspaceFiles = useWorkspaceFiles(workspaceRoot, fileTrigger !== null);
-
-  const [fileQuery, setFileQuery] = useState("");
-  useEffect(() => {
-    if (!fileTrigger) {
-      setFileQuery("");
-      return;
-    }
-    const q = fileTrigger.query;
-    const t = window.setTimeout(() => setFileQuery(q), 50);
-    return () => window.clearTimeout(t);
-  }, [fileTrigger]);
+  const mention = useMentionComposer({
+    value: c.value,
+    setValue: c.setValue,
+    textareaRef: c.textareaRef,
+    base: workspaceRoot,
+    visible: active,
+  });
 
   useEffect(() => {
     autoresize(c.textareaRef.current);
@@ -96,15 +77,19 @@ export function AiComposerInput() {
     const el = c.textareaRef.current;
     if (!el) {
       setTrigger(null);
-      setFileTrigger(null);
       return;
     }
-    const caret = el.selectionStart ?? 0;
-    setTrigger(detectSnippetTrigger(c.value, caret));
-    setFileTrigger(detectFileTrigger(c.value, caret));
+    setTrigger(detectSnippetTrigger(c.value, el.selectionStart ?? 0));
+    mention.updateTrigger();
   };
 
-  useEffect(updateTrigger, [c.value, c.textareaRef]);
+  // The mention hook follows the value itself; this tracks `#` and `/`.
+  useEffect(() => {
+    const el = c.textareaRef.current;
+    setTrigger(
+      el ? detectSnippetTrigger(c.value, el.selectionStart ?? 0) : null,
+    );
+  }, [c.value, c.textareaRef]);
 
   const filteredItems = useMemo<PickerItem[]>(() => {
     if (!trigger) return [];
@@ -127,28 +112,12 @@ export function AiComposerInput() {
     return [...cmdItems, ...snipItems];
   }, [trigger, snippets]);
 
-  const FILE_PICKER_CAP = 30;
-  const filteredFiles = useMemo<string[]>(() => {
-    if (!fileTrigger) return [];
-    const q = fileQuery.toLowerCase();
-    if (!q) return workspaceFiles.files.slice(0, FILE_PICKER_CAP);
-    const out: string[] = [];
-    for (const f of workspaceFiles.files) {
-      if (f.toLowerCase().includes(q)) {
-        out.push(f);
-        if (out.length >= FILE_PICKER_CAP) break;
-      }
-    }
-    return out;
-  }, [fileTrigger, fileQuery, workspaceFiles.files]);
-
-  const fileTriggerOpen = fileTrigger !== null;
   const snippetTriggerOpen = trigger !== null;
   useEffect(() => {
     setActiveIndex(0);
-  }, [snippetTriggerOpen, fileTriggerOpen, fileQuery]);
+  }, [snippetTriggerOpen]);
 
-  const pickerOpen = trigger !== null || fileTrigger !== null;
+  const pickerOpen = trigger !== null || mention.picker.open;
 
   const onPickItem = (item: PickerItem) => {
     if (!trigger) return;
@@ -176,31 +145,7 @@ export function AiComposerInput() {
     });
   };
 
-  const onPickFile = async (filePath: string) => {
-    if (!fileTrigger || !workspaceRoot) return;
-    const before = c.value.slice(0, fileTrigger.start);
-    const after = c.value.slice(fileTrigger.end);
-    c.setValue(`${before}${after}`);
-    setFileTrigger(null);
-    setActiveIndex(0);
-    const fullPath = workspaceRoot.endsWith("/")
-      ? `${workspaceRoot}${filePath}`
-      : `${workspaceRoot}/${filePath}`;
-    await c.attachFileByPath(fullPath);
-    requestAnimationFrame(() => {
-      const el = c.textareaRef.current;
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(before.length, before.length);
-    });
-  };
-
   const pickActive = () => {
-    if (fileTrigger) {
-      const file = filteredFiles[activeIndex];
-      if (file) void onPickFile(file);
-      return;
-    }
     const it = filteredItems[activeIndex];
     if (it) onPickItem(it);
   };
@@ -233,76 +178,81 @@ export function AiComposerInput() {
                 <AccountTuningPicker />
               </>
             )}
-            <textarea
-              ref={c.textareaRef}
-              value={c.value}
-              onChange={(e) => c.setValue(e.target.value)}
-              onKeyUp={updateTrigger}
-              onClick={updateTrigger}
-              onSelect={updateTrigger}
-              onKeyDown={(e) => {
-                if (pickerOpen) {
-                  const items = fileTrigger ? filteredFiles : filteredItems;
-                  if (e.key === "ArrowDown") {
-                    e.preventDefault();
-                    setActiveIndex((i) =>
-                      Math.min(i + 1, Math.max(0, items.length - 1)),
-                    );
-                    return;
-                  }
-                  if (e.key === "ArrowUp") {
-                    e.preventDefault();
-                    setActiveIndex((i) => Math.max(0, i - 1));
-                    return;
-                  }
-                  if (e.key === "Tab" || e.key === "Enter") {
-                    if (items.length > 0) {
+            <div className="relative min-w-0 flex-1">
+              <MentionHighlights
+                value={c.value}
+                chips={mention.chips}
+                textareaRef={c.textareaRef}
+                className={TEXTAREA_BOX}
+              />
+              <textarea
+                ref={c.textareaRef}
+                value={c.value}
+                onChange={(e) => c.setValue(e.target.value)}
+                onKeyUp={updateTrigger}
+                onClick={updateTrigger}
+                onSelect={updateTrigger}
+                onFocus={mention.onFocus}
+                onKeyDown={(e) => {
+                  if (mention.onKeyDown(e)) return;
+                  if (trigger !== null) {
+                    const items = filteredItems;
+                    if (e.key === "ArrowDown") {
                       e.preventDefault();
-                      pickActive();
+                      setActiveIndex((i) =>
+                        Math.min(i + 1, Math.max(0, items.length - 1)),
+                      );
+                      return;
+                    }
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setActiveIndex((i) => Math.max(0, i - 1));
+                      return;
+                    }
+                    if (e.key === "Tab" || e.key === "Enter") {
+                      if (items.length > 0) {
+                        e.preventDefault();
+                        pickActive();
+                        return;
+                      }
+                    }
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setTrigger(null);
                       return;
                     }
                   }
-                  if (e.key === "Escape") {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    if (fileTrigger) {
-                      const before = c.value.slice(0, fileTrigger.start);
-                      const after = c.value.slice(fileTrigger.end);
-                      c.setValue(`${before}${after}`);
-                      setFileTrigger(null);
-                    } else {
-                      setTrigger(null);
-                    }
-                    return;
+                    c.submit();
                   }
+                }}
+                placeholder={
+                  orchestrating
+                    ? "Describe a goal for the Orchestrator to plan and delegate"
+                    : "Ask Estate anything   -   # for snippets and commands, @ for files"
                 }
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  c.submit();
-                }
-              }}
-              placeholder={
-                orchestrating
-                  ? "Describe a goal for the Orchestrator to plan and delegate"
-                  : "Ask Estate anything   -   # for snippets and commands, @ for files"
-              }
-              rows={1}
-              className={cn(
-                "max-h-40 min-w-0 flex-1 resize-none bg-transparent text-[13px] leading-relaxed outline-none",
-                "placeholder:text-muted-foreground/60",
-              )}
-            />
+                rows={1}
+                className={cn(
+                  TEXTAREA_BOX,
+                  "relative block max-h-40 w-full resize-none bg-transparent outline-none",
+                  "placeholder:text-muted-foreground/60",
+                  mention.chips.length > 0 && MENTION_TEXTAREA_ACTIVE,
+                )}
+              />
+            </div>
             <AgentSwitcher />
           </div>
         </PopoverAnchor>
-        {fileTrigger ? (
+        {mention.picker.open ? (
           <FilePickerContent
-            files={filteredFiles}
-            activeIndex={activeIndex}
-            indexing={workspaceFiles.indexing}
-            truncated={workspaceFiles.truncated}
-            hasWorkspace={workspaceRoot !== null}
-            onPick={(f) => void onPickFile(f)}
-            onHover={setActiveIndex}
+            files={mention.picker.files}
+            activeIndex={mention.picker.activeIndex}
+            indexing={mention.picker.indexing}
+            truncated={mention.picker.truncated}
+            hasWorkspace={mention.picker.hasWorkspace}
+            onPick={mention.picker.pick}
+            onHover={mention.picker.setActiveIndex}
           />
         ) : (
           <SnippetPickerContent

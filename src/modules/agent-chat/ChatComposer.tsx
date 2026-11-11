@@ -1,8 +1,25 @@
 import { ArrowUp02Icon, SquareIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { forwardRef, useMemo, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverAnchor } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { FilePickerContent } from "@/modules/ai/components/FilePicker";
+import {
+  MENTION_TEXTAREA_ACTIVE,
+  MentionHighlights,
+} from "@/modules/mentions/MentionHighlights";
+import { useMentionComposer } from "@/modules/mentions/useMentionComposer";
+
+/** The textarea's box, shared with the mention chip layer behind it. */
+const TEXTAREA_BOX = "border px-3 py-2 text-[13px] leading-5";
 
 /** Commands Estate handles itself, for every agent. */
 const LOCAL_COMMANDS: { name: string; hint: string }[] = [
@@ -48,6 +65,10 @@ export function commandSuggestions(
 
 type Props = {
   placeholder: string;
+  /** The chat's folder: `@` mentions are relative to it. */
+  cwd: string;
+  /** The chat is on screen, so the Files sidebar can mention into it. */
+  visible: boolean;
   disabled: boolean;
   running: boolean;
   agentCommands: readonly string[];
@@ -57,23 +78,48 @@ type Props = {
 
 export const ChatComposer = forwardRef<HTMLTextAreaElement, Props>(
   function ChatComposer(
-    { placeholder, disabled, running, agentCommands, onAction, onStop },
+    {
+      placeholder,
+      cwd,
+      visible,
+      disabled,
+      running,
+      agentCommands,
+      onAction,
+      onStop,
+    },
     ref,
   ) {
     const [draft, setDraft] = useState("");
+    const areaRef = useRef<HTMLTextAreaElement | null>(null);
+    useImperativeHandle(ref, () => areaRef.current as HTMLTextAreaElement);
+    const resize = useCallback((el: HTMLTextAreaElement | null) => {
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    }, []);
+    const setDraftAndFit = useCallback(
+      (value: string) => {
+        setDraft(value);
+        requestAnimationFrame(() => resize(areaRef.current));
+      },
+      [resize],
+    );
+    const mention = useMentionComposer({
+      value: draft,
+      setValue: setDraftAndFit,
+      textareaRef: areaRef,
+      base: cwd || null,
+      visible: visible && !disabled,
+    });
     const [selected, setSelected] = useState(0);
     const [dismissed, setDismissed] = useState(false);
     const suggestions = useMemo(
       () => (dismissed ? [] : commandSuggestions(draft, agentCommands)),
       [draft, agentCommands, dismissed],
     );
-    const menuOpen = suggestions.length > 0;
+    const menuOpen = suggestions.length > 0 && !mention.picker.open;
     const index = Math.min(selected, Math.max(0, suggestions.length - 1));
-
-    const resize = (el: HTMLTextAreaElement) => {
-      el.style.height = "auto";
-      el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-    };
 
     const complete = (name: string) => {
       setDraft(`/${name} `);
@@ -84,7 +130,7 @@ export const ChatComposer = forwardRef<HTMLTextAreaElement, Props>(
       if (disabled || running) return;
       const action = parseComposerInput(draft);
       if (!action) return;
-      setDraft("");
+      setDraftAndFit("");
       setDismissed(false);
       onAction(action);
     };
@@ -123,55 +169,89 @@ export const ChatComposer = forwardRef<HTMLTextAreaElement, Props>(
             ))}
           </div>
         )}
-        <textarea
-          ref={ref}
-          value={draft}
-          rows={1}
-          disabled={disabled}
-          placeholder={placeholder}
-          aria-autocomplete="list"
-          onChange={(e) => {
-            setDraft(e.target.value);
-            setDismissed(false);
-            setSelected(0);
-            resize(e.target);
-          }}
-          onKeyDown={(e) => {
-            if (e.nativeEvent.isComposing) return;
-            if (menuOpen) {
-              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                e.preventDefault();
-                const step = e.key === "ArrowDown" ? 1 : -1;
-                setSelected(
-                  (index + step + suggestions.length) % suggestions.length,
-                );
-                return;
-              }
-              if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) {
-                const pick = suggestions[index];
-                // Enter on an exact match runs it; otherwise it completes.
-                if (e.key === "Enter" && draft.trim() === `/${pick.name}`) {
-                  e.preventDefault();
-                  submit();
-                  return;
-                }
-                e.preventDefault();
-                complete(pick.name);
-                return;
-              }
-              if (e.key === "Escape") {
-                e.preventDefault();
-                setDismissed(true);
-                return;
-              }
-            }
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          className="max-h-[200px] min-h-9 flex-1 resize-none rounded-lg border border-border/70 bg-card px-3 py-2 text-[13px] leading-5 outline-none placeholder:text-muted-foreground focus-visible:border-ring"
-        />
+        <Popover open={mention.picker.open}>
+          <PopoverAnchor asChild>
+            <div className="relative min-w-0 flex-1 rounded-lg bg-card">
+              <MentionHighlights
+                value={draft}
+                chips={mention.chips}
+                textareaRef={areaRef}
+                className={TEXTAREA_BOX}
+              />
+              <textarea
+                ref={areaRef}
+                value={draft}
+                rows={1}
+                disabled={disabled}
+                placeholder={placeholder}
+                aria-autocomplete="list"
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  setDismissed(false);
+                  setSelected(0);
+                  resize(e.target);
+                }}
+                onSelect={mention.updateTrigger}
+                onFocus={mention.onFocus}
+                onKeyDown={(e) => {
+                  if (e.nativeEvent.isComposing) return;
+                  if (mention.onKeyDown(e)) return;
+                  if (menuOpen) {
+                    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                      e.preventDefault();
+                      const step = e.key === "ArrowDown" ? 1 : -1;
+                      setSelected(
+                        (index + step + suggestions.length) %
+                          suggestions.length,
+                      );
+                      return;
+                    }
+                    if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) {
+                      const pick = suggestions[index];
+                      // Enter on an exact match runs it; otherwise it completes.
+                      if (
+                        e.key === "Enter" &&
+                        draft.trim() === `/${pick.name}`
+                      ) {
+                        e.preventDefault();
+                        submit();
+                        return;
+                      }
+                      e.preventDefault();
+                      complete(pick.name);
+                      return;
+                    }
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setDismissed(true);
+                      return;
+                    }
+                  }
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    submit();
+                  }
+                }}
+                className={cn(
+                  TEXTAREA_BOX,
+                  "relative block max-h-[200px] min-h-9 w-full resize-none rounded-lg border-border/70 bg-transparent outline-none placeholder:text-muted-foreground focus-visible:border-ring",
+                  mention.chips.length > 0 && MENTION_TEXTAREA_ACTIVE,
+                )}
+              />
+            </div>
+          </PopoverAnchor>
+          {mention.picker.open && (
+            <FilePickerContent
+              files={mention.picker.files}
+              activeIndex={mention.picker.activeIndex}
+              indexing={mention.picker.indexing}
+              truncated={mention.picker.truncated}
+              hasWorkspace={mention.picker.hasWorkspace}
+              onPick={mention.picker.pick}
+              onHover={mention.picker.setActiveIndex}
+            />
+          )}
+        </Popover>
         {running ? (
           <Button
             size="icon"
@@ -190,7 +270,7 @@ export const ChatComposer = forwardRef<HTMLTextAreaElement, Props>(
             onClick={submit}
             disabled={!draft.trim() || disabled}
             aria-label="Send"
-            title="Send (Enter). Type / for commands."
+            title="Send (Enter). Type / for commands, @ for files."
           >
             <HugeiconsIcon icon={ArrowUp02Icon} size={15} strokeWidth={2} />
           </Button>

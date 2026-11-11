@@ -44,6 +44,8 @@ export const ACCESS_HINT: Record<ChatAccess, string> = {
 };
 
 export type ToolStatus = "running" | "done" | "error";
+/** Lines an edit adds and removes, when the tool input shows them. */
+export type LineChanges = { add: number; del: number };
 
 /** What adapters emit. */
 export type ChatEvent =
@@ -68,6 +70,7 @@ export type ChatEvent =
       detail?: string;
       status: ToolStatus;
       output?: string;
+      changes?: LineChanges;
     }
   /** Tool calls the agent's access level refused. */
   | { type: "denied"; tools: { name: string; title: string }[] }
@@ -93,6 +96,7 @@ export type ChatItem =
       detail?: string;
       status: ToolStatus;
       output?: string;
+      changes?: LineChanges;
     }
   | {
       kind: "notice";
@@ -225,6 +229,7 @@ export function applyChatEvent(t: Transcript, e: ChatEvent): Transcript {
             detail: e.detail ?? prev?.detail,
             status: e.status,
             output: e.output !== undefined ? clip(e.output) : prev?.output,
+            changes: e.changes ?? prev?.changes,
           }),
         ),
       };
@@ -341,7 +346,11 @@ export function oneLine(text: string, max = 120): string {
 export function describeTool(
   name: string,
   input: unknown,
-): { title: string; detail?: string } {
+): {
+  title: string;
+  detail?: string;
+  changes?: LineChanges;
+} {
   const o = (input && typeof input === "object" ? input : {}) as Record<
     string,
     unknown
@@ -365,13 +374,73 @@ export function describeTool(
         : /read|view|cat/.test(lower)
           ? "Read"
           : name;
-    return { title: `${verb} ${basename(path)}`, detail: path };
+    return {
+      title: `${verb} ${basename(path)}`,
+      detail: path,
+      changes: editChanges(o),
+    };
   }
   const pattern = str("pattern") ?? str("query");
   if (pattern) return { title: `${name}: ${oneLine(pattern, 60)}` };
   const url = str("url");
   if (url) return { title: `${name}: ${oneLine(url, 80)}` };
   return { title: name };
+}
+
+/** Lines added and removed by an edit, a multi-edit or a whole-file write. */
+export function editChanges(
+  input: Record<string, unknown>,
+): LineChanges | undefined {
+  const pairs: [unknown, unknown][] = [];
+  if (Array.isArray(input.edits)) {
+    for (const e of input.edits) {
+      if (e && typeof e === "object") {
+        const r = e as Record<string, unknown>;
+        pairs.push([r.old_string ?? r.oldString, r.new_string ?? r.newString]);
+      }
+    }
+  } else {
+    pairs.push([
+      input.old_string ?? input.oldString,
+      input.new_string ?? input.newString,
+    ]);
+  }
+  let add = 0;
+  let del = 0;
+  let seen = false;
+  for (const [before, after] of pairs) {
+    if (typeof before !== "string" || typeof after !== "string") continue;
+    const c = lineChanges(before, after);
+    add += c.add;
+    del += c.del;
+    seen = true;
+  }
+  if (seen) return { add, del };
+  if (typeof input.content === "string")
+    return { add: countLines(input.content), del: 0 };
+  return undefined;
+}
+
+/** Changed lines between two texts, ignoring their shared first and last lines. */
+export function lineChanges(before: string, after: string): LineChanges {
+  const a = before === "" ? [] : before.split("\n");
+  const b = after === "" ? [] : after.split("\n");
+  let head = 0;
+  while (head < a.length && head < b.length && a[head] === b[head]) head += 1;
+  let tail = 0;
+  while (
+    tail < a.length - head &&
+    tail < b.length - head &&
+    a[a.length - 1 - tail] === b[b.length - 1 - tail]
+  )
+    tail += 1;
+  return { add: b.length - head - tail, del: a.length - head - tail };
+}
+
+function countLines(text: string): number {
+  if (text === "") return 0;
+  const lines = text.split("\n");
+  return lines[lines.length - 1] === "" ? lines.length - 1 : lines.length;
 }
 
 function basename(path: string): string {

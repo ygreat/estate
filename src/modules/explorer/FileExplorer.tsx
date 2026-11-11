@@ -43,6 +43,10 @@ import {
   relativePath,
   revealInFinder,
 } from "./lib/contextActions";
+import {
+  activeMentionTarget,
+  type MentionTarget,
+} from "@/modules/mentions/lib/mentionTargets";
 import { FileIcon, FolderIcon } from "./FileIcon";
 import {
   isPasteShortcut,
@@ -313,6 +317,10 @@ export const FileExplorer = memo(
     // re-anchors to the new cursor (floating-ui won't reposition on an anchor
     // change alone, only on scroll/resize).
     const [menuNonce, setMenuNonce] = useState(0);
+    // Estate: the chat "Mention in Chat" would use, read when the menu opens.
+    const [mentionTarget, setMentionTarget] = useState<MentionTarget | null>(
+      null,
+    );
 
     const entryPaths = useMemo<string[]>(() => {
       const out: string[] = [];
@@ -783,6 +791,7 @@ export const FileExplorer = memo(
                     setMenuTarget(null);
                   }
                   setDeleteConfirm(false);
+                  setMentionTarget(activeMentionTarget());
                   setMenuNonce((n) => n + 1);
                 }}
               >
@@ -863,24 +872,39 @@ export const FileExplorer = memo(
               }}
             >
               {menuTarget && menuIsBatch ? (
-                <ContextMenuItem
-                  className={COMPACT_ITEM}
-                  variant="destructive"
-                  onSelect={(e) => {
-                    if (deleteConfirm) {
-                      void tree.deletePaths([...selectedPathsRef.current]);
-                    } else {
-                      // Keep the menu open on the first click so the user
-                      // can confirm; let it close normally on the second.
-                      e.preventDefault();
-                      setDeleteConfirm(true);
-                    }
-                  }}
-                >
-                  {deleteConfirm
-                    ? "Click again to confirm"
-                    : `Delete ${selectedPaths.size} items`}
-                </ContextMenuItem>
+                <>
+                  {mentionTarget && (
+                    <>
+                      <ContextMenuItem
+                        className={COMPACT_ITEM}
+                        onSelect={() =>
+                          mentionTarget.insert([...selectedPathsRef.current])
+                        }
+                      >
+                        Mention {selectedPaths.size} items in Chat
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                    </>
+                  )}
+                  <ContextMenuItem
+                    className={COMPACT_ITEM}
+                    variant="destructive"
+                    onSelect={(e) => {
+                      if (deleteConfirm) {
+                        void tree.deletePaths([...selectedPathsRef.current]);
+                      } else {
+                        // Keep the menu open on the first click so the user
+                        // can confirm; let it close normally on the second.
+                        e.preventDefault();
+                        setDeleteConfirm(true);
+                      }
+                    }}
+                  >
+                    {deleteConfirm
+                      ? "Click again to confirm"
+                      : `Delete ${selectedPaths.size} items`}
+                  </ContextMenuItem>
+                </>
               ) : menuTarget ? (
                 <>
                   {!menuTarget.isDir && (
@@ -979,6 +1003,14 @@ export const FileExplorer = memo(
                     Copy Relative Path
                   </ContextMenuItem>
                   <ContextMenuSeparator />
+                  {mentionTarget && (
+                    <ContextMenuItem
+                      className={COMPACT_ITEM}
+                      onSelect={() => mentionTarget.insert([menuTarget.path])}
+                    >
+                      Mention in Chat
+                    </ContextMenuItem>
+                  )}
                   <ContextMenuItem
                     className={COMPACT_ITEM}
                     onSelect={() => onAttachToAgent?.(menuTarget.path)}
