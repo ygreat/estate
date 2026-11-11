@@ -265,4 +265,69 @@ describe("holding presentation while the shell redraws the prompt (real Ghostty 
       model.dispose();
     }
   });
+
+  describe("a prompt that wraps at the new width (bash on macOS)", () => {
+    // bash 3.2 prints OSC 133 A from PROMPT_COMMAND; its SIGWINCH redraw is
+    // "\r, clear line, PS1", and PS1 starts with the B marker (bashrc.bash).
+    const LONG = "Yeremias-MacBook-Pro:~ ygreat$ ";
+    const PS1 = `\x1b]133;B;terax_blocks=0\x1b\\${LONG}`;
+    const REDRAW = `\r\x1b[K${PS1}`;
+    const lines = (model: AdaptedGhosttyTerminalModel) =>
+      model.readTextRange(0, model.bufferCursorLine()).split("\n");
+
+    function bashAtPrompt(cols: number) {
+      const model = new AdaptedGhosttyTerminalModel(core, {
+        backend: "ghostty-webgpu",
+        cols,
+        rows: 8,
+      });
+      const write = (text: string) => model.write(encoder.encode(text));
+      write("output that ran before\r\n");
+      write(`\x1b]133;D;0\x1b\\\x1b]133;A\x1b\\${PS1}`);
+      return { model, write };
+    }
+
+    it("leaves one prompt after the redraw, not a stale head above it", () => {
+      const { model, write } = bashAtPrompt(60);
+      try {
+        model.resize(26, 8);
+        write(REDRAW);
+        expect(model.readText(8).match(/ygr/g)).toHaveLength(1);
+        expect(lines(model)[0]).toBe("output that ran before");
+        // Wider again: the wrapped prompt is cleared whole and redrawn once.
+        model.resize(60, 8);
+        write(REDRAW);
+        expect(model.readText(8).match(/ygr/g)).toHaveLength(1);
+      } finally {
+        model.dispose();
+      }
+    });
+
+    it("keeps wrapped output above the prompt", () => {
+      const { model, write } = bashAtPrompt(60);
+      try {
+        write(`\r\n${"x".repeat(50)}\r\n`);
+        write(`\x1b]133;D;0\x1b\\\x1b]133;A\x1b\\${PS1}`);
+        model.resize(26, 8);
+        write(REDRAW);
+        expect(model.readText(8)).toContain("x".repeat(50));
+        // The earlier prompt in history and the current one; no stale head.
+        expect(model.readText(8).match(/ygr/g)).toHaveLength(2);
+      } finally {
+        model.dispose();
+      }
+    });
+
+    it("leaves a wrapped command line alone while a command runs", () => {
+      const { model, write } = bashAtPrompt(60);
+      try {
+        write("\r\n\x1b]133;C\x1b\\");
+        write("y".repeat(40));
+        model.resize(26, 8);
+        expect(model.readText(8)).toContain("y".repeat(40));
+      } finally {
+        model.dispose();
+      }
+    });
+  });
 });

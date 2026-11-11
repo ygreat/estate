@@ -22,6 +22,10 @@ import type {
 } from "@estate/ghostty-core/protocol";
 import { CellFlags } from "@estate/ghostty-core/protocol";
 import { PromptPresentationGate } from "./core/PromptPresentationGate";
+import {
+  clearPromptHeadSequence,
+  wrappedRowsAbove,
+} from "./core/promptReflow";
 import { ResizePromptHold } from "./core/ResizePromptHold";
 import {
   CELL_STRIDE,
@@ -318,7 +322,10 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
     validateDimensions(cols, rows);
     if (cols === this.colsValue && rows === this.rowsValue) return;
 
+    const atPrompt =
+      this.resizePromptHold.promptVisible && !this.modesValue.alternateScreen;
     this.terminal.resize(cols, rows);
+    if (atPrompt) this.clearReflowedPromptHead(rows);
     this.blockMatch = null;
     this.colsValue = cols;
     this.rowsValue = rows;
@@ -330,6 +337,21 @@ export class AdaptedGhosttyTerminalModel implements GhosttyTerminalModelApi {
     // prints it again (or the deadline), instead of presenting it blank.
     this.resizePromptHold.resized(this.modesValue.alternateScreen);
     this.notifyDamage();
+  }
+
+  /**
+   * A prompt that wraps at the new width keeps its head above the row Ghostty
+   * cleared, and the shell's redraw would print a second copy under it.
+   */
+  private clearReflowedPromptHead(rows: number): void {
+    const cursorLine = this.terminal.bufferCursorLine();
+    const head = wrappedRowsAbove(
+      (line) => this.terminal.readLines(line, line)[0]?.wrapped ?? false,
+      cursorLine,
+      rows - 1,
+    );
+    const sequence = clearPromptHeadSequence(head);
+    if (sequence) this.feed(new TextEncoder().encode(sequence));
   }
 
   setPixelSize(widthPx: number, heightPx: number): void {

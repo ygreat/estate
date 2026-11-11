@@ -97,7 +97,12 @@ PROMPT_COMMAND=fw
 ${integration}
 PS1=
 eval "$PROMPT_COMMAND"
-case "$PS1" in 'fw> '*'133;B'*) ;; *) exit 10 ;; esac
+if (( BASH_VERSINFO[0] > 4 || BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 4 )); then
+  case "$PS1" in 'fw> '*'133;B'*) ;; *) exit 10 ;; esac
+else
+  # Old readline miscounts invisible text on a wrapped prompt's second line.
+  case "$PS1" in *'133;B'*'fw> ') ;; *) exit 11 ;; esac
+fi
 `;
     const result = spawnSync(bash, ["--noprofile", "--norc", "-s"], {
       input: script,

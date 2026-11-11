@@ -26,10 +26,15 @@ if [ -z "${__ESTATE_HOOKS_LOADED-}" ]; then
   [ -f "$HOME/.bashrc" ] && source "$HOME/.bashrc"
 
   _estate_prompt_end='\[\e]133;B\e\\\]'
+  _estate_prompt_end_first=
   if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ] \
      || { [ "${BASH_VERSINFO[0]:-0}" -eq 4 ] && [ "${BASH_VERSINFO[1]:-0}" -lt 4 ]; }; then
     unset ESTATE_BLOCKS
     _estate_prompt_end='\[\e]133;B;terax_blocks=0\e\\\]'
+    # Readline before bash 4.4 counts \[...\] text as visible once it falls
+    # on the second line of a wrapped prompt, and every keystroke then lands
+    # that many columns too far right. At the start it is always on line one.
+    _estate_prompt_end_first=1
   fi
 
   if [ -n "${ESTATE_CLI-}" ] && [ -x "${ESTATE_CLI-}" ]; then
@@ -88,7 +93,13 @@ if [ -z "${__ESTATE_HOOKS_LOADED-}" ]; then
     else
       case "${PS1-}" in
         *']133;B'*) ;;
-        *) PS1="${PS1-}${_estate_prompt_end}" ;;
+        *)
+          if [ -n "$_estate_prompt_end_first" ]; then
+            PS1="${_estate_prompt_end}${PS1-}"
+          else
+            PS1="${PS1-}${_estate_prompt_end}"
+          fi
+          ;;
       esac
     fi
     return "$_estate_ret"
