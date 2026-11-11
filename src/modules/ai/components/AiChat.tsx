@@ -12,10 +12,8 @@ import {
   type MessageResponseProps,
 } from "@/components/ai-elements/message";
 import { MarkdownCode } from "@/components/ai-elements/markdown-code";
-import {
-  MarkdownLink,
-  type MarkdownLinkProps,
-} from "@/modules/markdown/MarkdownLink";
+import { ChatLink } from "@/modules/markdown/ChatLink";
+import type { MarkdownLinkProps } from "@/modules/markdown/MarkdownLink";
 import {
   Reasoning,
   ReasoningContent,
@@ -617,7 +615,7 @@ const ReadRow = memo(function ReadRow({ part }: { part: AnyPart }) {
 
 const aiStreamdownComponents = {
   a: (props: MarkdownLinkProps) => (
-    <MarkdownLink {...props} onSettled={useChatStore.getState().focusInput} />
+    <ChatLink {...props} onSettled={useChatStore.getState().focusInput} />
   ),
   code: MarkdownCode,
 };

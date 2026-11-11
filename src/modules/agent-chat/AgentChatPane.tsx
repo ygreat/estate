@@ -1,6 +1,5 @@
 import {
   Alert02Icon,
-  CheckmarkCircle02Icon,
   Clock01Icon,
   CancelCircleIcon,
   InformationCircleIcon,
@@ -14,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { MarkdownCode } from "@/components/ai-elements/markdown-code";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,9 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { AgentIcon } from "@/modules/agents/lib/agentIcon";
+import { ChatLink } from "@/modules/markdown/ChatLink";
 import { git } from "@/modules/git";
 import { PlanCard } from "@/modules/orchestrator/PlanCard";
 import {
@@ -59,8 +59,31 @@ import {
 } from "./sessionNames";
 import { ModelPicker } from "./ModelPicker";
 import { useAgentChatStore } from "./store";
+import {
+  ChecklistInput,
+  ShimmerText,
+  ThinkingIndicator,
+  ToolRun,
+  WorkedFor,
+} from "./AgentTrace";
+import { itemKey, transcriptBlocks } from "./transcriptBlocks";
+import { UserMessage } from "./UserMessage";
 
 const NO_COMMANDS: string[] = [];
+
+// Estate: links open without Streamdown's confirmation dialog (ChatLink).
+const chatComponents = {
+  a: ChatLink,
+  code: MarkdownCode,
+  input: ChecklistInput,
+};
+// Streamed words fade in (sd-estateStream in globals.css).
+const streamAnimation = {
+  animation: "estateStream",
+  duration: 220,
+  easing: "ease-out",
+  sep: "word",
+} as const;
 
 const HISTORY_OPEN_KEY = "estate:agent-chat-history-open";
 function readHistoryOpen(): boolean {
@@ -91,6 +114,35 @@ type Props = {
 };
 
 const ACCESS_ORDER: ChatAccess[] = ["read", "edit", "full"];
+
+/**
+ * Whether a transcript row was added since the chat loaded or switched
+ * session: only those animate in, not a whole history appearing at once.
+ */
+function useFreshKeys(keys: readonly string[], token: string) {
+  const snapshot = useRef<{ token: string; old: Set<string> } | null>(null);
+  if (!snapshot.current || snapshot.current.token !== token)
+    snapshot.current = { token, old: new Set(keys) };
+  const old = snapshot.current.old;
+  return (key: string) => !old.has(key);
+}
+
+/** When the running turn started, and how long the last one took. */
+function useTurnTiming(running: boolean, sessionId: string | undefined) {
+  const [turn, setTurn] = useState<{ start: number; ms?: number } | null>(null);
+  useEffect(() => {
+    setTurn((t) => {
+      if (running) return t && t.ms === undefined ? t : { start: Date.now() };
+      return t && t.ms === undefined ? { ...t, ms: Date.now() - t.start } : t;
+    });
+  }, [running]);
+  const lastSession = useRef(sessionId);
+  useEffect(() => {
+    if (lastSession.current && sessionId !== lastSession.current) setTurn(null);
+    lastSession.current = sessionId;
+  }, [sessionId]);
+  return turn;
+}
 
 function folderName(path: string): string {
   const parts = path.split(/[\\/]/).filter(Boolean);
@@ -173,6 +225,21 @@ export function AgentChatPane({
     if (visible && loaded) inputRef.current?.focus();
   }, [visible, loaded]);
 
+  const blocks = useMemo(() => transcriptBlocks(items), [items]);
+  const isFresh = useFreshKeys(
+    blocks.map((b) => b.key),
+    `${loaded}:${items[0] ? itemKey(items[0]) : ""}`,
+  );
+  const turn = useTurnTiming(running, chat?.transcript.sessionId);
+  const lastBlock = blocks[blocks.length - 1];
+  // Streaming text and running tools show progress themselves.
+  const busyElsewhere =
+    (lastBlock?.kind === "item" &&
+      lastBlock.item.kind === "assistant" &&
+      lastBlock.item.streaming) ||
+    (lastBlock?.kind === "tools" &&
+      lastBlock.tools.some((t) => t.status === "running"));
+
   const lastIndex = items.length - 1;
   const lastIsReply = lastIndex >= 0 && items[lastIndex].kind !== "user";
   // Codex, Gemini and OpenCode don't always report what was refused; offer a
@@ -208,9 +275,8 @@ export function AgentChatPane({
           in {folderName(cwd)}
         </span>
         {running && (
-          <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
-            <Spinner className="size-3" />
-            Working…
+          <span className="text-[11.5px]">
+            <ShimmerText>Working…</ShimmerText>
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">
@@ -296,25 +362,47 @@ export function AgentChatPane({
                     onOpenSession={(sid) => void openSession(chatId, sid)}
                   />
                 )}
-                {items.map((item) => (
-                  <ChatRow
-                    key={`${item.kind}:${item.id}`}
-                    item={item}
-                    access={access}
-                    running={running}
-                    onRetry={(a) => void retryWithAccess(chatId, a)}
-                    orchestrator={
-                      orchestrator
-                        ? {
-                            chatId,
-                            cwd,
-                            agent,
-                            live: item.id === planItemId,
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
+                {blocks.map((block, i) => {
+                  const fresh = isFresh(block.key);
+                  if (block.kind === "tools")
+                    return (
+                      <ToolRun
+                        key={block.key}
+                        tools={block.tools}
+                        live={running && i === blocks.length - 1}
+                        fresh={fresh}
+                        cwd={cwd}
+                      />
+                    );
+                  const item = block.item;
+                  return (
+                    <div
+                      key={block.key}
+                      className={fresh ? "estate-fade-up" : undefined}
+                    >
+                      <ChatRow
+                        item={item}
+                        cwd={cwd}
+                        access={access}
+                        running={running}
+                        onRetry={(a) => void retryWithAccess(chatId, a)}
+                        orchestrator={
+                          orchestrator
+                            ? {
+                                chatId,
+                                cwd,
+                                agent,
+                                live: item.id === planItemId,
+                              }
+                            : undefined
+                        }
+                      />
+                    </div>
+                  );
+                })}
+                {running && turn && !busyElsewhere && (
+                  <ThinkingIndicator since={turn.start} />
+                )}
                 {offerGenericRetry && (
                   <div className="flex items-center gap-2 text-[11.5px] text-muted-foreground">
                     <span>Blocked by this chat's access level?</span>
@@ -327,9 +415,10 @@ export function AgentChatPane({
                     </button>
                   </div>
                 )}
-                {!running && chat?.transcript.stats && (
-                  <Stats stats={chat.transcript.stats} />
-                )}
+                {!running &&
+                  (turn?.ms !== undefined || chat?.transcript.stats) && (
+                    <Stats stats={chat?.transcript.stats} workedMs={turn?.ms} />
+                  )}
               </div>
             </div>
 
@@ -341,7 +430,9 @@ export function AgentChatPane({
             >
               <ChatComposer
                 ref={inputRef}
-                placeholder={`Message ${CHAT_AGENT_LABEL[agent]}… (/ for commands)`}
+                placeholder={`Message ${CHAT_AGENT_LABEL[agent]}… (/ for commands, @ for files)`}
+                cwd={cwd}
+                visible={visible}
                 disabled={!loaded}
                 running={running}
                 agentCommands={agentCommands}
@@ -611,12 +702,14 @@ function EmptyState({
 
 const ChatRow = memo(function ChatRow({
   item,
+  cwd,
   access,
   running,
   onRetry,
   orchestrator,
 }: {
   item: ChatItem;
+  cwd: string;
   access: ChatAccess;
   running: boolean;
   onRetry: (access: ChatAccess) => void;
@@ -630,17 +723,27 @@ const ChatRow = memo(function ChatRow({
   switch (item.kind) {
     case "user":
       return (
-        <div className="ml-auto max-w-[85%] whitespace-pre-wrap break-words rounded-xl bg-muted px-3 py-2 text-[13px] leading-5">
-          {orchestrator ? shownUserText(item.text) : item.text}
-        </div>
+        <UserMessage
+          text={orchestrator ? shownUserText(item.text) : item.text}
+          cwd={cwd}
+        />
       );
     case "assistant": {
       const plan =
         orchestrator && !item.streaming ? parsePlan(item.text) : null;
       const text = orchestrator ? withoutPlan(item.text) : item.text;
       return (
-        <div className="text-[13px] leading-6">
-          <MessageResponse streaming={item.streaming}>{text}</MessageResponse>
+        <div className="estate-agent-reply text-[13px] leading-6">
+          <MessageResponse
+            streaming={item.streaming}
+            isAnimating={item.streaming}
+            animated={streamAnimation}
+            caret="block"
+            className="[&>*:last-child]:after:text-muted-foreground/70"
+            components={chatComponents}
+          >
+            {text}
+          </MessageResponse>
           {plan &&
             orchestrator &&
             (orchestrator.live ? (
@@ -662,7 +765,8 @@ const ChatRow = memo(function ChatRow({
       );
     }
     case "tool":
-      return <ToolRow item={item} />;
+      // Rendered in groups by ToolRun.
+      return null;
     case "notice":
       if (item.tone === "denied") {
         const next = ACCESS_ORDER.filter(
@@ -735,63 +839,30 @@ const ChatRow = memo(function ChatRow({
   }
 });
 
-function ToolRow({ item }: { item: Extract<ChatItem, { kind: "tool" }> }) {
-  const [open, setOpen] = useState(false);
-  const hasBody = Boolean(item.output || item.detail?.includes("\n"));
-  return (
-    <div className="rounded-lg border border-border/60 bg-card/60 text-[12px]">
-      <button
-        type="button"
-        className="flex w-full min-w-0 items-center gap-2 px-2.5 py-1.5 text-left"
-        onClick={() => hasBody && setOpen((v) => !v)}
-        aria-expanded={hasBody ? open : undefined}
-      >
-        {item.status === "running" ? (
-          <Spinner className="size-3 shrink-0" />
-        ) : (
-          <HugeiconsIcon
-            icon={
-              item.status === "error" ? CancelCircleIcon : CheckmarkCircle02Icon
-            }
-            size={13}
-            strokeWidth={2}
-            className={cn(
-              "shrink-0",
-              item.status === "error" ? "text-destructive" : "text-emerald-500",
-            )}
-          />
-        )}
-        <span className="shrink-0 font-medium">{item.title}</span>
-        {item.detail && (
-          <span className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
-            {item.detail.split("\n")[0]}
-          </span>
-        )}
-      </button>
-      {open && hasBody && (
-        <pre className="max-h-64 overflow-auto border-t border-border/60 px-2.5 py-2 font-mono text-[11px] leading-4 whitespace-pre-wrap break-words text-muted-foreground">
-          {[item.detail?.includes("\n") ? item.detail : null, item.output]
-            .filter(Boolean)
-            .join("\n\n")}
-        </pre>
-      )}
-    </div>
-  );
-}
-
-function Stats({ stats }: { stats: TurnStats }) {
+function Stats({
+  stats,
+  workedMs,
+}: {
+  stats?: TurnStats;
+  /** How long the last turn took, when this pane saw it run. */
+  workedMs?: number;
+}) {
   const parts: string[] = [];
-  if (stats.costUsd !== undefined)
+  if (stats?.costUsd !== undefined)
     parts.push(`$${stats.costUsd.toFixed(stats.costUsd < 0.01 ? 4 : 2)}`);
-  if (stats.inputTokens !== undefined)
+  if (stats?.inputTokens !== undefined)
     parts.push(`${stats.inputTokens.toLocaleString()} in`);
-  if (stats.outputTokens !== undefined)
+  if (stats?.outputTokens !== undefined)
     parts.push(`${stats.outputTokens.toLocaleString()} out`);
-  if (parts.length === 0) return null;
+  if (parts.length === 0 && workedMs === undefined) return null;
   return (
-    <p className="text-[10.5px] text-muted-foreground/80">
-      {parts.join(" · ")}
-    </p>
+    <div className="flex items-center gap-2 text-[10.5px] text-muted-foreground/80">
+      {workedMs !== undefined && <WorkedFor ms={workedMs} />}
+      {workedMs !== undefined && parts.length > 0 && (
+        <span className="text-muted-foreground/40">·</span>
+      )}
+      {parts.length > 0 && <span>{parts.join(" · ")}</span>}
+    </div>
   );
 }
 

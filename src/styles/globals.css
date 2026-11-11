@@ -581,6 +581,127 @@ html *::-webkit-scrollbar {
   animation: estate-shimmer var(--shimmer-duration, 2s) steps(40, end) infinite;
 }
 
+/* Agent chat motion (adapted from beautiful-ui, MIT). A label the agent is
+ * working on sweeps light across its text; stepped like estate-shimmer. */
+@keyframes estate-shimmer-text {
+  from {
+    background-position: 150% center;
+  }
+  to {
+    background-position: -50% center;
+  }
+}
+.estate-shimmer-text {
+  background-image: linear-gradient(
+    90deg,
+    var(--shimmer-base, var(--color-muted-foreground)) 35%,
+    var(--color-foreground) 50%,
+    var(--shimmer-base, var(--color-muted-foreground)) 65%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: estate-shimmer-text 1.6s steps(32, end) infinite;
+}
+.estate-shimmer-primary {
+  --shimmer-base: var(--color-primary);
+}
+
+@keyframes estate-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.estate-fade-up {
+  animation: estate-fade-up var(--dur-slow) var(--ease-premium) both;
+}
+
+@keyframes estate-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.estate-fade-in {
+  animation: estate-fade-in var(--dur-slow) ease-out both;
+}
+
+@keyframes estate-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.estate-pop-in {
+  animation: estate-pop-in var(--dur-base) var(--ease-premium) both;
+}
+
+/* Streamed chat words fade in. Streamdown stamps each new word with these
+ * variables; its own stylesheet is not imported. No blur: a filter per word
+ * would be a layer per word (compositingBudget.test.ts). */
+@keyframes sd-estateStream {
+  from {
+    opacity: 0;
+  }
+}
+[data-sd-animate] {
+  animation: var(--sd-animation, sd-estateStream) var(--sd-duration, 150ms)
+    var(--sd-easing, ease) var(--sd-delay, 0ms) both;
+}
+@keyframes sd-markerIn {
+  from {
+    color: transparent;
+  }
+}
+[data-sd-animate-marker]::marker {
+  animation: sd-markerIn var(--sd-marker-duration, 150ms)
+    var(--sd-marker-easing, ease) var(--sd-marker-delay, 0ms) both;
+}
+
+/* A markdown checklist in an agent reply is drawn as a task card. Agents
+ * without a todo tool (Claude Code in print mode) write their plan this way.
+ * Unlayered, so it outranks Streamdown's list utilities. */
+.estate-agent-reply :is(ul, ol).contains-task-list {
+  list-style: none;
+  margin-block: 0.5rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-card);
+}
+.estate-agent-reply li.task-list-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.625rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.625rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.estate-agent-reply li.task-list-item:last-child {
+  border-bottom: 0;
+}
+.estate-agent-reply li.task-list-item > :is(ul, ol) {
+  flex-basis: 100%;
+}
+.estate-agent-reply li.task-list-item:has(> [data-checked="true"]) {
+  color: var(--color-muted-foreground);
+}
+.estate-checklist-box {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
 /* Recording indicator: a hard on/off blink, two repaints per cycle. */
 @keyframes estate-blink {
   50% {
@@ -627,8 +748,17 @@ html[data-window-inactive] *::after {
     background-position: 0% center;
   }
   .estate-blink,
-  .estate-attention-pulse {
+  .estate-attention-pulse,
+  .estate-fade-up,
+  .estate-fade-in,
+  .estate-pop-in,
+  [data-sd-animate],
+  [data-sd-animate-marker]::marker {
     animation: none;
+  }
+  .estate-shimmer-text {
+    animation: none;
+    background-position: 50% center;
   }
 }
 

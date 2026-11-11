@@ -21,10 +21,17 @@ describe("relativeToBase", () => {
 });
 
 describe("formatPathsForChat", () => {
-  it("joins paths, quoting ones with spaces", () => {
+  it("mentions paths inside the chat's folder", () => {
     expect(formatPathsForChat(["/p/a.ts", "/p/my notes.md"], "/p")).toBe(
-      'a.ts "my notes.md"',
+      '@a.ts @"my notes.md"',
     );
+  });
+
+  it("keeps other paths plain, quoting ones with spaces", () => {
+    expect(formatPathsForChat(["/x/my file.ts", "/p"], "/p")).toBe(
+      '"/x/my file.ts" .',
+    );
+    expect(formatPathsForChat(["/x/a.ts"], null)).toBe("/x/a.ts");
   });
 });
 

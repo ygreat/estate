@@ -568,6 +568,7 @@ export function opencodeAdapter(): TurnAdapter {
             name,
             title: str(state.title) ?? d.title,
             detail: d.detail,
+            changes: d.changes,
             status,
             output: str(state.output) ?? error,
           });

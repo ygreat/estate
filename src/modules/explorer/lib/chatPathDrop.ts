@@ -6,6 +6,7 @@
  * makes paths inside it relative, which is how agents and people refer to
  * project files.
  */
+import { formatMention, pathInside } from "@/modules/mentions/lib/mentions";
 import type { ExplorerPathDropTarget } from "./useExplorerDnd";
 
 const ACTIVE = "data-path-drop-active";
@@ -20,14 +21,21 @@ export function relativeToBase(path: string, base: string | null): string {
     : path;
 }
 
-/** Paths as chat text: relative, quoted when they contain spaces. Pure. */
+/**
+ * Paths as chat text. Inside the chat's folder they become `@` mentions (shown
+ * as chips); others stay plain paths, quoted when they contain spaces. Pure.
+ */
 export function formatPathsForChat(
   paths: readonly string[],
   base: string | null,
 ): string {
   return paths
-    .map((p) => relativeToBase(p, base))
-    .map((p) => (/\s/.test(p) ? `"${p.replace(/"/g, '\\"')}"` : p))
+    .map((p) => {
+      const rel = base ? pathInside(p, base) : null;
+      if (rel !== null) return formatMention(rel);
+      const plain = relativeToBase(p, base);
+      return /\s/.test(plain) ? `"${plain.replace(/"/g, '\\"')}"` : plain;
+    })
     .join(" ");
 }
 
