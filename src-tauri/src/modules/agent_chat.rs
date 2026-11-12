@@ -349,6 +349,7 @@ pub async fn agent_chat_run(
     }
     let cwd = authorize_spawn_cwd(&registry, Some(&request.cwd), &WorkspaceEnv::Local)?
         .ok_or("agent chat: a workspace folder is required")?;
+    let cwd = agent_cwd(&cwd);
     let inv = with_effort(
         build_invocation(
             request.agent,
@@ -606,9 +607,28 @@ fn claude_projects_dir() -> Option<std::path::PathBuf> {
     Some(config.join("projects"))
 }
 
+/// The folder as the agent sees it. On Windows `canonicalize` returns the
+/// verbatim form (`\\?\C:\x`, `\\?\UNC\server\share`), but the agent's own
+/// working directory, and so Claude Code's project folder name, uses the plain
+/// form (`C:\x`, `\\server\share`). Pure string work: elsewhere it is a no-op.
+pub fn agent_cwd(cwd: &std::path::Path) -> std::path::PathBuf {
+    let s = cwd.to_string_lossy();
+    if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+        std::path::PathBuf::from(format!(r"\\{rest}"))
+    } else if let Some(rest) = s
+        .strip_prefix(r"\\?\")
+        .filter(|r| r.as_bytes().get(1) == Some(&b':'))
+    {
+        std::path::PathBuf::from(rest)
+    } else {
+        cwd.to_path_buf()
+    }
+}
+
 /// Claude Code's folder name for a project directory.
 pub fn encode_claude_project(cwd: &std::path::Path) -> String {
-    cwd.to_string_lossy()
+    agent_cwd(cwd)
+        .to_string_lossy()
         .chars()
         .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
         .collect()
@@ -1442,6 +1462,33 @@ mod tests {
             encode_claude_project(std::path::Path::new("/private/tmp/a_b.c/work")),
             "-private-tmp-a-b-c-work"
         );
+    }
+
+    #[test]
+    fn encodes_windows_folders_without_the_verbatim_prefix() {
+        // canonicalize on Windows gives `\\?\C:\...`; Claude Code's folder is
+        // named from the plain path (`C:\Users\me\estate` -> `C--Users-me-estate`).
+        for spelling in [r"\\?\C:\Users\me\estate", r"C:\Users\me\estate"] {
+            assert_eq!(
+                encode_claude_project(std::path::Path::new(spelling)),
+                "C--Users-me-estate",
+                "{spelling}"
+            );
+        }
+        assert_eq!(
+            encode_claude_project(std::path::Path::new(r"\\?\UNC\server\share\proj")),
+            "--server-share-proj"
+        );
+    }
+
+    #[test]
+    fn agent_cwd_drops_only_the_verbatim_prefix() {
+        let p = std::path::Path::new;
+        assert_eq!(agent_cwd(p(r"\\?\D:\work")), p(r"D:\work"));
+        assert_eq!(agent_cwd(p(r"\\?\UNC\srv\share")), p(r"\\srv\share"));
+        // A verbatim path that is not a drive (e.g. a volume GUID) stays whole.
+        assert_eq!(agent_cwd(p(r"\\?\Volume{0}\x")), p(r"\\?\Volume{0}\x"));
+        assert_eq!(agent_cwd(p("/Users/me/estate")), p("/Users/me/estate"));
     }
 
     #[test]
