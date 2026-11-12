@@ -15,7 +15,7 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 - Groups are saved per project and come back after a restart.
 
 **Agent chat** (Claude Code, Codex, Gemini CLI, OpenCode)
-- Open a coding agent as a chat instead of a terminal. Replies stream in, tool calls show as expandable groups, and follow-ups continue the same agent session. Stop ends the agent and anything it started.
+- Open a coding agent as a chat instead of a terminal. Replies stream in, tool calls show as expandable groups, and follow-ups continue the same agent session. Stop, or Esc anywhere in the chat as in the agent's CLI, ends the agent and anything it started; Esc first closes the `/` menu or `@` file list if one is open.
 - Access level per chat: Read only (the default), Edit files or Full access, mapped to each agent's own permission settings. Blocked actions show an "Allow and retry" card, and the chat shows as Blocked (orange) in the Agents panel until you retry. Codex counts as blocked when it says the folder is read-only, or when its sandbox refuses a command or edit.
 - Sessions sidebar: a Claude Code chat lists the project folder's own Claude Code sessions (the ones `claude` uses in a terminal there), with title, time and branch. Open one to see its recent messages and continue it. An empty chat lists recent sessions too.
 - Drag files or folders from the Files sidebar into a chat box (a chat tab or the AI panel) to insert them as `@` mentions, relative to the chat's folder. The box outlines while you hover it. Dropping on a terminal still pastes the shell-quoted path.

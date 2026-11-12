@@ -292,7 +292,7 @@ export const ChatComposer = forwardRef<HTMLTextAreaElement, Props>(
             className="size-9 shrink-0"
             onClick={onStop}
             aria-label="Stop"
-            title="Stop"
+            title="Stop (Esc)"
           >
             <HugeiconsIcon icon={SquareIcon} size={14} strokeWidth={2} />
           </Button>
