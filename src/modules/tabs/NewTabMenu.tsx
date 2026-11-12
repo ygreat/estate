@@ -89,7 +89,7 @@ export function NewTabMenu({
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="start"
-              className="min-w-44"
+              className="w-auto min-w-44"
               onCloseAutoFocus={(event) => {
                 event.preventDefault();
                 if (!openLauncherAfterMenuClose.current) return;
@@ -105,7 +105,7 @@ export function NewTabMenu({
                   strokeWidth={1.75}
                 />
                 <span className="flex-1">Terminal</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="ml-4 whitespace-nowrap text-xs text-muted-foreground">
                   {terminalHint}
                 </span>
               </DropdownMenuItem>
@@ -116,7 +116,7 @@ export function NewTabMenu({
                   strokeWidth={1.75}
                 />
                 <span className="flex-1">Blocks</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="ml-4 whitespace-nowrap text-xs text-muted-foreground">
                   {blockHint}
                 </span>
               </DropdownMenuItem>
@@ -141,7 +141,7 @@ export function NewTabMenu({
                   strokeWidth={1.75}
                 />
                 <span className="flex-1">Privacy</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="ml-4 whitespace-nowrap text-xs text-muted-foreground">
                   {privateHint}
                 </span>
               </DropdownMenuItem>
@@ -152,7 +152,7 @@ export function NewTabMenu({
                   strokeWidth={1.75}
                 />
                 <span className="flex-1">Editor</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="ml-4 whitespace-nowrap text-xs text-muted-foreground">
                   {editorHint}
                 </span>
               </DropdownMenuItem>
@@ -163,7 +163,7 @@ export function NewTabMenu({
                   strokeWidth={1.75}
                 />
                 <span className="flex-1">Preview</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="ml-4 whitespace-nowrap text-xs text-muted-foreground">
                   {previewHint}
                 </span>
               </DropdownMenuItem>
