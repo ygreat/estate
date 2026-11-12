@@ -83,6 +83,7 @@ import {
 import { resolveInstructions } from "@/modules/orchestrator/instructions";
 import { orchestratorPrompt } from "@/modules/orchestrator/plan";
 import { setOrchestratorHost } from "@/modules/orchestrator/runs";
+import { setChatTerminalHost } from "@/modules/agent-chat/chatTerminal";
 import type { FolderAction } from "@/modules/statusbar/CwdBreadcrumb";
 import {
   checkAgentAuth,
@@ -1717,6 +1718,23 @@ export default function App() {
     });
     return () => setOrchestratorHost(null);
   }, [newAgentChatTab, setActiveId]);
+  // Estate: a chat's terminal-only command (e.g. /doctor) runs in a terminal
+  // tab on the chat's folder and session.
+  useEffect(() => {
+    setChatTerminalHost({
+      runInTerminal: (cwd, title, commandLine) => {
+        const { leafIds } = newAgentGroupTab(cwd, title, 1);
+        for (const leafId of leafIds) {
+          void whenSessionReady(leafId).then(() => {
+            if (!writeToSession(leafId, `${commandLine}\r`)) {
+              console.error(`[estate] terminal ${leafId} closed before launch`);
+            }
+          });
+        }
+      },
+    });
+    return () => setChatTerminalHost(null);
+  }, [newAgentGroupTab]);
   const folderActions = useCallback(
     (path: string): FolderAction[] => [
       { label: "Open as project", run: () => void openProjectFolder(path) },

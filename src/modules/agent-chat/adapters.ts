@@ -7,6 +7,7 @@
  * showing less rather than failing.
  */
 import {
+  type AgentInfo,
   type ChatAgentId,
   type ChatEvent,
   describeTool,
@@ -76,6 +77,7 @@ export function claudeAdapter(): TurnAdapter {
                     .filter(
                       (c): c is string => Boolean(c) && !c?.startsWith("__"),
                     ),
+                  info: claudeInfo(o),
                 },
               ]
             : [];
@@ -625,4 +627,33 @@ export function createTurnAdapter(agent: ChatAgentId): TurnAdapter {
     case "opencode":
       return opencodeAdapter();
   }
+}
+
+/** Names from a list of strings, without Claude Code's internal `__` ones. */
+function names(v: unknown): string[] {
+  return arr(v)
+    .map(str)
+    .filter((c): c is string => Boolean(c) && !c?.startsWith("__"));
+}
+
+/** What Claude Code's `init` event says about the session it started. */
+export function claudeInfo(o: Obj): AgentInfo {
+  return {
+    version: str(o.claude_code_version),
+    model: str(o.model),
+    cwd: str(o.cwd),
+    permissionMode: str(o.permissionMode),
+    outputStyle: str(o.output_style),
+    skills: names(o.skills),
+    agents: names(o.agents),
+    plugins: arr(o.plugins)
+      .map((p) => str(obj(p).name))
+      .filter((n): n is string => Boolean(n)),
+    mcpServers: arr(o.mcp_servers)
+      .map((m) => ({ name: str(obj(m).name), status: str(obj(m).status) }))
+      .filter((m): m is { name: string; status: string } =>
+        Boolean(m.name && m.status),
+      ),
+    terminalCommands: names(o.terminal_slash_commands),
+  };
 }

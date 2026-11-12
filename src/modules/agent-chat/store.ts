@@ -5,6 +5,8 @@ import { createTurnAdapter } from "./adapters";
 import { transcriptFromHistory } from "./history";
 import {
   ACCESS_LABEL,
+  type AgentInfo,
+  appendLocal,
   applyChatEvent,
   beginTurn,
   type ChatAccess,
@@ -52,6 +54,10 @@ type State = {
   limits: Partial<Record<ChatAgentId, AgentLimits>>;
   /** Slash commands each agent reported, for the composer's menu. */
   commands: Partial<Record<ChatAgentId, string[]>>;
+  /** What each agent last reported about itself at startup (`/status`). */
+  info: Partial<Record<ChatAgentId, AgentInfo>>;
+  /** Shows a command Estate answered itself; nothing is sent to the agent. */
+  showLocal: (id: string, command: string, markdown: string) => void;
   setModel: (id: string, model: string | undefined) => void;
   setEffort: (id: string, effort: ChatEffort | undefined) => void;
   /** Starts a fresh agent session in this chat (like /clear). */
@@ -131,6 +137,7 @@ function updateChat(id: string, fn: (c: ChatSession) => ChatSession) {
 
 const LIMITS_KEY = "__limits__";
 const COMMANDS_KEY = "__commands__";
+const INFO_KEY = "__info__";
 let limitsLoaded = false;
 
 /** Loads saved limits once, so a new chat shows them before its first reply. */
@@ -145,6 +152,13 @@ function loadLimits() {
       useAgentChatStore.setState((s) => ({
         limits: { ...saved, ...s.limits },
       }));
+    });
+  void disk
+    .get<State["info"]>(INFO_KEY)
+    .catch(() => undefined)
+    .then((saved) => {
+      if (!saved || typeof saved !== "object") return;
+      useAgentChatStore.setState((s) => ({ info: { ...saved, ...s.info } }));
     });
   void disk
     .get<State["commands"]>(COMMANDS_KEY)
@@ -170,6 +184,15 @@ function recordCommands(agent: ChatAgentId, events: ChatEvent[]) {
   }
 }
 
+function recordInfo(agent: ChatAgentId, events: ChatEvent[]) {
+  for (const e of events) {
+    if (e.type !== "session" || !e.info) continue;
+    const info = e.info;
+    useAgentChatStore.setState((s) => ({ info: { ...s.info, [agent]: info } }));
+    void disk.set(INFO_KEY, useAgentChatStore.getState().info).catch(() => {});
+  }
+}
+
 function recordLimits(agent: ChatAgentId, events: ChatEvent[]) {
   let windows: UsageWindow[] | undefined;
   for (const e of events) if (e.type === "limits") windows = e.windows;
@@ -189,6 +212,7 @@ function applyEvents(id: string, events: ChatEvent[]) {
   if (agent) {
     recordLimits(agent, events);
     recordCommands(agent, events);
+    recordInfo(agent, events);
   }
   updateChat(id, (c) => ({
     ...c,
@@ -231,6 +255,19 @@ export const useAgentChatStore = create<State>((set, get) => ({
   chats: {},
   limits: {},
   commands: {},
+  info: {},
+
+  showLocal(id, command, markdown) {
+    updateChat(id, (c) => ({
+      ...c,
+      transcript: appendLocal(
+        c.transcript,
+        `local-${Date.now().toString(36)}`,
+        command,
+        markdown,
+      ),
+    }));
+  },
 
   open(id, init) {
     loadLimits();
