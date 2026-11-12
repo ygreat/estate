@@ -31,14 +31,38 @@ const LOCAL_COMMANDS: { name: string; hint: string }[] = [
 export type ComposerAction =
   | { kind: "send"; text: string }
   | { kind: "clear" }
-  | { kind: "model"; model?: string };
+  | { kind: "model"; model?: string }
+  /** A command Estate answers in the chat (`/status`, `/skills`). */
+  | { kind: "local"; name: string; text: string }
+  /** A command only the agent's terminal interface runs. */
+  | { kind: "terminal"; command: string };
 
-export function parseComposerInput(input: string): ComposerAction | null {
+/** Commands this chat routes away from the agent, beyond /clear and /model. */
+export type CommandRoutes = {
+  /** Answered by Estate in the chat. */
+  local?: readonly { name: string; hint: string }[];
+  /** Opened in a terminal tab. */
+  terminal?: readonly string[];
+};
+
+const TERMINAL_HINT = "Opens in a terminal";
+
+export function parseComposerInput(
+  input: string,
+  routes: CommandRoutes = {},
+): ComposerAction | null {
   const text = input.trim();
   if (!text) return null;
   const m = /^\/(clear|model)(?:\s+(\S+))?\s*$/.exec(text);
   if (m?.[1] === "clear") return { kind: "clear" };
   if (m?.[1] === "model") return { kind: "model", model: m[2] };
+  const name = /^\/([\w:.-]+)(?:\s|$)/.exec(text)?.[1];
+  if (name && routes.local?.some((c) => c.name === name)) {
+    return { kind: "local", name, text };
+  }
+  if (name && routes.terminal?.includes(name)) {
+    return { kind: "terminal", command: text };
+  }
   return { kind: "send", text };
 }
 
@@ -46,20 +70,26 @@ export function parseComposerInput(input: string): ComposerAction | null {
 export function commandSuggestions(
   draft: string,
   agentCommands: readonly string[],
+  routes: CommandRoutes = {},
 ): { name: string; hint?: string }[] {
   const m = /^\/([\w:.-]*)$/.exec(draft);
   if (!m) return [];
   const q = m[1].toLowerCase();
-  const local = LOCAL_COMMANDS.filter((c) => c.name.startsWith(q));
+  const local = [...LOCAL_COMMANDS, ...(routes.local ?? [])].filter((c) =>
+    c.name.startsWith(q),
+  );
   const seen = new Set(local.map((c) => c.name));
-  const remote = agentCommands
+  const terminal = new Set(routes.terminal ?? []);
+  const remote = [...new Set([...agentCommands, ...terminal])]
     .filter((c) => !seen.has(c) && c.toLowerCase().includes(q))
     .sort((a, b) => {
       const ap = a.toLowerCase().startsWith(q) ? 0 : 1;
       const bp = b.toLowerCase().startsWith(q) ? 0 : 1;
       return ap - bp || a.localeCompare(b);
     })
-    .map((name) => ({ name }));
+    .map((name) =>
+      terminal.has(name) ? { name, hint: TERMINAL_HINT } : { name },
+    );
   return [...local, ...remote].slice(0, 8);
 }
 
@@ -72,6 +102,8 @@ type Props = {
   disabled: boolean;
   running: boolean;
   agentCommands: readonly string[];
+  /** Commands answered by Estate or opened in a terminal instead of sent. */
+  routes?: CommandRoutes;
   onAction: (action: ComposerAction) => void;
   onStop: () => void;
 };
@@ -85,6 +117,7 @@ export const ChatComposer = forwardRef<HTMLTextAreaElement, Props>(
       disabled,
       running,
       agentCommands,
+      routes,
       onAction,
       onStop,
     },
@@ -115,8 +148,8 @@ export const ChatComposer = forwardRef<HTMLTextAreaElement, Props>(
     const [selected, setSelected] = useState(0);
     const [dismissed, setDismissed] = useState(false);
     const suggestions = useMemo(
-      () => (dismissed ? [] : commandSuggestions(draft, agentCommands)),
-      [draft, agentCommands, dismissed],
+      () => (dismissed ? [] : commandSuggestions(draft, agentCommands, routes)),
+      [draft, agentCommands, routes, dismissed],
     );
     const menuOpen = suggestions.length > 0 && !mention.picker.open;
     const index = Math.min(selected, Math.max(0, suggestions.length - 1));
@@ -128,7 +161,7 @@ export const ChatComposer = forwardRef<HTMLTextAreaElement, Props>(
 
     const submit = () => {
       if (disabled || running) return;
-      const action = parseComposerInput(draft);
+      const action = parseComposerInput(draft, routes);
       if (!action) return;
       setDraftAndFit("");
       setDismissed(false);

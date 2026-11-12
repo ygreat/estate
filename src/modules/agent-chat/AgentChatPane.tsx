@@ -5,6 +5,7 @@ import {
   InformationCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { toast } from "sonner";
 import {
   memo,
   useEffect,
@@ -46,10 +47,22 @@ import {
   type Transcript,
   type TurnStats,
   type UsageWindow,
+  ZERO_TOTALS,
 } from "./model";
 import { needsSignIn, useAgentAuth } from "./auth";
 import { AuthScreen } from "./AuthScreen";
-import { ChatComposer } from "./ChatComposer";
+import {
+  ChatComposer,
+  type CommandRoutes,
+  type ComposerAction,
+} from "./ChatComposer";
+import { runInTerminal } from "./chatTerminal";
+import {
+  skillsMarkdown,
+  statusMarkdown,
+  terminalCommandLine,
+  terminalOnlyCommands,
+} from "./localCommands";
 import { HistorySidebar, SessionList, useChatSessions } from "./HistorySidebar";
 import {
   syncChatTitle,
@@ -182,6 +195,54 @@ export function AgentChatPane({
   };
   const agentCommands =
     useAgentChatStore((s) => s.commands[agent]) ?? NO_COMMANDS;
+  const agentInfo = useAgentChatStore((s) =>
+    agent === "claude" ? s.info[agent] : undefined,
+  );
+  const showLocal = useAgentChatStore((s) => s.showLocal);
+  const routes = useMemo<CommandRoutes>(
+    () => ({
+      local:
+        agent === "claude"
+          ? [
+              { name: "status", hint: "Session and agent details" },
+              { name: "skills", hint: "Skills Claude Code can use" },
+            ]
+          : [{ name: "status", hint: "Session details" }],
+      terminal: terminalOnlyCommands(agent, agentInfo, agentCommands),
+    }),
+    [agent, agentInfo, agentCommands],
+  );
+  const runCommand = (action: ComposerAction) => {
+    const transcript = chat?.transcript;
+    if (action.kind === "local") {
+      const markdown =
+        action.name === "skills"
+          ? skillsMarkdown(agentInfo, cwd)
+          : statusMarkdown({
+              agentLabel: CHAT_AGENT_LABEL[agent],
+              expectsInfo: agent === "claude",
+              info: agentInfo,
+              sessionId: transcript?.sessionId,
+              model: chat?.model ?? transcript?.model,
+              cwd,
+              access: chat?.access ?? "read",
+              totals: transcript?.totals ?? ZERO_TOTALS,
+              contextTokens: transcript?.contextTokens,
+            });
+      stickToBottom.current = true;
+      showLocal(chatId, action.text, markdown);
+      return true;
+    }
+    if (action.kind === "terminal") {
+      const name = action.command.split(/\s/)[0];
+      const line = terminalCommandLine(transcript?.sessionId, action.command);
+      if (!runInTerminal(cwd, `${CHAT_AGENT_LABEL[agent]} ${name}`, line)) {
+        toast.error(`Could not open a terminal for ${name}`);
+      }
+      return true;
+    }
+    return false;
+  };
 
   useEffect(() => {
     open(chatId, { agent, cwd });
@@ -437,7 +498,9 @@ export function AgentChatPane({
                 running={running}
                 agentCommands={agentCommands}
                 onStop={() => cancel(chatId)}
+                routes={routes}
                 onAction={(action) => {
+                  if (runCommand(action)) return;
                   if (action.kind === "clear") {
                     newSession(chatId);
                     return;
@@ -447,6 +510,7 @@ export function AgentChatPane({
                     else setModelOpen(true);
                     return;
                   }
+                  if (action.kind !== "send") return;
                   stickToBottom.current = true;
                   void send(chatId, action.text);
                 }}
@@ -767,6 +831,14 @@ const ChatRow = memo(function ChatRow({
     case "tool":
       // Rendered in groups by ToolRun.
       return null;
+    case "local":
+      return (
+        <div className="estate-agent-reply select-text rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-[12.5px] leading-6">
+          <MessageResponse components={chatComponents}>
+            {item.markdown}
+          </MessageResponse>
+        </div>
+      );
     case "notice":
       if (item.tone === "denied") {
         const next = ACCESS_ORDER.filter(

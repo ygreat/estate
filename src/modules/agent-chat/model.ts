@@ -55,6 +55,8 @@ export type ChatEvent =
       model?: string;
       /** Slash commands the agent accepts in headless mode. */
       commands?: string[];
+      /** What the agent reported about itself at startup (Claude Code). */
+      info?: AgentInfo;
     }
   /** Tokens currently in the model's context (Claude Code reports this). */
   | { type: "context"; tokens: number }
@@ -104,7 +106,25 @@ export type ChatItem =
       tone: "denied" | "error" | "info";
       text: string;
       tools?: { name: string; title: string }[];
-    };
+    }
+  /** Output of a command Estate answered itself (`/status`, `/skills`):
+   * shown in the chat, never sent to the agent. */
+  | { kind: "local"; id: string; command: string; markdown: string };
+
+/** Claude Code's startup report (its `init` event), as Estate keeps it. */
+export type AgentInfo = {
+  version?: string;
+  model?: string;
+  cwd?: string;
+  permissionMode?: string;
+  outputStyle?: string;
+  skills: string[];
+  agents: string[];
+  plugins: string[];
+  mcpServers: { name: string; status: string }[];
+  /** Commands that only work in the agent's own terminal interface. */
+  terminalCommands: string[];
+};
 
 /** Per-turn result the UI shows under the reply. */
 export type TurnStats = {
@@ -320,6 +340,23 @@ export function beginTurn(t: Transcript, id: string, text: string): Transcript {
     denied: false,
     stats: undefined,
     items: cap([...t.items, { kind: "user", id, text }]),
+  };
+}
+
+/** Adds a command Estate answered itself: the typed command, then its output. */
+export function appendLocal(
+  t: Transcript,
+  id: string,
+  command: string,
+  markdown: string,
+): Transcript {
+  return {
+    ...t,
+    items: cap([
+      ...t.items,
+      { kind: "user", id: `${id}-cmd`, text: command },
+      { kind: "local", id, command, markdown },
+    ]),
   };
 }
 
