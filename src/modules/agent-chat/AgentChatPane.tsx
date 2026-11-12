@@ -733,7 +733,7 @@ const ChatRow = memo(function ChatRow({
         orchestrator && !item.streaming ? parsePlan(item.text) : null;
       const text = orchestrator ? withoutPlan(item.text) : item.text;
       return (
-        <div className="estate-agent-reply text-[13px] leading-6">
+        <div className="estate-agent-reply select-text text-[13px] leading-6">
           <MessageResponse
             streaming={item.streaming}
             isAnimating={item.streaming}
