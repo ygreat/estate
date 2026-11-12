@@ -20,7 +20,7 @@ export function UserMessage({ text, cwd }: { text: string; cwd: string }) {
     return out;
   }, [text, chips]);
   return (
-    <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-xl bg-muted px-3 py-2 text-[13px] leading-5">
+    <div className="ml-auto w-fit max-w-[85%] select-text whitespace-pre-wrap break-words rounded-xl bg-muted px-3 py-2 text-[13px] leading-5">
       {parts}
     </div>
   );
