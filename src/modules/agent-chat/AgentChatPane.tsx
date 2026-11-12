@@ -56,6 +56,7 @@ import {
   type CommandRoutes,
   type ComposerAction,
 } from "./ChatComposer";
+import { stopsAgent } from "./chatKeys";
 import { runInTerminal } from "./chatTerminal";
 import {
   skillsMarkdown,
@@ -313,7 +314,25 @@ export function AgentChatPane({
     agent !== "claude";
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
+    // biome-ignore lint/a11y/noStaticElementInteractions: Escape anywhere in the chat stops the agent, like its CLI
+    <div
+      tabIndex={-1}
+      className="flex h-full min-h-0 flex-col bg-background outline-none"
+      onKeyDown={(e) => {
+        if (
+          stopsAgent({
+            key: e.key,
+            running,
+            defaultPrevented: e.defaultPrevented,
+            isComposing: e.nativeEvent.isComposing,
+            inside: e.currentTarget.contains(e.target as Node),
+          })
+        ) {
+          e.preventDefault();
+          cancel(chatId);
+        }
+      }}
+    >
       <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border/60 px-3">
         <Button
           variant="ghost"
