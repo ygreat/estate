@@ -7,7 +7,7 @@
 
   <p>
     <img src="https://img.shields.io/badge/status-closed%20testing-orange" alt="status: closed testing" />
-    <img src="https://img.shields.io/badge/platform-macOS%2012%2B%20Intel-lightgrey" alt="platform" />
+    <img src="https://img.shields.io/badge/platform-macOS%2012%2B%20%7C%20Windows%20(testing)-lightgrey" alt="platform: macOS 12+, Windows in testing" />
     <img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="license" />
   </p>
 </div>
@@ -16,7 +16,7 @@
 
 Estate is for developers who work alongside coding agents. You describe what you want, agents like Claude Code, Codex, Gemini CLI and OpenCode do the work, and you stay in charge: you plan with them, watch them, review what they changed and decide what ships. The terminal, editor and git you need for your part sit in the same window.
 
-It's a small native app that stays fast on machines newer tools have left behind, including Intel Macs back to macOS 12. Estate is an independent project, built with Tauri and Rust on top of [Terax](https://github.com/crynta/terax-ai) 0.9.0.
+It's a small native app that stays fast on machines newer tools have left behind, including Intel Macs back to macOS 12. A native Apple Silicon build is planned, and Windows is in testing. Estate is an independent project, built with Tauri and Rust on top of [Terax](https://github.com/crynta/terax-ai) 0.9.0.
 
 > [!NOTE]
 > **Estate is in closed testing.** There are no public downloads right now; builds go to a small group of testers directly. You can still [build it from source](#build-from-source). See [ROADMAP.md](ROADMAP.md) for what's next and [CHANGELOG.md](CHANGELOG.md) for what's changed.
@@ -40,11 +40,13 @@ It's a small native app that stays fast on machines newer tools have left behind
 ## What you can do
 
 **Work with coding agents**
-- Chat with an agent instead of reading a terminal UI: streaming replies, tool calls you can expand, and a Stop button.
+- Chat with an agent instead of reading a terminal UI: streaming replies, tool calls you can expand, and a Stop button. Press Esc to interrupt, as in the agent's CLI.
 - Choose the model and how hard it thinks (effort from Low to Max), per chat.
 - Pick up where you left off: chats share the project's own Claude Code sessions, listed in a sidebar, and you can name them.
-- Drag files from the sidebar into the chat box to hand an agent their paths.
-- Use `/` commands, and keep an eye on context, cost and your 5-hour and 7-day usage limits in the chat's status line.
+- Type `@` to mention a project file, or drag files from the sidebar into the chat box. Mentions show as file chips, in the chat and in the AI assistant.
+- Select and copy text from any message.
+- Use `/` commands, including `/status` and `/skills` for Claude Code. Commands that only work in the agent's own terminal, like `/doctor`, open in a terminal tab on the same session.
+- Keep an eye on context, cost and your 5-hour and 7-day usage limits in the chat's status line.
 
 **Plan and delegate**
 - The Orchestrator turns a goal into up to six parallel tasks, runs each in its own chat, then sums up what was done and how to review and merge each branch.
@@ -68,12 +70,13 @@ It's a small native app that stays fast on machines newer tools have left behind
 | --- | --- |
 | macOS 12.7 or later, Intel | Primary. The reference machine is a 2015 MacBook Pro. |
 | Older macOS 12, Intel | Best effort; needs Safari 16.4 or later. |
-| Apple Silicon | Not targeted yet. |
-| Windows, Linux | Not supported. |
+| macOS 12 or later, Apple Silicon | Planned: a separate native (arm64) DMG with the same macOS 12 minimum. Not built yet. |
+| Windows 10 and 11, x64 | In testing. Builds and runs from source; no installer is published yet. |
+| Linux | Not supported. |
 
 ## Install
 
-Estate is in closed testing, so there's no public download yet. If you're a tester:
+Estate is in closed testing, so there's no public download yet. Windows testers build from source for now (see [Windows](#windows)). If you're a Mac tester:
 
 1. Get the DMG (`Estate_<version>_x64.dmg`) you were sent.
 2. Open it and drag **Estate** to **Applications**.
@@ -101,10 +104,12 @@ On an older OS, pin an agent version that still launches there and turn off its 
 ## Privacy and security
 
 - No telemetry, analytics or crash reports. Network calls happen only for things you start.
-- API keys live in the macOS Keychain, never in files or `localStorage`.
+- API keys live in the macOS Keychain or the Windows Credential Manager, never in files or `localStorage`.
 - Older macOS versions no longer get security updates, so keep the browser pane to your own dev servers and sites you trust. See [SECURITY.md](SECURITY.md).
 
 ## Build from source
+
+### macOS
 
 You need Xcode Command Line Tools (`xcode-select --install`), Rust (the version in `rust-toolchain.toml`, via [rustup](https://rustup.rs)), Node 22 and [pnpm](https://pnpm.io).
 
@@ -115,6 +120,32 @@ pnpm tauri dev                      # run in development
 export MACOSX_DEPLOYMENT_TARGET=12.0
 pnpm tauri build --target x86_64-apple-darwin   # build the app and DMG
 ```
+
+Apple Silicon builds use `--target aarch64-apple-darwin` (planned; add the target with `rustup target add aarch64-apple-darwin`).
+
+### Windows
+
+You need [Visual Studio 2022 Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with the **Desktop development with C++** workload, [Git for Windows](https://git-scm.com), Rust via [rustup](https://rustup.rs) (default MSVC toolchain), Node 22 and pnpm (`npm install -g pnpm@11.9.0`). WebView2 comes with Windows 10 and 11.
+
+Clone with `core.autocrlf=false`, so the shell scripts built into the app keep Unix line endings:
+
+```powershell
+git clone -c core.autocrlf=false https://github.com/ygreat/estate.git
+cd estate
+pnpm install --frozen-lockfile
+pnpm tauri dev                      # run in development
+```
+
+To build an installer for your own testing without the release signing key, turn off the updater artifacts:
+
+```powershell
+'{"bundle":{"createUpdaterArtifacts":false}}' | Out-File -Encoding ascii ..\local-build.json
+pnpm tauri build --config ..\local-build.json
+```
+
+The installers land in `src-tauri\target\release\bundle\nsis` and `msi`. They aren't code-signed, so SmartScreen warns on first run (**More info → Run anyway**).
+
+### Checks
 
 Checks: `pnpm lint`, `pnpm check-types`, `pnpm test`, and in `src-tauri`, `cargo clippy --all-targets --locked -- -D warnings` and `cargo test --locked`.
 
