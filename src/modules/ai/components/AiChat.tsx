@@ -48,6 +48,7 @@ import type {
 import { memo, useCallback, useMemo } from "react";
 import { AiToolApproval } from "./AiToolApproval";
 import { estimateMessageHeight } from "./messageHeightEstimate";
+import { MentionText } from "@/modules/mentions/MentionText";
 
 function CommandSnippet({ name }: { name: string }) {
   const meta = SLASH_COMMANDS[name];
@@ -85,8 +86,7 @@ type ContextChip =
 
 const SELECTION_RE =
   /<selection\s+source="(terminal|editor)">\n?([\s\S]*?)\n?<\/selection>/g;
-const FILE_RE =
-  /<file\s+name="([^"]+)"[^>]*>\n?([\s\S]*?)\n?<\/file>/g;
+const FILE_RE = /<file\s+name="([^"]+)"[^>]*>\n?([\s\S]*?)\n?<\/file>/g;
 const SNIPPET_RE = /<snippet\s+name="([^"]+)">\n?[\s\S]*?\n?<\/snippet>/g;
 
 function countLines(s: string): number {
@@ -206,7 +206,8 @@ export function AiChatView({
     !isBusy && hitStepCap && lastMessage?.role === "assistant";
 
   const onApproval = useCallback(
-    (id: string, approved: boolean) => addToolApprovalResponse({ id, approved }),
+    (id: string, approved: boolean) =>
+      addToolApprovalResponse({ id, approved }),
     [addToolApprovalResponse],
   );
 
@@ -362,9 +363,10 @@ const RenderedMessage = memo(function RenderedMessage({
   }
   // Hooks must run unconditionally (Rules of Hooks) even though user messages
   // render without groups; grouping is cheap so this stays out of the way.
-  const groups = useMemo(() => buildPartGroups(message.parts as AnyPart[]), [
-    message.parts,
-  ]);
+  const groups = useMemo(
+    () => buildPartGroups(message.parts as AnyPart[]),
+    [message.parts],
+  );
 
   if (message.role === "user") {
     const rawText = message.parts
@@ -386,7 +388,7 @@ const RenderedMessage = memo(function RenderedMessage({
           ) : null}
           {stripped.text ? (
             <p className="whitespace-pre-wrap wrap-break-word">
-              {stripped.text}
+              <SentText text={stripped.text} />
             </p>
           ) : null}
         </MessageContent>
@@ -561,9 +563,7 @@ const ReadGroup = memo(function ReadGroup({ parts }: { parts: AnyPart[] }) {
                 strokeWidth={1.75}
                 className="shrink-0 opacity-60"
               />
-              <span className="truncate text-foreground">
-                {basename(path)}
-              </span>
+              <span className="truncate text-foreground">{basename(path)}</span>
               <span className="truncate opacity-60">{path}</span>
             </li>
           ))}
@@ -621,12 +621,7 @@ const aiStreamdownComponents = {
 };
 
 function AiMessageResponse(props: Omit<MessageResponseProps, "components">) {
-  return (
-    <MessageResponse
-      {...props}
-      components={aiStreamdownComponents}
-    />
-  );
+  return <MessageResponse {...props} components={aiStreamdownComponents} />;
 }
 
 const RenderedPart = memo(function RenderedPart({
@@ -705,3 +700,9 @@ const RenderedTool = memo(function RenderedTool({
     />
   );
 });
+
+/** A sent prompt with its `@` file mentions as chips, against the workspace. */
+function SentText({ text }: { text: string }) {
+  const root = useChatStore((s) => s.live.getWorkspaceRoot());
+  return <MentionText text={text} base={root} />;
+}
