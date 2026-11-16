@@ -7,7 +7,7 @@
 
   <p>
     <img src="https://img.shields.io/badge/status-closed%20testing-orange" alt="status: closed testing" />
-    <img src="https://img.shields.io/badge/platform-macOS%2012%2B%20%7C%20Windows%20(testing)-lightgrey" alt="platform: macOS 12+, Windows in testing" />
+    <img src="https://img.shields.io/badge/platform-macOS%2012%2B%20(Intel%20%26%20Apple%20Silicon)%20%7C%20Windows%20(testing)-lightgrey" alt="platform: macOS 12+ on Intel and Apple Silicon, Windows in testing" />
     <img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="license" />
   </p>
 </div>
@@ -16,7 +16,7 @@
 
 Estate is for developers who work alongside coding agents. You describe what you want, agents like Claude Code, Codex, Gemini CLI and OpenCode do the work, and you stay in charge: you plan with them, watch them, review what they changed and decide what ships. The terminal, editor and git you need for your part sit in the same window.
 
-It's a small native app that stays fast on machines newer tools have left behind, including Intel Macs back to macOS 12. A native Apple Silicon build is planned, and Windows is in testing. Estate is an independent project, built with Tauri and Rust on top of [Terax](https://github.com/crynta/terax-ai) 0.9.0.
+It's a small native app that stays fast on machines newer tools have left behind, including Intel Macs back to macOS 12. Apple Silicon Macs get their own native build, and Windows is in testing. Estate is an independent project, built with Tauri and Rust on top of [Terax](https://github.com/crynta/terax-ai) 0.9.0.
 
 > [!NOTE]
 > **Estate is in closed testing.** There are no public downloads right now; builds go to a small group of testers directly. You can still [build it from source](#build-from-source). See [ROADMAP.md](ROADMAP.md) for what's next and [CHANGELOG.md](CHANGELOG.md) for what's changed.
@@ -70,7 +70,7 @@ It's a small native app that stays fast on machines newer tools have left behind
 | --- | --- |
 | macOS 12.7 or later, Intel | Primary. The reference machine is a 2015 MacBook Pro. |
 | Older macOS 12, Intel | Best effort; needs Safari 16.4 or later. |
-| macOS 12 or later, Apple Silicon | Planned: a separate native (arm64) DMG with the same macOS 12 minimum. Not built yet. |
+| macOS 12 or later, Apple Silicon | Supported. A separate native (arm64) DMG with the same macOS 12 minimum, no Rosetta needed. Smoke-tested on an Apple Silicon Mac. |
 | Windows 10 and 11, x64 | In testing. Builds and runs from source; no installer is published yet. |
 | Linux | Not supported. |
 
@@ -78,13 +78,15 @@ It's a small native app that stays fast on machines newer tools have left behind
 
 Estate is in closed testing, so there's no public download yet. Windows testers build from source for now (see [Windows](#windows)). If you're a Mac tester:
 
-1. Get the DMG (`Estate_<version>_x64.dmg`) you were sent.
+1. Get the DMG you were sent for your Mac: `Estate_<version>_x64.dmg` for Intel, `Estate_<version>_aarch64.dmg` for Apple Silicon. Not sure which you have? **About This Mac** shows **Chip: Apple M…** on Apple Silicon and **Processor: Intel…** on Intel.
 2. Open it and drag **Estate** to **Applications**.
-3. Estate isn't signed with an Apple certificate yet, so macOS blocks the first launch. Right-click Estate in Applications, choose **Open**, then **Open** again. You only do this once. Or clear the download quarantine from a terminal:
+3. Estate isn't signed with an Apple certificate yet, so macOS blocks the first launch, often saying *"Estate is damaged and can't be opened"* (it isn't). Clear the download quarantine from a terminal, once:
 
    ```bash
    xattr -dr com.apple.quarantine /Applications/Estate.app
    ```
+
+   If macOS instead says it couldn't verify Estate, you can also open **System Settings → Privacy & Security** and click **Open Anyway**. On macOS 14 and earlier, right-clicking Estate and choosing **Open** works too; on macOS 15 and later it no longer does.
 
 To check the download, compare `shasum -a 256` of the DMG with the `SHA256SUMS.txt` that came with it.
 
@@ -121,7 +123,16 @@ export MACOSX_DEPLOYMENT_TARGET=12.0
 pnpm tauri build --target x86_64-apple-darwin   # build the app and DMG
 ```
 
-Apple Silicon builds use `--target aarch64-apple-darwin` (planned; add the target with `rustup target add aarch64-apple-darwin`).
+For Apple Silicon, add the target once and build with it. You can build on either kind of Mac; `ESTATE_CLI_TARGET` makes the bundled `estate-cli` match the app:
+
+```bash
+rustup target add aarch64-apple-darwin
+
+export MACOSX_DEPLOYMENT_TARGET=12.0
+ESTATE_CLI_TARGET=aarch64-apple-darwin pnpm tauri build --target aarch64-apple-darwin
+```
+
+Without the release signing key, add `--config ../local-build.json` with `{"bundle":{"createUpdaterArtifacts":false}}` in that file to skip the updater artifacts (as in the Windows steps below). The DMG lands in `src-tauri/target/<target>/release/bundle/dmg`.
 
 ### Windows
 
