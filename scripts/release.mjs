@@ -1,22 +1,30 @@
 #!/usr/bin/env node
 // Estate file; not part of Terax.
 /**
- * Release helpers for the macOS (Intel) build.
+ * Release helpers for the macOS (Intel and Apple Silicon) and Windows builds.
  *
  *   node scripts/release.mjs bump 0.1.1
  *     Sets the version in package.json, src-tauri/tauri.conf.json,
  *     src-tauri/Cargo.toml (package and workspace) and src-tauri/Cargo.lock.
  *
- *   node scripts/release.mjs updater --tag estate-0.1.1 [--notes "..."]
- *     After `pnpm tauri build --target x86_64-apple-darwin` with the signing
- *     key set: checks the update archive was signed with the key the app
- *     trusts and for this version, then writes latest.json and a versioned
- *     copy of the archive to bundle/updater/, ready to upload.
+ *   node scripts/release.mjs updater --tag estate-0.1.1 [--notes "..."] [--merge <latest.json>]
+ *     After `pnpm tauri build` with the signing key set, for each platform
+ *     built on this machine (see updaterArtifacts): checks the update artifact
+ *     was signed with the key the app trusts and for this version, then writes
+ *     latest.json and versioned copies of the artifacts to
+ *     src-tauri/target/updater/, ready to upload. --merge adds the platforms of
+ *     a latest.json written the same way on another machine (the Windows PC).
  *
  * The functions below are pure and tested in src/app/release-script.test.ts;
  * only `main` touches the file system.
  */
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -125,23 +133,105 @@ export function repoFromEndpoint(endpoint) {
   return m[1];
 }
 
-export function archiveName(version) {
-  return `Estate_${version}_x64.app.tar.gz`;
+/** The macOS update archive's name on the release: x64 (Intel) or aarch64 (Apple Silicon). */
+export function archiveName(version, arch) {
+  return `Estate_${version}_${arch}.app.tar.gz`;
 }
 
-/** The manifest Estate's updater reads (platform darwin-x86_64). */
-export function latestJson({ version, notes, pubDate, repo, tag, signature }) {
-  return {
-    version,
-    notes,
-    pub_date: pubDate,
-    platforms: {
-      "darwin-x86_64": {
-        signature: signature.trim(),
-        url: `https://github.com/${repo}/releases/download/${encodeURIComponent(tag)}/${archiveName(version)}`,
-      },
+/**
+ * Every platform's signed update artifact. `bundled` is where `tauri build`
+ * leaves it under the bundle folder of one of `targets` (null: a build without
+ * --target, as on the Windows PC); `upload` is its name on the release;
+ * `platforms` are the updater keys that point at it; `installer` is what
+ * testers download, when that isn't the artifact itself.
+ */
+export function updaterArtifacts(version) {
+  return [
+    {
+      name: "macOS Intel",
+      targets: ["x86_64-apple-darwin"],
+      bundled: "macos/Estate.app.tar.gz",
+      upload: archiveName(version, "x64"),
+      platforms: ["darwin-x86_64"],
+      installer: `dmg/Estate_${version}_x64.dmg`,
     },
-  };
+    {
+      name: "macOS Apple Silicon",
+      targets: ["aarch64-apple-darwin"],
+      bundled: "macos/Estate.app.tar.gz",
+      upload: archiveName(version, "aarch64"),
+      platforms: ["darwin-aarch64"],
+      installer: `dmg/Estate_${version}_aarch64.dmg`,
+    },
+    {
+      // The NSIS installer is Estate's Windows default, so the generic key points at it.
+      name: "Windows (NSIS)",
+      targets: ["x86_64-pc-windows-msvc", null],
+      bundled: `nsis/Estate_${version}_x64-setup.exe`,
+      upload: `Estate_${version}_x64-setup.exe`,
+      platforms: ["windows-x86_64", "windows-x86_64-nsis"],
+      installer: null,
+    },
+    {
+      name: "Windows (MSI)",
+      targets: ["x86_64-pc-windows-msvc", null],
+      bundled: `msi/Estate_${version}_x64_en-US.msi`,
+      upload: `Estate_${version}_x64_en-US.msi`,
+      platforms: ["windows-x86_64-msi"],
+      installer: null,
+    },
+  ];
+}
+
+/** CFBundleShortVersionString of an Info.plist, or null. */
+export function plistVersion(text) {
+  return (
+    text.match(
+      /<key>CFBundleShortVersionString<\/key>\s*<string>([^<]*)<\/string>/,
+    )?.[1] ?? null
+  );
+}
+
+export function releaseUrl(repo, tag, file) {
+  return `https://github.com/${repo}/releases/download/${encodeURIComponent(tag)}/${file}`;
+}
+
+/**
+ * The manifest Estate's updater reads. `entries` are the signed artifacts found
+ * ({ platforms, upload, signature }); each platform key points at its upload.
+ */
+export function latestJson({ version, notes, pubDate, repo, tag, entries }) {
+  const platforms = {};
+  for (const entry of entries)
+    for (const key of entry.platforms)
+      platforms[key] = {
+        signature: entry.signature.trim(),
+        url: releaseUrl(repo, tag, entry.upload),
+      };
+  return { version, notes, pub_date: pubDate, platforms };
+}
+
+/**
+ * Adds another machine's manifest to this one. It must be for the same version
+ * and release, and may not repeat a platform this one already has.
+ */
+export function mergeManifests(local, other, { repo, tag }) {
+  if (other?.version !== local.version)
+    throw new Error(
+      `the merged manifest is version ${other?.version}, this release is ${local.version}`,
+    );
+  const prefix = releaseUrl(repo, tag, "");
+  const platforms = { ...local.platforms };
+  for (const [key, entry] of Object.entries(other.platforms ?? {})) {
+    if (key in platforms)
+      throw new Error(`both manifests have ${key}; build each platform once`);
+    if (typeof entry?.url !== "string" || !entry.url.startsWith(prefix))
+      throw new Error(`the merged ${key} isn't on release ${tag}: ${entry?.url}`);
+    if (typeof entry.signature !== "string" || !entry.signature)
+      throw new Error(`the merged ${key} has no signature`);
+    platforms[key] = entry;
+  }
+  return { ...local, platforms };
 }
 
 // ---- CLI ---------------------------------------------------------------------
@@ -152,8 +242,14 @@ const P = {
   conf: join(ROOT, "src-tauri/tauri.conf.json"),
   toml: join(ROOT, "src-tauri/Cargo.toml"),
   lock: join(ROOT, "src-tauri/Cargo.lock"),
-  bundle: join(ROOT, "src-tauri/target/x86_64-apple-darwin/release/bundle"),
+  target: join(ROOT, "src-tauri/target"),
 };
+
+function bundleDir(target) {
+  return target
+    ? join(P.target, target, "release/bundle")
+    : join(P.target, "release/bundle");
+}
 const WORKSPACE_CRATES = ["estate", "estate-cli", "estate-control-protocol"];
 
 function fail(message) {
@@ -193,52 +289,113 @@ function updater(args) {
   const updaterConf = conf.plugins?.updater;
   if (!updaterConf?.pubkey || !updaterConf.endpoints?.[0])
     fail("tauri.conf.json has no updater pubkey or endpoint");
-
-  const archive = join(P.bundle, "macos/Estate.app.tar.gz");
-  let sigText;
-  try {
-    sigText = readFileSync(`${archive}.sig`, "utf8");
-  } catch {
-    fail(
-      `no ${archive}.sig. Build with the signing key set: pnpm tauri build --target x86_64-apple-darwin`,
-    );
-  }
-  const sig = readSignature(sigText);
   const trusted = publicKeyId(updaterConf.pubkey);
-  if (sig.keyId !== trusted)
+  const repo = repoFromEndpoint(updaterConf.endpoints[0]);
+  const rel = (p) => p.slice(ROOT.length + 1).replaceAll("\\", "/");
+
+  const found = [];
+  const missing = [];
+  for (const artifact of updaterArtifacts(version)) {
+    const bundle = artifact.targets
+      .map(bundleDir)
+      .find((dir) => existsSync(join(dir, artifact.bundled)));
+    if (!bundle) {
+      missing.push(artifact);
+      continue;
+    }
+    const path = join(bundle, artifact.bundled);
+    let sigText;
+    try {
+      sigText = readFileSync(`${path}.sig`, "utf8");
+    } catch {
+      fail(
+        `no ${rel(path)}.sig. Rebuild ${artifact.name} with TAURI_SIGNING_PRIVATE_KEY set.`,
+      );
+    }
+    const sig = readSignature(sigText);
+    if (sig.keyId !== trusted)
+      fail(
+        `${artifact.name}: signed with key ${sig.keyId}, but the app trusts ${trusted}. Rebuild with the right TAURI_SIGNING_PRIVATE_KEY.`,
+      );
+    // The macOS archive's name has no version, so read the app it was made from.
+    const plist = join(bundle, "macos/Estate.app/Contents/Info.plist");
+    const built =
+      sig.version ??
+      (artifact.bundled.startsWith("macos/") && existsSync(plist)
+        ? plistVersion(readFileSync(plist, "utf8"))
+        : null);
+    if (built && built !== version)
+      fail(
+        `${artifact.name}: the build is version ${built}, but tauri.conf.json says ${version}. Rebuild after bumping.`,
+      );
+    found.push({ ...artifact, path, bundle, signature: sigText, keyId: sig.keyId });
+  }
+
+  const mergePath = arg(args, "--merge");
+  if (found.length === 0 && !mergePath)
     fail(
-      `the archive is signed with key ${sig.keyId}, but the app trusts ${trusted}. Rebuild with the right TAURI_SIGNING_PRIVATE_KEY.`,
-    );
-  if (sig.version && sig.version !== version)
-    fail(
-      `the archive is version ${sig.version}, but tauri.conf.json says ${version}. Rebuild after bumping.`,
+      `no signed update artifacts for ${version} under ${rel(P.target)}. Build with the signing key set first.`,
     );
 
-  const out = join(P.bundle, "updater");
-  mkdirSync(out, { recursive: true });
-  copyFileSync(archive, join(out, archiveName(version)));
-  const manifest = latestJson({
+  let manifest = latestJson({
     version,
     notes: arg(args, "--notes") ?? `Estate ${version}`,
     pubDate: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
-    repo: repoFromEndpoint(updaterConf.endpoints[0]),
+    repo,
     tag,
-    signature: sigText,
+    entries: found,
   });
+  let merged = [];
+  if (mergePath) {
+    let other;
+    try {
+      other = JSON.parse(readFileSync(resolve(mergePath), "utf8"));
+    } catch (e) {
+      fail(`can't read ${mergePath}: ${e.message}`);
+    }
+    try {
+      manifest = mergeManifests(manifest, other, { repo, tag });
+    } catch (e) {
+      fail(e.message);
+    }
+    merged = Object.keys(other.platforms ?? {});
+  }
+
+  const out = join(P.target, "updater");
+  mkdirSync(out, { recursive: true });
+  for (const artifact of found) copyFileSync(artifact.path, join(out, artifact.upload));
   writeFileSync(join(out, "latest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
-  const rel = (p) => p.slice(ROOT.length + 1);
+  const has = new Set(Object.keys(manifest.platforms));
+  const stillMissing = missing.filter((a) => !a.platforms.every((k) => has.has(k)));
+  const installers = found
+    .filter((a) => a.installer && existsSync(join(a.bundle, a.installer)))
+    .map((a) => rel(join(a.bundle, a.installer)));
+  const files = [
+    ...installers,
+    ...found.map((a) => rel(join(out, a.upload))),
+    rel(join(out, "latest.json")),
+  ];
   process.stdout.write(
     [
-      `Signed with ${sig.keyId} (trusted by the app). Wrote:`,
-      `  ${rel(join(out, archiveName(version)))}`,
-      `  ${rel(join(out, "latest.json"))}`,
+      `Signed with ${trusted} (trusted by the app).`,
+      ...found.map((a) => `  ${a.name}: ${a.platforms.join(", ")}`),
+      ...(merged.length ? [`  merged from ${mergePath}: ${merged.join(", ")}`] : []),
+      ...(stillMissing.length
+        ? [
+            `Not in this release: ${stillMissing.map((a) => a.name).join(", ")}.`,
+            "  Build them here, or run this on the machine that built them and pass its latest.json with --merge.",
+          ]
+        : []),
+      `Wrote ${rel(out)}/.`,
       "",
       "Publish as a normal release (not a pre-release), so it counts as latest:",
       `  gh release create ${tag} --target <commit> --title "Estate ${version}" --notes-file <notes.md> \\`,
-      `    ${rel(join(P.bundle, `dmg/Estate_${version}_x64.dmg`))} \\`,
-      `    ${rel(join(out, archiveName(version)))} ${rel(join(out, "latest.json"))} \\`,
+      ...files.map((f) => `    ${f} \\`),
       "    LICENSE NOTICE MODIFICATIONS.md",
+      ...(merged.length
+        ? ["Also attach the merged machine's installers and update artifacts."]
+        : []),
       "",
     ].join("\n"),
   );

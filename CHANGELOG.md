@@ -90,6 +90,8 @@ Changes in Estate since it started from Terax 0.9.0 (commit `a2c0877`, 6 Novembe
 
 - Runs on Intel Macs with macOS 12 Monterey: binaries declare macOS 12.0, the web code targets Safari 16.4, and Rust is pinned to 1.99.1.
 - Runs natively on Apple Silicon Macs: a separate arm64 DMG (`Estate_<version>_aarch64.dmg`) built from the same source, with the same macOS 12.0 minimum and no Rosetta. App and `estate-cli` both build for arm64; launched and smoke-tested on an Apple Silicon Mac.
+- `rust-toolchain.toml` installs the Apple Silicon target too, and the bundled `estate-cli` follows `tauri build --target`, so either Mac builds both DMGs with no extra setup.
+- `pnpm release:updater` publishes every platform: Intel Mac, Apple Silicon and Windows (NSIS and MSI) in one `latest.json`. It finds each signed build on the machine, checks its key and version, and `--merge` adds the Windows PC's manifest. Output moved to `src-tauri/target/updater/`.
 - Development builds keep only line numbers for Estate's own code and no debug info for dependencies, which shrinks `src-tauri/target` a lot.
 - Renamed from Terax: app, bundle identifier (`io.github.ygreat.estate`), crates (`estate`, `estate-cli`, `estate-control-protocol`), command-line tool, settings and storage names. Versions restart at 0.1.0.
 - No network calls you didn't ask for: Estate no longer checks for updates at launch.
