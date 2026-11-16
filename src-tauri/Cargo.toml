@@ -145,6 +145,12 @@ tauri-plugin-window-state = "2"
 
 [profile.dev]
 incremental = true
+# Keep line numbers for our own backtraces, but skip full debug info: it was most of target/'s size.
+debug = "line-tables-only"
+
+# Dependencies get no debug info at all; we never step through them.
+[profile.dev.package."*"]
+debug = false
 
 [profile.release]
 codegen-units = 1
