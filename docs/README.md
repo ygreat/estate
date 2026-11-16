@@ -12,7 +12,6 @@ If a guide conflicts with `ESTATE.md`, `ESTATE.md` wins.
 - [ESTATE.md](../ESTATE.md) - the architecture source of truth; read this first
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - how to contribute, compatibility rules, quality bar
 - [ROADMAP.md](../ROADMAP.md) - phases and scope
-- [PRD Estate.md](../PRD%20Estate.md) - product requirements
 
 ## Architecture guides
 

@@ -45,7 +45,7 @@ Some Terax names are kept on purpose, because the compiled WebAssembly terminal 
 
 ## Estate files that are not from Terax
 
-`NOTICE`, `MODIFICATIONS.md`, `CHANGELOG.md`, `PRD Estate.md`, `rust-toolchain.toml` and `design/` (the Estate logo and the padded 1024px app-icon source).
+`NOTICE`, `MODIFICATIONS.md`, `CHANGELOG.md`, `rust-toolchain.toml` and `design/` (the Estate logo and the padded 1024px app-icon source).
 
 ## Removed files
 

@@ -1,7 +1,7 @@
 <!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 # Roadmap
 
-Estate's direction, what's planned, and what's deliberately out of scope. The full product requirements are in [PRD Estate.md](PRD%20Estate.md). For day-to-day work, see [GitHub Issues](https://github.com/ygreat/estate/issues).
+Estate's direction, what's planned, and what's deliberately out of scope. For day-to-day work, see [GitHub Issues](https://github.com/ygreat/estate/issues).
 
 ## What Estate is
 
@@ -57,7 +57,7 @@ These came with the Terax 0.9.0 code Estate started from, and need verifying on 
 
 ## Enhancements and quality of life (built ahead of the phases)
 
-Additions beyond the PRD's seven tools, from using Estate day to day. Details in [CHANGELOG.md](CHANGELOG.md).
+Additions beyond the original seven tools, from using Estate day to day. Details in [CHANGELOG.md](CHANGELOG.md).
 
 **Enhancements**
 

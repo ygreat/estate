@@ -2,7 +2,7 @@
 
 <!-- Modified by ygreat for Estate, 2026. Originally part of Terax. -->
 
-> **Estate note.** Estate started from Terax 0.9.0 (commit `a2c0877`, 6 November 2026) and is developed independently from there, for Intel Macs on macOS 12. Later Terax releases are not merged or ported. This file began as Terax's architecture doc and was renamed from `TERAX.md`; Terax names in the code were changed to Estate, except a few that compiled WebAssembly depends on (`terax_blocks`, the `terax` import namespace, `terax.zig`). Where this file describes product goals, platforms (Windows, Linux, WSL) or release process, Estate's [PRD](PRD%20Estate.md) and [ROADMAP](ROADMAP.md) take precedence.
+> **Estate note.** Estate started from Terax 0.9.0 (commit `a2c0877`, 6 November 2026) and is developed independently from there, for Intel Macs on macOS 12. Later Terax releases are not merged or ported. This file began as Terax's architecture doc and was renamed from `TERAX.md`; Terax names in the code were changed to Estate, except a few that compiled WebAssembly depends on (`terax_blocks`, the `terax` import namespace, `terax.zig`). Where this file describes product goals, platforms (Windows, Linux, WSL) or release process, Estate's [ROADMAP](ROADMAP.md) takes precedence.
 
 Estate loads `ESTATE.md` from the workspace root as agent memory (similar to AGENTS.md / CLAUDE.md). This file is also the project's living architecture doc - read it before making changes.
 
