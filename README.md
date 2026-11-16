@@ -123,14 +123,7 @@ export MACOSX_DEPLOYMENT_TARGET=12.0
 pnpm tauri build --target x86_64-apple-darwin   # build the app and DMG
 ```
 
-For Apple Silicon, add the target once and build with it. You can build on either kind of Mac; `ESTATE_CLI_TARGET` makes the bundled `estate-cli` match the app:
-
-```bash
-rustup target add aarch64-apple-darwin
-
-export MACOSX_DEPLOYMENT_TARGET=12.0
-ESTATE_CLI_TARGET=aarch64-apple-darwin pnpm tauri build --target aarch64-apple-darwin
-```
+For Apple Silicon, build with `--target aarch64-apple-darwin`. It works on either kind of Mac: `rust-toolchain.toml` installs both targets, and the bundled `estate-cli` follows `--target`.
 
 Without the release signing key, add `--config ../local-build.json` with `{"bundle":{"createUpdaterArtifacts":false}}` in that file to skip the updater artifacts (as in the Windows steps below). The DMG lands in `src-tauri/target/<target>/release/bundle/dmg`.
 

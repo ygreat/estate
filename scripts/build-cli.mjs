@@ -47,8 +47,12 @@ function requireArtifact(path, label) {
   process.exit(1);
 }
 
+// Tauri sets TAURI_ENV_TARGET_TRIPLE for its before-build commands, so
+// `tauri build --target aarch64-apple-darwin` bundles an arm64 helper even on
+// an Intel Mac. ESTATE_CLI_TARGET still overrides it.
 const target =
   process.env.ESTATE_CLI_TARGET?.trim() ||
+  process.env.TAURI_ENV_TARGET_TRIPLE?.trim() ||
   process.env.CARGO_BUILD_TARGET?.trim() ||
   hostTriple();
 const cargoArgs = [
