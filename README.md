@@ -21,6 +21,10 @@ It's a small native app that stays fast on machines newer tools have left behind
 > [!NOTE]
 > **Estate is in closed testing.** There are no public downloads right now; builds go to a small group of testers directly. You can still [build it from source](#build-from-source). See [ROADMAP.md](ROADMAP.md) for what's next and [CHANGELOG.md](CHANGELOG.md) for what's changed.
 
+<p align="center">
+  <img src="docs/media/h1-hero.gif" alt="Estate with an agent chat, opening the new-pane menu next to the file explorer" width="720" />
+</p>
+
 ## How you work with agents in Estate
 
 1. **Start from an idea.** Open a project and the welcome screen asks "What are we building today?". Pick an agent and describe it, and you're in a chat.
@@ -40,6 +44,11 @@ It's a small native app that stays fast on machines newer tools have left behind
 ## What you can do
 
 **Work with coding agents**
+
+<p align="center">
+  <img src="docs/media/a1-agent-chat.gif" alt="An agent chat in Estate streaming a reply" width="720" />
+</p>
+
 - Chat with an agent instead of reading a terminal UI: streaming replies, tool calls you can expand, and a Stop button. Press Esc to interrupt, as in the agent's CLI.
 - Choose the model and how hard it thinks (effort from Low to Max), per chat.
 - Pick up where you left off: chats share the project's own Claude Code sessions, listed in a sidebar, and you can name them.
@@ -60,9 +69,29 @@ It's a small native app that stays fast on machines newer tools have left behind
 - A built-in AI assistant using your Claude or ChatGPT account, your own API keys, or a local model.
 
 **Arrange your workspace**
+
+<p align="center">
+  <img src="docs/media/t1-terminal-split.gif" alt="Splitting the Estate workspace into panes" width="720" />
+</p>
+
 - Split the window into up to four panes of any kind: terminals, chats, files, browser previews. Layouts are saved per project.
 - Switch projects from the status bar, with recent projects one click away.
 - Themes including Estate Default (green-to-lime accents) and Estate OLED (true black), and the sidebar on either side.
+
+<table>
+  <tr>
+    <td><img src="docs/media/y7-estate-customization.webp" alt="Estate with a space wallpaper behind agent chat and a Markdown preview" /></td>
+    <td><img src="docs/media/y8-estate-customization.webp" alt="Estate with a classical painting as the wallpaper behind a terminal" /></td>
+  </tr>
+  <tr>
+    <td><img src="docs/media/y9-estate-customization.webp" alt="Estate with files, a terminal and Git history side by side over an illustrated wallpaper" /></td>
+    <td><img src="docs/media/y10-estate-customization.webp" alt="Estate with two terminals side by side and the agents sidebar on the right, over a grey sea wallpaper" /></td>
+  </tr>
+  <tr>
+    <td><img src="docs/media/y11-estate-customization.webp" alt="Estate with an agent chat, a browser preview and a Markdown file in panes, and the agents sidebar on the right" /></td>
+    <td><img src="docs/media/y12-estate-customization.webp" alt="Estate with the agents sidebar on the left, an agent chat and a browser preview, over a soft green glow" /></td>
+  </tr>
+</table>
 
 ## Runs on
 
