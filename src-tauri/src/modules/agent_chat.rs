@@ -874,6 +874,42 @@ pub async fn agent_chat_session_history(
     .map_err(|e| e.to_string())?
 }
 
+/// Estate: shows a chat's session in Claude Code's own resume list (see
+/// `agent_chat_cli_sync`). `full` rescans the whole file; otherwise only what
+/// was added since the last sync is read.
+#[tauri::command]
+pub async fn agent_chat_sync_cli(
+    registry: tauri::State<'_, WorkspaceRegistry>,
+    state: tauri::State<'_, std::sync::Arc<crate::modules::agent_chat_cli_sync::CliSyncState>>,
+    agent: ChatAgent,
+    cwd: String,
+    session_id: String,
+    title: Option<String>,
+    full: Option<bool>,
+) -> Result<crate::modules::agent_chat_cli_sync::CliSyncOutcome, String> {
+    if agent != ChatAgent::Claude {
+        return Err("agent chat: only Claude Code sessions can be synced".into());
+    }
+    let session_id = validate_session(Some(&session_id))?
+        .ok_or("agent chat: invalid session id")?
+        .to_string();
+    let dir = session_dir(&registry, agent, &cwd)?
+        .ok_or("agent chat: Claude Code's folder wasn't found")?;
+    let path = dir.join(format!("{session_id}.jsonl"));
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::modules::agent_chat_cli_sync::sync_session(
+            &state,
+            &path,
+            &session_id,
+            title.as_deref(),
+            full == Some(true),
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 // ---- Sign-in status ---------------------------------------------------------
 
 /// Whether an agent can be used. Only the state and the sign-in method leave

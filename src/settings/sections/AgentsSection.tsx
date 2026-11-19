@@ -18,6 +18,7 @@ import {
   useAgentStatuses,
 } from "@/modules/agent-chat/auth";
 import { CHAT_AGENT_LABEL, CHAT_AGENTS } from "@/modules/agent-chat/model";
+import { syncSavedChatsToCli } from "@/modules/agent-chat/store";
 import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import {
   type Agent,
@@ -39,6 +40,7 @@ import {
   CHAT_STATUS_ITEMS,
   type ChatStatusItem,
   coerceDelegate,
+  setAgentChatShowInCli,
   setAgentChatStatusItems,
   setCustomInstructions,
   setOrchestratorAgent,
@@ -68,6 +70,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { SectionHeader } from "../components/SectionHeader";
 
 const ICON_OPTIONS: AgentIconId[] = [
@@ -258,6 +261,7 @@ export function AgentsSection() {
       />
 
       <ChatStatusLineBlock />
+      <ClaudeResumeListBlock />
     </div>
   );
 }
@@ -810,6 +814,61 @@ function ChatStatusLineBlock() {
           />
         </SettingRow>
       ))}
+    </section>
+  );
+}
+
+/** Estate: keeps agent chats visible to `claude --resume` in a terminal. */
+function ClaudeResumeListBlock() {
+  const enabled = usePreferencesStore((s) => s.agentChatShowInCli);
+  const [syncing, setSyncing] = useState(false);
+  const toggle = async (on: boolean) => {
+    await setAgentChatShowInCli(on);
+    if (!on) return;
+    // Chats from before the setting was on are shown too.
+    setSyncing(true);
+    try {
+      const { synced, failed } = await syncSavedChatsToCli();
+      if (failed > 0) {
+        toast.error(
+          `${failed} chat${failed === 1 ? "" : "s"} couldn't be shown in claude --resume`,
+          {
+            description:
+              "Their folder may not be open in Estate, or Claude Code hasn't saved them yet. They'll be shown after their next reply.",
+          },
+        );
+      } else if (synced > 0) {
+        toast.success(
+          `${synced} chat${synced === 1 ? "" : "s"} now show${synced === 1 ? "s" : ""} in claude --resume`,
+        );
+      }
+    } finally {
+      setSyncing(false);
+    }
+  };
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex flex-col">
+        <Label>Claude Code resume list</Label>
+        <span className="text-[10.5px] text-muted-foreground">
+          Claude Code hides sessions that ran in the background, so chats from
+          Estate don't appear in{" "}
+          <code className="rounded bg-muted/50 px-1 font-mono">
+            claude --resume
+          </code>{" "}
+          on their own.
+        </span>
+      </div>
+      <SettingRow
+        title="Show agent chats in claude --resume"
+        description="After each reply, Estate marks the chat's session as a normal Claude Code session, so you can continue it from any terminal, and names it after the chat tab. Turning this on also does it for your existing chats. Each chat also has a button for this in its header."
+      >
+        <Switch
+          checked={enabled}
+          disabled={syncing}
+          onCheckedChange={(on) => void toggle(on)}
+        />
+      </SettingRow>
     </section>
   );
 }

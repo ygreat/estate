@@ -2,6 +2,7 @@ import {
   Alert02Icon,
   Clock01Icon,
   CancelCircleIcon,
+  ComputerTerminal02Icon,
   InformationCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -57,6 +58,7 @@ import {
   type ComposerAction,
 } from "./ChatComposer";
 import { stopsAgent } from "./chatKeys";
+import { cliSyncMessage, cliSyncTarget, syncToCli } from "./cliSync";
 import { runInTerminal } from "./chatTerminal";
 import {
   skillsMarkdown,
@@ -187,6 +189,7 @@ export function AgentChatPane({
   const setEffort = useAgentChatStore((s) => s.setEffort);
   const newSession = useAgentChatStore((s) => s.newSession);
   const openSession = useAgentChatStore((s) => s.openSession);
+  const names = useSessionNames((s) => s.names);
   const [historyOpen, setHistoryOpen] = useState(readHistoryOpen);
   const toggleHistory = () => {
     setHistoryOpen((v) => {
@@ -360,6 +363,11 @@ export function AgentChatPane({
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">
+          {agent === "claude" && (
+            <SyncToCliButton
+              target={cliSyncTarget(chat ? { ...chat, cwd } : null, names)}
+            />
+          )}
           <ModelPicker
             agent={agent}
             value={chat?.model}
@@ -547,6 +555,54 @@ export function AgentChatPane({
         </div>
       )}
     </div>
+  );
+}
+
+/** Estate: shows this chat's session in Claude Code's own resume list. */
+function SyncToCliButton({
+  target,
+}: {
+  target: ReturnType<typeof cliSyncTarget>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const sync = async () => {
+    if (!target || busy) return;
+    setBusy(true);
+    try {
+      toast.success(
+        cliSyncMessage(await syncToCli(target, true), target.title),
+        {
+          description: "Run claude --resume in this folder to find it.",
+        },
+      );
+    } catch (err) {
+      toast.error("Couldn't show this chat in claude --resume", {
+        description: String(err),
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      className="size-7 text-muted-foreground"
+      disabled={!target || busy}
+      title={
+        target
+          ? "Show in Claude Code's resume list (claude --resume)"
+          : "Send a message first: there's no Claude Code session yet"
+      }
+      aria-label="Show in Claude Code's resume list"
+      onClick={() => void sync()}
+    >
+      <HugeiconsIcon
+        icon={ComputerTerminal02Icon}
+        size={15}
+        strokeWidth={1.75}
+      />
+    </Button>
   );
 }
 

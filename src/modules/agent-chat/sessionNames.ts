@@ -2,7 +2,9 @@
 /**
  * Names the user gives agent sessions, by renaming a chat tab or a session in
  * the sidebar. One name per session, shared by every tab that shows it.
- * Kept in local storage; the agent's own session files are never touched.
+ * Kept in local storage. With "Show agent chats in claude --resume" on (or
+ * the chat's header button), a Claude Code session's name is also written to
+ * its session file as a title (`cliSync.ts`).
  */
 import { create } from "zustand";
 import type { ChatAgentId } from "./model";

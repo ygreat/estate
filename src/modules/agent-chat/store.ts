@@ -1,7 +1,11 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { LazyStore } from "@tauri-apps/plugin-store";
+import { toast } from "sonner";
 import { create } from "zustand";
+import { usePreferencesStore } from "@/modules/settings/preferences";
 import { createTurnAdapter } from "./adapters";
+import { type CliSyncTarget, cliSyncTarget, syncToCli } from "./cliSync";
+import { sessionKey, useSessionNames } from "./sessionNames";
 import { transcriptFromHistory } from "./history";
 import {
   ACCESS_LABEL,
@@ -114,6 +118,76 @@ function scheduleSave(id: string) {
       void disk.set(id, saved).catch(() => {});
     }, 1500),
   );
+}
+
+// ---- Claude Code resume list (Estate) ------------------------------------
+
+/** Sessions whose automatic sync already failed once this run: told once. */
+const cliSyncWarned = new Set<string>();
+
+const sessionNames = () => useSessionNames.getState().names;
+
+/** After a turn: keeps the chat's session in `claude --resume`, if enabled. */
+function autoSyncToCli(id: string) {
+  if (!usePreferencesStore.getState().agentChatShowInCli) return;
+  const target = cliSyncTarget(
+    useAgentChatStore.getState().chats[id],
+    sessionNames(),
+  );
+  if (!target) return;
+  void syncToCli(target, false).catch((err) => {
+    if (cliSyncWarned.has(target.sessionId)) return;
+    cliSyncWarned.add(target.sessionId);
+    toast.error("Couldn't show this chat in claude --resume", {
+      description: String(err),
+    });
+  });
+}
+
+/** The current sessions of every saved Claude chat (open ones as they are now). */
+async function cliSyncTargets(): Promise<CliSyncTarget[]> {
+  const saved = await disk.entries<unknown>().catch(() => []);
+  const names = sessionNames();
+  const byChat = new Map<string, CliSyncTarget>();
+  for (const [key, value] of saved) {
+    const target = cliSyncTarget(
+      value as Parameters<typeof cliSyncTarget>[0],
+      names,
+    );
+    if (target) byChat.set(key, target);
+  }
+  for (const [key, chat] of Object.entries(
+    useAgentChatStore.getState().chats,
+  )) {
+    const target = cliSyncTarget(chat, names);
+    if (target) byChat.set(key, target);
+    else byChat.delete(key);
+  }
+  const seen = new Set<string>();
+  return [...byChat.values()].filter((t) => {
+    const k = `${t.cwd}\n${t.sessionId}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+/** Shows every saved Claude chat in `claude --resume` (when the setting turns on). */
+export async function syncSavedChatsToCli(): Promise<{
+  synced: number;
+  failed: number;
+}> {
+  let synced = 0;
+  let failed = 0;
+  for (const target of await cliSyncTargets()) {
+    try {
+      await syncToCli(target, true);
+      synced += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+  return { synced, failed };
 }
 
 /** Forgets a chat's saved transcript (when its tab closes). */
@@ -373,6 +447,7 @@ export const useAgentChatStore = create<State>((set, get) => ({
       applyEvents(id, extra);
       updateChat(id, (c) => ({ ...c, running: false }));
       scheduleSave(id);
+      autoSyncToCli(id);
     };
 
     // Estate: an effort level the chosen model doesn't take isn't sent.
@@ -497,6 +572,18 @@ export const useAgentChatStore = create<State>((set, get) => ({
     await get().send(id, retryPrompt(access));
   },
 }));
+
+// Estate: renaming a chat renames its session in `claude --resume` too. A
+// running turn is left alone; the sync after it carries the new name.
+useSessionNames.subscribe((s, prev) => {
+  if (s.names === prev.names) return;
+  for (const [id, chat] of Object.entries(useAgentChatStore.getState().chats)) {
+    const sid = chat.transcript.sessionId;
+    if (chat.agent !== "claude" || !sid || chat.running) continue;
+    const key = sessionKey("claude", sid);
+    if (s.names[key] && s.names[key] !== prev.names[key]) autoSyncToCli(id);
+  }
+});
 
 /** Which agents are installed, asked once per app session. */
 let available: Promise<ChatAgentId[]> | null = null;

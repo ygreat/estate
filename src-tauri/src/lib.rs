@@ -273,6 +273,9 @@ pub fn run() {
         .manage(history::HistoryState::default())
         .manage(lsp::LspState::default())
         .manage(modules::agent_chat::AgentChatState::default())
+        .manage(std::sync::Arc::new(
+            modules::agent_chat_cli_sync::CliSyncState::default(),
+        ))
         .manage(fs::supersede::Supersede::default())
         .manage(fs::index::FileIndexState::default())
         .manage({
@@ -334,6 +337,7 @@ pub fn run() {
             modules::agent_chat::agent_chat_models,
             modules::agent_chat::agent_chat_session_history,
             modules::agent_chat::agent_chat_auth,
+            modules::agent_chat::agent_chat_sync_cli,
             lsp::lsp_send,
             lsp::lsp_kill,
             fs::search::fs_search,

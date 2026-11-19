@@ -181,6 +181,8 @@ export type Preferences = {
   sidebarSide: SidebarSide;
   /** Items in the agent chat status line, in display order. */
   agentChatStatusItems: ChatStatusItem[];
+  /** Estate: after each turn, show Claude chats in Claude Code's resume list. */
+  agentChatShowInCli: boolean;
   terminalScreenReader: boolean;
   terminalCursorBlink: boolean;
   terminalCursorStyle: TerminalCursorStyle;
@@ -285,6 +287,7 @@ const KEY_EXPLORER_GIT_DECORATIONS = "explorerGitDecorations";
 const KEY_TERMINAL_RENDERER = "terminalRenderer";
 const KEY_SIDEBAR_SIDE = "sidebarSide";
 const KEY_AGENT_CHAT_STATUS = "agentChatStatusItems";
+const KEY_AGENT_CHAT_SHOW_IN_CLI = "agentChatShowInCli";
 const KEY_TERMINAL_SCREEN_READER = "terminalScreenReader";
 const KEY_TERMINAL_CURSOR_BLINK = "terminalCursorBlink";
 const KEY_TERMINAL_CURSOR_STYLE = "terminalCursorStyle";
@@ -416,6 +419,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   terminalRenderer: "auto",
   sidebarSide: "right",
   agentChatStatusItems: [...DEFAULT_CHAT_STATUS_ITEMS],
+  agentChatShowInCli: false,
   terminalScreenReader: false,
   terminalCursorBlink: false,
   terminalCursorStyle: "bar",
@@ -588,6 +592,7 @@ export async function loadPreferences(): Promise<Preferences> {
     agentChatStatusItems: coerceChatStatusItems(
       get<unknown>(KEY_AGENT_CHAT_STATUS),
     ),
+    agentChatShowInCli: get<boolean>(KEY_AGENT_CHAT_SHOW_IN_CLI) === true,
     terminalScreenReader: get<boolean>(KEY_TERMINAL_SCREEN_READER) === true,
     terminalCursorBlink:
       get<boolean>(KEY_TERMINAL_CURSOR_BLINK) ??
@@ -931,6 +936,10 @@ export async function setAgentChatStatusItems(
   await writePref(KEY_AGENT_CHAT_STATUS, coerceChatStatusItems(value));
 }
 
+export async function setAgentChatShowInCli(value: boolean): Promise<void> {
+  await writePref(KEY_AGENT_CHAT_SHOW_IN_CLI, value);
+}
+
 export async function setSidebarSide(value: SidebarSide): Promise<void> {
   await writePref(KEY_SIDEBAR_SIDE, coerceSidebarSide(value));
 }
@@ -1161,6 +1170,7 @@ export async function onPreferencesChange(
     [KEY_TERMINAL_RENDERER]: "terminalRenderer",
     [KEY_SIDEBAR_SIDE]: "sidebarSide",
     [KEY_AGENT_CHAT_STATUS]: "agentChatStatusItems",
+    [KEY_AGENT_CHAT_SHOW_IN_CLI]: "agentChatShowInCli",
     [KEY_TERMINAL_SCREEN_READER]: "terminalScreenReader",
     [KEY_TERMINAL_CURSOR_BLINK]: "terminalCursorBlink",
     [KEY_TERMINAL_CURSOR_STYLE]: "terminalCursorStyle",
