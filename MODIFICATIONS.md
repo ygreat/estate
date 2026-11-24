@@ -20,7 +20,7 @@ Files that can't hold comments, such as JSON, are listed here instead, along wit
 | `src-tauri/tauri.windows.conf.json` | Terax names changed to Estate. |
 | `packages/ghostty-core/package.json` | Package renamed from `@terax/ghostty-core` to `@estate/ghostty-core`. |
 | `src-tauri/capabilities/default.json` | Adds `dialog:allow-open` for the project folder picker. |
-| `.size-limit.json` | Font file names changed to Estate. Total client JS budget raised from 1505 KB to 1560 KB for split view and chat mode (both load lazily; the startup budget is unchanged). |
+| `.size-limit.json` | Font file names changed to Estate. Total client JS budget raised from 1505 KB to 1560 KB for split view and chat mode, then to 1600 KB for file mentions, link previews and the agent chat trace (all load lazily; the startup budget is unchanged). |
 | `src/modules/ai/lib/pathPolicy.json` | Terax names changed to Estate. |
 | `scripts/app-lab/experiments/tab-switch-toggles.patch` | Terax names changed to Estate. |
 | `AGENTS.md`, `CLAUDE.md` | Point to `ESTATE.md` instead of `TERAX.md`. |

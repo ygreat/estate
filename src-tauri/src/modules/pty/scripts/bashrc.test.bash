@@ -8,6 +8,16 @@ rcfile="$script_dir/bashrc.bash"
 failures=0
 unset ESTATE_BLOCKS ESTATE_CLI __ESTATE_HOOKS_LOADED _estate_block_seen
 
+# Every child shell is the bash running this file, so the version checks below
+# match the shell under test (CI runs it with macOS /bin/bash 3.2).
+bash_bin="${BASH:-bash}"
+# Before 4.4 the rc file puts the prompt end first in PS1 (see bashrc.bash).
+prompt_end_first=
+if [ "${BASH_VERSINFO[0]}" -lt 4 ] \
+   || { [ "${BASH_VERSINFO[0]}" -eq 4 ] && [ "${BASH_VERSINFO[1]}" -lt 4 ]; }; then
+  prompt_end_first=1
+fi
+
 check() {
   local label="$1" expected="$2" actual="$3"
   if [ "$expected" = "$actual" ]; then
@@ -21,12 +31,12 @@ check() {
 # --- cwd reporting ----------------------------------------------------------
 # Drives the rc file in a pty and prints one line per OSC 7 path reported.
 cwd_reports() {
-  HOME="$1" python3 - "$rcfile" <<'PY'
+  HOME="$1" python3 - "$rcfile" "$bash_bin" <<'PY'
 import os, pty, re, select, sys, time
 
 pid, fd = pty.fork()
 if pid == 0:
-    os.execvp("bash", ["bash", "--rcfile", sys.argv[1], "-i"])
+    os.execv(sys.argv[2], [sys.argv[2], "--rcfile", sys.argv[1], "-i"])
 
 out = b""
 
@@ -68,7 +78,7 @@ check "reports cwd after cd /usr" 1 "$(printf '%s\n' "$reported" | grep -c '^/us
 integration() {
   local fake_ble="$1" probe="$2" prompt_command="${3-}"
   HOME="$empty_home" ESTATE_FAKE_BLE="$fake_ble" ESTATE_PROBE="$probe" \
-    ESTATE_PC="$prompt_command" bash --norc --noprofile -c '
+    ESTATE_PC="$prompt_command" "$bash_bin" --norc --noprofile -c '
     PS1="user> "
     case "$ESTATE_PC" in
       "") ;;
@@ -133,9 +143,15 @@ status_after="$(integration "" '(exit 7); _estate_precmd >/dev/null; printf "%s"
 check "precmd returns the status it was given" 7 "$status_after"
 
 # The prompt end runs last in PROMPT_COMMAND, after every framework that rebuilds
-# PS1. Bash before 4.4 tags the marker as having no PS0 to pair with.
+# PS1. Bash before 4.4 tags the marker as having no PS0 to pair with, and puts
+# it before the prompt text: its readline miscounts \[...\] on a wrapped line.
+end_marker='\[\e]133;B\e\\\]'
 prompt_end="$(integration "" 'PS1="user> "; _estate_finish_prompt; printf "%s" "$PS1"')"
-check "prompt end follows the prompt text" 'user> \[\e]133;B\e\\\]' "${prompt_end/;terax_blocks=0/}"
+if [ -n "$prompt_end_first" ]; then
+  check "prompt end precedes the prompt text" "${end_marker}user> " "${prompt_end/;terax_blocks=0/}"
+else
+  check "prompt end follows the prompt text" "user> ${end_marker}" "${prompt_end/;terax_blocks=0/}"
+fi
 
 reinjected="$(integration "" '
   _estate_finish_prompt
@@ -143,7 +159,12 @@ reinjected="$(integration "" '
   _estate_finish_prompt
   _estate_finish_prompt
   printf "%s" "$PS1"')"
-check "prompt end is restored once after a framework rebuilt PS1" 'framework> \[\e]133;B\e\\\]' "${reinjected/;terax_blocks=0/}"
+if [ -n "$prompt_end_first" ]; then
+  expected_reinjected="${end_marker}framework> "
+else
+  expected_reinjected="framework> ${end_marker}"
+fi
+check "prompt end is restored once after a framework rebuilt PS1" "$expected_reinjected" "${reinjected/;terax_blocks=0/}"
 
 finish_status="$(integration "" '(exit 9); _estate_finish_prompt; printf "%s" "$?"')"
 check "the prompt end hook keeps the status too" 9 "$finish_status"
@@ -199,16 +220,17 @@ check "the ble.sh entry forks nothing per prompt" "" "$(cat "$fork_log")"
 unset ESTATE_FORK_LOG ESTATE_FORK_CWD
 
 # A prompt framework that rebuilds PS1 on every prompt, the way starship does,
-# must still end each prompt with the marker: drive a real bash through it.
+# must still mark the end of each prompt, after its text (before it on bash
+# < 4.4): drive a real bash through it.
 framework_prompts() {
   local home="$1"
   printf 'fw() { PS1="fw> "; }\nPROMPT_COMMAND=fw\n' > "$home/.bashrc"
-  HOME="$home" python3 - "$rcfile" <<'PY'
+  HOME="$home" python3 - "$rcfile" "$bash_bin" <<'PY'
 import os, pty, re, select, sys, time
 
 pid, fd = pty.fork()
 if pid == 0:
-    os.execvp("bash", ["bash", "--rcfile", sys.argv[1], "-i"])
+    os.execv(sys.argv[2], [sys.argv[2], "--rcfile", sys.argv[1], "-i"])
 out = b""
 
 def drain(seconds):
@@ -229,14 +251,20 @@ text = out.decode("utf-8", "replace")
 a = len(re.findall(r"\x1b\]133;A", text))
 b = len(re.findall(r"\x1b\]133;B", text))
 after_text = len(re.findall(r"fw> \x1b\]133;B", text))
-print(f"A={a} B={b} AFTER={after_text}")
+before_text = len(re.findall(r"\x1b\]133;B[^\x1b]*\x1b\\fw> ", text))
+print(f"A={a} B={b} AFTER={after_text} BEFORE={before_text}")
 PY
 }
 framework_home="$(mktemp -d)"
 result="$(framework_prompts "$framework_home")"
 rm -rf "$framework_home"
 a="${result#A=}"; a="${a%% *}"
-after="${result##*AFTER=}"
-check "every prompt of a PS1-rebuilding framework ends with the prompt end after its text" 1 "$([ "$a" -ge 3 ] && [ "$after" -ge 3 ] && echo 1 || echo "$result")"
+after="${result##*AFTER=}"; after="${after%% *}"
+before="${result##*BEFORE=}"
+if [ -n "$prompt_end_first" ]; then
+  check "every prompt of a PS1-rebuilding framework starts with the prompt end" 1 "$([ "$a" -ge 3 ] && [ "$before" -ge 3 ] && [ "$after" -eq 0 ] && echo 1 || echo "$result")"
+else
+  check "every prompt of a PS1-rebuilding framework ends with the prompt end after its text" 1 "$([ "$a" -ge 3 ] && [ "$after" -ge 3 ] && [ "$before" -eq 0 ] && echo 1 || echo "$result")"
+fi
 
 exit $((failures > 0))
